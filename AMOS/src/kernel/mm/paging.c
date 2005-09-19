@@ -2,33 +2,13 @@
 #include <kernel/mm/physical.h>
 #include <kernel/kernel.h>
 #include <kernel/console.h>
+#include <kernel/isr.h>
 
 struct PAGE_DIRECTORY * pagedirectory;
 
 struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( DWORD linearAddress )
 {
 	return (struct PAGE_DIRECTORY_ENTRY *)&pagedirectory->entry[ GET_DIRECTORY_INDEX(linearAddress) ];
-}
-
-struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( DWORD linearAddress )
-{
-	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( linearAddress );
-	
-	struct PAGE_TABLE * pt = (struct PAGE_TABLE *)(pde->address << TABLE_SHIFT);
-
-	return (struct PAGE_TABLE_ENTRY *)&pt->entry[ GET_TABLE_INDEX(linearAddress) ];
-}
-
-// maps a linear address to a physical address
-void paging_setPageTableEntry( DWORD linearAddress, DWORD physicalAddress )
-{
-	struct PAGE_TABLE_ENTRY * pte = paging_getPageTableEntry( linearAddress );
-	
-	memset( (BYTE *)pte, 0x00, sizeof(struct PAGE_TABLE_ENTRY) );
-	
-	pte->address = physicalAddress >> TABLE_SHIFT;
-	pte->present = TRUE;
-	pte->readwrite = READWRITE;	
 }
 
 void paging_setPageDirectoryEntry( DWORD linearAddress, DWORD ptAddress )
@@ -44,28 +24,55 @@ void paging_setPageDirectoryEntry( DWORD linearAddress, DWORD ptAddress )
 	pde->readwrite = READWRITE;
 }
 
-void paging_init( DWORD mem_upper )
+struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( DWORD linearAddress )
 {
-	int i, x, tables;
-	DWORD physicalAddress = 0x00;
+	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( linearAddress );
 	
-	tables = ( ( mem_upper / SIZE_1KB ) + 1 ) / 4;
+	struct PAGE_TABLE * pt = (struct PAGE_TABLE *)(pde->address << TABLE_SHIFT);
+	
+	if( pt == NULL )
+	{
+		pt = (struct PAGE_TABLE *)physical_pageAlloc();
+		
+		paging_setPageDirectoryEntry( linearAddress, (DWORD)pt );
+	}
+	
+	return (struct PAGE_TABLE_ENTRY *)&pt->entry[ GET_TABLE_INDEX(linearAddress) ];
+}
+
+// maps a linear address to a physical address
+void paging_setPageTableEntry( DWORD linearAddress, DWORD physicalAddress )
+{
+	struct PAGE_TABLE_ENTRY * pte = paging_getPageTableEntry( linearAddress );
+	
+	memset( (BYTE *)pte, 0x00, sizeof(struct PAGE_TABLE_ENTRY) );
+	
+	pte->address = physicalAddress >> TABLE_SHIFT;
+	pte->present = TRUE;
+	pte->readwrite = READWRITE;	
+}
+
+void paging_handler( struct REGISTERS * reg )
+{
+	kprintf( "paging_handler() - General Protection Fault!\n");
+}
+
+void paging_init()
+{
+	DWORD physicalAddress;
+	
+	isr_setHandler( 14, paging_handler );
 
 	pagedirectory = (struct PAGE_DIRECTORY *)physical_pageAlloc();
+	paging_setPageTableEntry( (DWORD)pagedirectory, (DWORD)pagedirectory );
 	
 	// clear out the page directory...
 	memset( (BYTE *)pagedirectory, 0x00, sizeof(struct PAGE_DIRECTORY) );
 	
-	// identity map all physical memory!
-	for( i=0 ; i<tables ; i++ )
+	// identity map bottom 4MB's
+	for( physicalAddress=0L ; physicalAddress<(1024*SIZE_4KB) ; physicalAddress+=SIZE_4KB )
 	{
-		paging_setPageDirectoryEntry( physicalAddress, physical_pageAlloc() );
-		
-		for( x=0 ; x<PAGE_ENTRYS ; x++ )
-		{
-			paging_setPageTableEntry( physicalAddress, physicalAddress );		
-			physicalAddress += SIZE_4KB;
-		}
+		paging_setPageTableEntry( physicalAddress, physicalAddress );		
 	}
 
 	// set cr3 = page directory address...

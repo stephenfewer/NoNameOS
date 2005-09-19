@@ -70,7 +70,7 @@ void paging_setPageTableEntry( DWORD, DWORD );
 
 void paging_setDirectoryTableEntry( DWORD, DWORD );
 
-void paging_init( DWORD );
+void paging_init();
 
 #endif
 

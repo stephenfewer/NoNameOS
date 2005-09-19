@@ -50,7 +50,7 @@ int main( struct MULTIBOOT_INFO * m )
 	sti();
 	kprintf( "done\n");
 	
-	//__asm__ __volatile__("int %0" : : "i"(13));
+	//__asm__ __volatile__("int %0" : : "i"(14));
     
     for(;;);
 

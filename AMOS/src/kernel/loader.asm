@@ -436,6 +436,6 @@ _irq15:
     jmp isr_common_stub
 
 SECTION	.bss
-ALIGN	16
-RESB	16384
+ALIGN	4
+RESB	4096
 stack:

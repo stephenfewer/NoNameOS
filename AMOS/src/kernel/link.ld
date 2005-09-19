@@ -6,19 +6,19 @@ SECTIONS
   .text phys : AT(phys) {
     code = .;
     *(.text)
-    . = ALIGN(1024);
+    . = ALIGN(4096);
   }
   .data : AT(phys + (data - code))
   {
     data = .;
     *(.data)
-    . = ALIGN(1024);
+    . = ALIGN(4096);
   }
   .bss : AT(phys + (bss - code))
   {
     bss = .;
     *(.bss)
-    . = ALIGN(1024);
+    . = ALIGN(4096);
   }
   _end = .;
 }

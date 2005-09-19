@@ -6,5 +6,5 @@ void mm_init( DWORD mem_upper )
 {
 	physical_init( mem_upper );
 
-	paging_init( mem_upper );
+	paging_init();
 }
