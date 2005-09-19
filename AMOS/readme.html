@@ -1,0 +1,86 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+  <meta http-equiv="Content-Type"
+ content="text/html; charset=ISO-8859-1">
+  <title>AMOS</title>
+<style type="text/css">
+p {
+  text-align: justify;
+}
+</style>
+</head>
+<body bgcolor="#FFFFFF" text="#000000" link="#0000FF" vlink="#FF00CC" alink="#FF0000">
+<h2>AMOS</h2>
+<p>Version 0.1.0<br>
+  9th June 2005<br>
+</p>
+<h2>Contents<br>
+</h2>
+<ul>
+  <li><a href="#Introduction">Introduction</a></li>
+  <li><a href="#Building">Building</a></li>
+  <li><a href="#Changelog">Changelog</a></li>
+</ul>
+<h2><a name="Introduction"></a>Introduction</h2>
+<div style="margin-left: 40px;">
+  <p><a href="http://amos.harmonysecurity.com/" target="_blank">AMOS</a> is an 
+    open source operating system that I am developing as a hobby. The goal is 
+    by version 1.0.0 to have a completely memory managed, multitasking kernel. 
+    I am developing it in C and x86 assembly. My developmeny enviroment is the 
+    windows port of the GNU development tools <a href="http://www.delorie.com/djgpp/" target="_blank">DJGPP</a> 
+    along with the <a href="http://nasm.sourceforge.net/wakka.php?wakka=HomePage" target="_blank">NASM</a> 
+    assembler. For my IDE I am useing IBM's <a href="http://www.eclipse.org/" target="_blank">Eclipse</a> 
+    with the <a href="http://www.eclipse.org/cdt/" target="_blank">CDT</a> plugin 
+    which provides a C/C++ development enviroment within Eclipse. Eclipse will 
+    be great when I get some a <a href="http://www.gnu.org/software/cvs/" target="_blank">CVS</a> 
+    account and I can maintain the source tree with it. I am using <a href="http://bochs.sourceforge.net/" target="_blank">bochs</a> 
+    to run AMOS.</p>
+  <p>Author: Steve Fewer<br>
+    Contact : steve [AT] harmonysecurity [DOT] com<br>
+    Web: <a href="http://amos.harmonysecurity.com/" target="_blank">amos.harmonysecurity.com</a><br>
+  </p>
+  </div>
+<ol>
+  <ol>
+  </ol>
+</ol>
+<h2><a name="Building"></a>Building</h2>
+<div style="margin-left: 40px;"> 
+  <p>In order to build the AMOS source code you will need some of the tools mentioned 
+    above. Enter the root directory of the code and run make. It should be that 
+    simple. Make sure you have your enviroment variables set up correctly, e.g.</p>
+</div>
+<div style="margin-left: 40px;">
+  <p><font face="Courier New, Courier, mono" size="2">set PATH=C:\\DJGPP\bin;%PATH<br>
+    set DJGPP=C:\\DJGPP\djgpp.env</font></p>
+</div>
+<div style="margin-left: 40px;">
+  <p>The linker will place the finished binary <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
+    in the bin directory.</p>
+  <p>You will need to use a program like <a href="http://www.winimage.com/download.htm" target="_blank">WinImage</a> 
+    to place <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
+    in the disk image <font face="Courier New, Courier, mono" size="2">amos.ima</font>. 
+    Place it in the /boot/ directory of the disk image. <a href="http://www.gnu.org/software/grub/" target="_blank">GRUB</a> 
+    is allready configured to boot the kernel.</p>
+  <p>You can now use bochs to boot off the disk image, the <font face="Courier New, Courier, mono" size="2">bochsrc.bxrc</font> 
+    config script should be fine but go over it to make sure. Either double click 
+    on the <font face="Courier New, Courier, mono" size="2">bochsrc.bxrc</font> 
+    config script or run it from the command line, e.g.</p>
+  <p><font face="Courier New, Courier, mono" size="2">C:\Bochs-2.2.pre4\bochs 
+    -q -f bochsrc.bxrc</font></p>
+  <p>You should now be running AMOS!<br>
+  </p>
+  </div>
+<h2><a name="Changelog"></a>Changelog<br>
+</h2>
+<div style="margin-left: 40px;">
+  <p>Version 0.1.0 - 9th June 2005</p>
+  <p>Initial release. Basic support for Global Descriptor Table, IRQ and Interrupt 
+    handling. Also some console support routines are available.</p>
+  <p>&nbsp;</p>
+</div>
+<ul>
+</ul>
+</body>
+</html>
