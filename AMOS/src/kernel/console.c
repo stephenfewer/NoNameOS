@@ -1,7 +1,7 @@
 #include <kernel/kernel.h>
 #include <kernel/console.h>
 
-static BYTE * console_mem;
+BYTE * console_mem;
 
 int console_x, console_y;
 

@@ -3,7 +3,16 @@
 
 #include <sys/types.h>
 
-#define PAGE_ENTRYS	1024
+#define PAGE_ENTRYS		1024
+
+#define PAGE_SIZE		SIZE_4KB
+
+#define PAGE_ALIGN( address )	( ( (address) + PAGE_SIZE - 1 ) & ~( PAGE_SIZE - 1 ) )
+
+#define SEGMENT_OFFSET	0x40101000
+
+#define PHYS2LOG( address )		( ( (void *)address ) - SEGMENT_OFFSET )
+#define LOG2PHYS( address )		( ( (void *)address ) + SEGMENT_OFFSET )
 
 // see page 3-26
 #define SUPERVISOR	0x00
@@ -66,7 +75,7 @@ struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( DWORD );
 
 struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( DWORD );
 
-void paging_setPageTableEntry( DWORD, DWORD );
+void paging_setPageTableEntry( DWORD, DWORD, BOOL );
 
 void paging_setDirectoryTableEntry( DWORD, DWORD );
 

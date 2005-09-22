@@ -6,31 +6,41 @@
 extern void start;
 extern void end;
 
-static char * pm_bitmap = (char *)&end;
+// enough for 4GB's of physical memory is 131072 bits which is 128KB's in size
+// enough for 16MB' of physical memory is 512bytes in size
+
+char pm_bitmap[512];
 
 void physical_init( DWORD mem_upper )
 {
-	DWORD physicalAddress = (DWORD)&start;
+	int pm_bitmap_size;
+	DWORD physicalAddress;
 	
-	int pm_bitmap_size = ( ( ( mem_upper / SIZE_1KB ) + 1 ) * 256 ) / 8;
+	// calculate the size of the bitmap so we have 1bit
+	// for every 4KB page in actual physical memory
+	pm_bitmap_size = 512;//( ( ( ( mem_upper / SIZE_1KB ) + 1 ) * 256 ) / 8 );
 	
+	//pm_bitmap = (char *)&end;
+	
+	// clear the bitmap so all pages are marked as free
 	memset( (BYTE *)pm_bitmap, 0x00, pm_bitmap_size );
 
+	// reserver the bios and video memory
+	for( physicalAddress=0xA0000 ; physicalAddress<0x100000 ; physicalAddress+=SIZE_4KB )
+		physical_pageAllocAddress( physicalAddress );
+		
 	// reserve all the memory currently being taken up by the
 	// kernel and the physical memory bitmap tacked on to the
 	// end of the kernel image, this avoids us allocating this
 	// memory later on, lets hope it works :)
-	
-	while( physicalAddress < (DWORD)(&end + pm_bitmap_size ) )
-	{
+	//(pm_bitmap + pm_bitmap_size )
+	for( physicalAddress=(DWORD)&start ; physicalAddress<(DWORD)&end ; physicalAddress+=SIZE_4KB )
 		physical_pageAllocAddress( physicalAddress );
-		physicalAddress += SIZE_4KB;
-	}
 }
 
 DWORD physical_pageAlloc()
 {
-	DWORD physicalAddress = 0L;//0x00500000;
+	DWORD physicalAddress = 0x00000000;
 
 	// linear search! ohh dear :)
 	while( !physical_isPageFree( physicalAddress ) )

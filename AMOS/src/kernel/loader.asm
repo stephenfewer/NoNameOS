@@ -1,16 +1,19 @@
 BITS 32
 
+KERNEL_VIRTUAL_ADDRESS	equ 0xC0000000
+
 MULTIBOOT_PAGE_ALIGN	equ 1<<0
 MULTIBOOT_MEMORY_INFO	equ 1<<1
 MULTIBOOT_AOUT_KLUDGE	equ 1<<16
 MULTIBOOT_HEADER_MAGIC	equ 0x1BADB002
-MULTIBOOT_HEADER_FLAGS	equ MULTIBOOT_PAGE_ALIGN | MULTIBOOT_MEMORY_INFO | MULTIBOOT_AOUT_KLUDGE
+MULTIBOOT_HEADER_FLAGS	equ MULTIBOOT_PAGE_ALIGN | MULTIBOOT_MEMORY_INFO
 MULTIBOOT_CHECKSUM		equ -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)
 
-EXTERN code, bss, _end, _main
+EXTERN text, kernel, setup, data, bss, _end, _main
 
 EXTERN _isr_dispatcher
 
+GLOBAL _setup
 GLOBAL _start
 
 GLOBAL _isr00
@@ -63,25 +66,64 @@ GLOBAL _irq13
 GLOBAL _irq14
 GLOBAL _irq15
 
+SECTION .setup
 
-SECTION .text
-
-_start:
-    jmp loader
-
+_setup:
+    jmp short loader 
 ALIGN 4
-
 boot:
     dd MULTIBOOT_HEADER_MAGIC
     dd MULTIBOOT_HEADER_FLAGS
     dd MULTIBOOT_CHECKSUM
-    dd boot
-    dd _start
-    dd bss
-    dd _end
-    dd loader
-
 loader:
+	lgdt[GDTR]
+	mov ax, DATA_SEGMENT
+    mov ds, ax
+    mov ss, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    jmp CODE_SEGMENT:KERNEL_VIRTUAL_ADDRESS
+GDTR:				
+	DW GDTEND-GDT-1	; limit
+	DD GDT			; address
+GDT:
+NULL_SEGMENT	EQU $-GDT 
+	DD	0x00000000
+	DD	0x00000000
+LINEARCODE_SEGMENT	EQU $-GDT
+	DW	0xFFFF
+	DW	0x0000
+	DB	0x00
+	DB	0x9A
+	DB	0xCF
+	DB	0x00
+LINEARDATA_SEGMENT	EQU $-GDT
+	DW	0xFFFF
+	DW	0x0000
+	DB	0x00
+	DB	0x92
+	DB	0xCF
+	DB	0x00
+CODE_SEGMENT	EQU $-GDT 
+	DW	0xFFFF          
+	DW	0x1000              
+	DB	0x10              
+	DB	0x9A             
+	DB	0xCF            
+	DB	0x40              
+DATA_SEGMENT	EQU $-GDT  
+	DW	0xFFFF           
+	DW	0x1000              
+	DB	0x10              
+	DB	0x92             
+	DB	0xCF             
+	DB	0x40               
+GDTEND:
+
+SECTION .kernel
+
+_start:
     mov esp, stack
     push dword 0
     popf
@@ -93,10 +135,13 @@ loader:
     shr ecx, 2
     rep stosd
 
-    push ebx
+	; fixup the GRUB MULTIBOOT_INFO pointer
+	add ebx, KERNEL_VIRTUAL_ADDRESS
+	push ebx
+
     call _main
     hlt
-
+	
 isr_common_stub:
     pusha
     push ds
@@ -434,8 +479,8 @@ _irq15:
     push byte 0
     push byte 47
     jmp isr_common_stub
-
+    
 SECTION	.bss
-ALIGN	4
+ALIGN	16
 RESB	4096
 stack:
