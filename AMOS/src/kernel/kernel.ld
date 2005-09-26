@@ -1,7 +1,7 @@
 OUTPUT_FORMAT("coff-go32")
 ENTRY(_setup)
 phys = 0x00100000;
-virt = 0xC0000000;
+virt = 0xC0001000;
 SECTIONS
 {
   .setup phys : AT( phys )
@@ -25,8 +25,8 @@ SECTIONS
   }
   .bss : AT( ADDR(.setup) + SIZEOF(.setup) + SIZEOF(.kernel) + SIZEOF(.data) )
   {
-    bss = .;
-    *(.bss)
+  	bss = .;
+  	*(.bss)
     . = ALIGN(4096);
     *(COMMON)
     . = ALIGN(4096);

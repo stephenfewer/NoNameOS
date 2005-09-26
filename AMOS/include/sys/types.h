@@ -5,7 +5,7 @@
 
 #define FALSE	0x00
 
-#define PACKED __attribute__( (packed) )
+#define PACKED				__attribute__( (packed) )
 
 #define NULL ((void *)0)
 

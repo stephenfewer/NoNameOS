@@ -2,6 +2,7 @@
 #define _KERNEL_MM_PAGING_H_
 
 #include <sys/types.h>
+#include <kernel/isr.h>
 
 #define PAGE_ENTRYS		1024
 
@@ -9,10 +10,7 @@
 
 #define PAGE_ALIGN( address )	( ( (address) + PAGE_SIZE - 1 ) & ~( PAGE_SIZE - 1 ) )
 
-#define SEGMENT_OFFSET	0x40101000
-
-#define PHYS2LOG( address )		( ( (void *)address ) - SEGMENT_OFFSET )
-#define LOG2PHYS( address )		( ( (void *)address ) + SEGMENT_OFFSET )
+#define V2P( address ) (DWORD)( address - 0xC0001000 + 0x00101000 )
 
 // see page 3-26
 #define SUPERVISOR	0x00
@@ -73,6 +71,8 @@ struct PAGE_TABLE
 
 struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( DWORD );
 
+void paging_clearDirectory();
+
 struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( DWORD );
 
 void paging_setPageTableEntry( DWORD, DWORD, BOOL );
@@ -80,6 +80,8 @@ void paging_setPageTableEntry( DWORD, DWORD, BOOL );
 void paging_setDirectoryTableEntry( DWORD, DWORD );
 
 void paging_init();
+
+void paging_handler( struct REGISTERS * );
 
 #endif
 

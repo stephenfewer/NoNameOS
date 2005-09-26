@@ -7,6 +7,7 @@
 #define AMOS_MINOR_VERSION 2
 #define AMOS_PATCH_VERSION 0
 
+
 #define sti() __asm__ __volatile__ ("sti")
 
 #define cli() __asm__ __volatile__ ("cli")

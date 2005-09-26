@@ -1,6 +1,7 @@
 BITS 32
 
-KERNEL_VIRTUAL_ADDRESS	equ 0xC0000000
+KERNEL_VMA	equ 0xC0001000
+KERNEL_LMA	equ 0x00101000
 
 MULTIBOOT_PAGE_ALIGN	equ 1<<0
 MULTIBOOT_MEMORY_INFO	equ 1<<1
@@ -12,6 +13,8 @@ MULTIBOOT_CHECKSUM		equ -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)
 EXTERN text, kernel, setup, data, bss, _end, _main
 
 EXTERN _isr_dispatcher
+
+GLOBAL _VGDTR
 
 GLOBAL _setup
 GLOBAL _start
@@ -69,57 +72,52 @@ GLOBAL _irq15
 SECTION .setup
 
 _setup:
-    jmp short loader 
+	push ebx
+	mov eax, 0x9C000		
+clearpagedir:
+	mov dword [eax], 2
+	add eax, 4
+	cmp eax, 0xA0000
+	jne clearpagedir
+	
+	mov eax, 0x9D000
+	mov ebx, 0x00000000
+bindbottom:
+	mov ecx, ebx
+	or ecx, 3
+	mov dword [eax], ecx
+	add eax, 4
+	add ebx, 4096
+	cmp eax, 0x9E000
+	jne bindbottom
+	
+	mov eax, 0x9E000
+	mov ebx, 0x100000
+bindkernel:
+	mov ecx, ebx
+	or ecx, 3
+	mov dword [eax], ecx
+	add eax, 4
+	add ebx, 4096
+	cmp eax, 0x9F000
+	jne bindkernel
+
+	mov dword [0x9C000], 0x9D003
+	mov dword [0x9CC00], 0x9E003
+	
+	mov eax, 0x9C000
+	mov cr3, eax
+	mov eax, cr0
+	or eax, 0x80000000
+	mov cr0, eax
+	pop ebx
+	jmp 0x08:KERNEL_VMA	
+
 ALIGN 4
 boot:
     dd MULTIBOOT_HEADER_MAGIC
     dd MULTIBOOT_HEADER_FLAGS
     dd MULTIBOOT_CHECKSUM
-loader:
-	lgdt[GDTR]
-	mov ax, DATA_SEGMENT
-    mov ds, ax
-    mov ss, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    jmp CODE_SEGMENT:KERNEL_VIRTUAL_ADDRESS
-GDTR:				
-	DW GDTEND-GDT-1	; limit
-	DD GDT			; address
-GDT:
-NULL_SEGMENT	EQU $-GDT 
-	DD	0x00000000
-	DD	0x00000000
-LINEARCODE_SEGMENT	EQU $-GDT
-	DW	0xFFFF
-	DW	0x0000
-	DB	0x00
-	DB	0x9A
-	DB	0xCF
-	DB	0x00
-LINEARDATA_SEGMENT	EQU $-GDT
-	DW	0xFFFF
-	DW	0x0000
-	DB	0x00
-	DB	0x92
-	DB	0xCF
-	DB	0x00
-CODE_SEGMENT	EQU $-GDT 
-	DW	0xFFFF          
-	DW	0x1000              
-	DB	0x10              
-	DB	0x9A             
-	DB	0xCF            
-	DB	0x40              
-DATA_SEGMENT	EQU $-GDT  
-	DW	0xFFFF           
-	DW	0x1000              
-	DB	0x10              
-	DB	0x92             
-	DB	0xCF             
-	DB	0x40               
-GDTEND:
 
 SECTION .kernel
 
@@ -135,13 +133,11 @@ _start:
     shr ecx, 2
     rep stosd
 
-	; fixup the GRUB MULTIBOOT_INFO pointer
-	add ebx, KERNEL_VIRTUAL_ADDRESS
 	push ebx
 
     call _main
     hlt
-	
+
 isr_common_stub:
     pusha
     push ds

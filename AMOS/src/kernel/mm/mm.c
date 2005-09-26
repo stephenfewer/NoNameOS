@@ -15,7 +15,7 @@ struct heap_item * heap_firstItem = NULL;
 struct heap_item * heap_nextItem = NULL;
 */
 void mm_init( DWORD mem_upper )
-{
+{	
 	physical_init( mem_upper );
 
 	paging_init();
