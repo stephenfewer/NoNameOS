@@ -43,8 +43,8 @@ void idt_init()
 		isr_setHandler( i, NULL );
 	}
 
-	isr_setHandler( 14, paging_handler );
+	isr_setHandler( 14, paging_pageFaultHandler );
 
-	__asm__( "lidt (%0)" : : "r" ( &idt_pointer) );
+	ASM( "lidt (%0)" : : "r" ( &idt_pointer) );
 }
 

@@ -46,14 +46,18 @@ void isr_dispatcher( struct REGISTERS * reg )
 	ISR_HANDLER isr_handler = isr_handlers[ reg->int_no ];
 
 	if( isr_handler != NULL )
-		isr_handler( reg );
-
-	if( reg->int_no < 32 )
 	{
-		kprintf( "isr_dispatcher() - %s\n", isr_messages[ reg->int_no ] );
-		for(;;);
+		isr_handler( reg );
 	}
-
+	else
+	{
+		if( reg->int_no < 32 )
+		{
+			kprintf( "isr_dispatcher() - %s\n", isr_messages[ reg->int_no ] );
+			while(TRUE);
+		}
+	}
+	
 	// if this was an IRQ we must signal an EOI to the PIC
 	if( reg->int_no >= 40 && reg->int_no < 48 )
         outportb( PIC_2, EOI );

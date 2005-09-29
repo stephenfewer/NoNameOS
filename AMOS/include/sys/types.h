@@ -5,6 +5,7 @@
 
 #define FALSE	0x00
 
+#define ASM					__asm__ __volatile__
 #define PACKED				__attribute__( (packed) )
 
 #define NULL ((void *)0)

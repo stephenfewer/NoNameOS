@@ -40,14 +40,14 @@ void gdt_init()
     gdt_setEntry( 2, 0L, 0xFFFFFFFF, 0x92, 0xCF );
     
 	// Enable flat segmentation...
-	__asm__ __volatile__ ( "lgdt (%0)" :: "r" ( &gdt_pointer ) );
-	__asm__ __volatile__ ( "movw $0x10, %ax" );
-	__asm__ __volatile__ ( "movw %ax, %ds" );
-	__asm__ __volatile__ ( "movw %ax, %ss" );
-	__asm__ __volatile__ ( "movw %ax, %es" );
-	__asm__ __volatile__ ( "movw %ax, %fs" );
-	__asm__ __volatile__ ( "movw %ax, %gs" );
-	__asm__ __volatile__ ( "ljmp $0x08, $gdtflush" );	
-	__asm__ __volatile__ ( "gdtflush:" );
+	ASM( "lgdt (%0)" :: "r" ( &gdt_pointer ) );
+	ASM( "movw $0x10, %ax" );
+	ASM( "movw %ax, %ds" );
+	ASM( "movw %ax, %ss" );
+	ASM( "movw %ax, %es" );
+	ASM( "movw %ax, %fs" );
+	ASM( "movw %ax, %gs" );
+	ASM( "ljmp $0x08, $gdtflush" );	
+	ASM( "gdtflush:" );
 }
 

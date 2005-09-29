@@ -10,7 +10,7 @@ MULTIBOOT_HEADER_MAGIC	equ 0x1BADB002
 MULTIBOOT_HEADER_FLAGS	equ MULTIBOOT_PAGE_ALIGN | MULTIBOOT_MEMORY_INFO
 MULTIBOOT_CHECKSUM		equ -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)
 
-EXTERN text, kernel, setup, data, bss, _end, _main
+EXTERN text, kernel, setup, data, bss, _end, _kernel_init
 
 EXTERN _isr_dispatcher
 
@@ -71,48 +71,37 @@ GLOBAL _irq15
 
 SECTION .setup
 
-_setup:
-	push ebx
-	mov eax, 0x9C000		
-clearpagedir:
-	mov dword [eax], 2
-	add eax, 4
-	cmp eax, 0xA0000
-	jne clearpagedir
-	
-	mov eax, 0x9D000
-	mov ebx, 0x00000000
-bindbottom:
-	mov ecx, ebx
-	or ecx, 3
-	mov dword [eax], ecx
-	add eax, 4
-	add ebx, 4096
-	cmp eax, 0x9E000
-	jne bindbottom
-	
-	mov eax, 0x9E000
-	mov ebx, 0x100000
-bindkernel:
-	mov ecx, ebx
-	or ecx, 3
-	mov dword [eax], ecx
-	add eax, 4
-	add ebx, 4096
-	cmp eax, 0x9F000
-	jne bindkernel
+PAGE_DIRCTORY	equ	0x9C000
+PAGE_TABLE_1	equ	0x9D000
+PAGE_TABLE_2	equ	0x9E000
+PRIV			equ	3
 
-	mov dword [0x9C000], 0x9D003
-	mov dword [0x9CC00], 0x9E003
-	
-	mov eax, 0x9C000
+_setup:
+	push ebx					; store the pointer to the Grub multi boot header for later
+	mov eax, PAGE_TABLE_1		; create a page table that identity maps the first 4MB of mem
+	mov ebx, 0x00000000 | PRIV	; starting address of physical memory
+	call map
+	mov eax, PAGE_TABLE_2		; create a page table that will map the kernel into the 3GB mark
+	mov ebx, 0x00100000 | PRIV
+	call map
+	mov dword [PAGE_DIRCTORY], PAGE_TABLE_1 | PRIV			; store the first page table into the page directory
+	mov dword [PAGE_DIRCTORY + 768*4], PAGE_TABLE_2 | PRIV	; store the second page table into the page directory entry 768 (3GB mark)
+	mov eax, PAGE_DIRCTORY		; enable paging
 	mov cr3, eax
 	mov eax, cr0
 	or eax, 0x80000000
 	mov cr0, eax
-	pop ebx
-	jmp 0x08:KERNEL_VMA	
-
+	pop ebx						; restore ebx with the pointer to the multi boot header
+	jmp 0x08:KERNEL_VMA			; jump into the kenel at it virtual memory address
+map:
+	mov ecx, 1024				; loop 1024 times (number of entry's in a page table)
+lmap:
+	mov dword [eax], ebx		; move next entry (ebx) into the page table (eax)
+	add eax, 4					; move forward to next entry in table
+	add ebx, 4096				; move address forward by a page size
+	loop lmap					; go again untill ecx == 0
+	ret							; return to caller
+	
 ALIGN 4
 boot:
     dd MULTIBOOT_HEADER_MAGIC
@@ -135,9 +124,8 @@ _start:
 
 	push ebx
 
-    call _main
+    call _kernel_init
     hlt
-
 isr_common_stub:
     pusha
     push ds

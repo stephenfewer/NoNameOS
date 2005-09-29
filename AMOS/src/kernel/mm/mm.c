@@ -1,49 +1,145 @@
+/*
+ *     AAA    M M    OOO    SSSS
+ *    A   A  M M M  O   O  S 
+ *    AAAAA  M M M  O   O   SSS
+ *    A   A  M   M  O   O      S
+ *    A   A  M   M   OOO   SSSS 
+ *
+ *    Author:  Stephen Fewer
+ *    License: GNU General Public License (GPL)
+ */
+ 
+#include <kernel/mm/mm.h>
 #include <kernel/mm/physical.h>
 #include <kernel/mm/paging.h>
 #include <kernel/console.h>
-/*
-#define KERNEL_HEAP_VADDRESS	0xD0000000
+#include <kernel/kernel.h>
 
-struct heap_item
-{
-	struct heap_item * next;
-	int size;	
-};
+void * mm_heapTop = NULL;
+void * mm_heapBottom = NULL;
 
-struct heap_item * heap_firstItem = NULL;
-
-struct heap_item * heap_nextItem = NULL;
-*/
-void mm_init( DWORD mem_upper )
+void mm_init( DWORD memUpper )
 {	
-	physical_init( mem_upper );
+	// setup the physical memory manager, after this we can use physical_pageAlloc()
+	physical_init( memUpper );
 
+	// setup and initilise paging
 	paging_init();
 	
-	// setup the kernel heap...
-	//paging_setPageTableEntry( KERNEL_HEAP_VADDRESS, physical_pageAlloc() );
+	// from here on in we can use mm_malloc() & mm_free()
 }
-/*
-void * mm_malloc( int size )
-{
-	struct heap_item * newItem;
-	
-	if( size == 0 )
-		return NULL;
-	
-	if( heap_firstItem == NULL )
-	{
-		heap_firstItem = (struct heap_item *)KERNEL_HEAP_VADDRESS;
-		heap_firstItem->size = size;
-		
-		heap_nextItem = (struct heap_item *)( sizeof(struct heap_item) + heap_firstItem->size );
-		
-		heap_firstItem->next = heap_nextItem;
-		
-		newItem = heap_lastItem;
-	}
-	
-	return (void *)( newItem + sizeof(struct heap_item) );
-}
-*/
 
+// increase the heap by some amount, this will be rounded up by the page size 
+void * mm_morecore( DWORD size )
+{
+	// calculate how many pages we will need
+	int pages = ( size / PAGE_SIZE ) + 1;
+	// when mm_heapTop == NULL we must create the initial heap
+	if( mm_heapTop == NULL )
+		mm_heapBottom = mm_heapTop = (void *)KERNEL_HEAP_VADDRESS;
+	// set the address to return
+	void * prevTop = mm_heapTop;
+	// create the pages
+	for( ; pages-->0 ; mm_heapTop+=PAGE_SIZE )
+	{
+		// alloc a physical page in mamory
+		void * physicalAddress = physical_pageAlloc();
+		if( physicalAddress == 0L )
+			return NULL;
+		// map it onto the end of the heap
+		paging_setPageTableEntry( mm_heapTop, physicalAddress, TRUE );
+		// clear it for safety
+		memset( mm_heapTop, 0x00, PAGE_SIZE );
+	}
+	// return the start address of the memory we allocated to the heap
+	return prevTop;
+}
+
+// free a previously allocated item from the heap
+void mm_free( void * address )
+{
+	kernel_lock();
+	struct heap_item * tmp_item;
+	struct heap_item * item = (struct heap_item *)( address - sizeof(struct heap_item) );
+	// find it
+	for( tmp_item=mm_heapBottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
+	{
+		if( tmp_item == item )
+			break;
+	}
+	// not found
+	if( tmp_item == NULL )
+	{
+		kernel_unlock();
+		return;
+	}
+	// free it
+	tmp_item->used = FALSE;
+	// coalesce any free adjacent items
+	for( tmp_item=mm_heapBottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
+	{
+		while( !tmp_item->used && tmp_item->next!=NULL && !tmp_item->next->used )
+		{
+			tmp_item->size += sizeof(struct heap_item) + tmp_item->next->size;
+			tmp_item->next = tmp_item->next->next;
+		}
+	}
+	kernel_unlock();
+}
+
+// allocates an arbiturary size of memory (via first fit) from the kernel heap
+void * mm_malloc( DWORD size )
+{
+	kernel_lock();
+	struct heap_item * new_item, * tmp_item;
+	int total_size;
+	// sanity check
+	if( size == 0 )
+	{
+		kernel_unlock();
+		return NULL;
+	}
+	// round up by 8 bytes and add header size
+	total_size = ( ( size + 7 ) & ~7 ) + sizeof(struct heap_item);
+	// search for first fit
+	for( new_item=mm_heapBottom ; new_item!=NULL ; new_item=new_item->next )
+	{
+		if( !new_item->used && (total_size <= new_item->size) )
+			break;
+	}
+	// if we found one
+	if( new_item != NULL )
+	{
+		tmp_item = (struct heap_item *)( (int)new_item + total_size );
+		tmp_item->size = new_item->size - total_size;
+		tmp_item->used = FALSE;
+		tmp_item->next = new_item->next;
+		
+		new_item->size = size;
+		new_item->used = TRUE;
+		new_item->next = tmp_item;
+	}
+	else
+	{
+		// didnt find a fit so we must increase the heap to fit
+		new_item = mm_morecore( total_size );
+		if( new_item == NULL )
+		{
+			kernel_unlock();
+			return NULL;	
+		}
+		// create an empty item for the extra space mm_morecore() gave us
+		// we can calculate the size because morecore() allocates space that is page aligned
+		tmp_item = (struct heap_item *)( (int)new_item + total_size );
+		tmp_item->size = PAGE_SIZE - (total_size%PAGE_SIZE ? total_size%PAGE_SIZE : total_size) - sizeof(struct heap_item);
+		tmp_item->used = FALSE;
+		tmp_item->next = NULL;
+		// create the new item
+		new_item->size = size;
+		new_item->used = TRUE;
+		new_item->next = tmp_item;
+	}
+	// return the newly allocated memory location
+	kernel_unlock();
+	return (void *)( (int)new_item + sizeof(struct heap_item) );
+}

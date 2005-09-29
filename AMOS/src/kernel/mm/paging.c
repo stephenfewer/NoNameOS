@@ -4,29 +4,32 @@
 #include <kernel/console.h>
 #include <kernel/isr.h>
 
-struct PAGE_DIRECTORY * pagedirectory;
+extern void start;
+extern void end;
 
-struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( DWORD linearAddress )
+struct PAGE_DIRECTORY * paging_pageDir;
+
+struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( void * linearAddress )
 {
-	return &pagedirectory->entry[ GET_DIRECTORY_INDEX(linearAddress) ];
+	return &paging_pageDir->entry[ GET_DIRECTORY_INDEX(linearAddress) ];
 }
 
 void paging_clearDirectory()
 {
 	int i=0;
 	
-	memset( (BYTE *)pagedirectory, 0x00, sizeof(struct PAGE_DIRECTORY) );
+	memset( (BYTE *)paging_pageDir, 0x00, sizeof(struct PAGE_DIRECTORY) );
 	
 	for( i=0 ; i<PAGE_ENTRYS; i++ )
 	{
-		struct PAGE_DIRECTORY_ENTRY * pde = &pagedirectory->entry[i];
+		struct PAGE_DIRECTORY_ENTRY * pde = &paging_pageDir->entry[i];
 		pde->present = FALSE;
 		pde->readwrite = READWRITE;
 		pde->user = SUPERVISOR;
 	}
 }
 
-void paging_setPageDirectoryEntry( DWORD linearAddress, DWORD ptAddress )
+void paging_setPageDirectoryEntry( void * linearAddress, void * ptAddress )
 {
 	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( linearAddress );
 	memset( (BYTE *)ptAddress, 0x00, sizeof(struct PAGE_TABLE) );
@@ -41,18 +44,18 @@ void paging_setPageDirectoryEntry( DWORD linearAddress, DWORD ptAddress )
 	pde->pagesize = 0;
 	pde->globalpage = 0;
 	pde->available = 0;
-	pde->address = ptAddress >> TABLE_SHIFT;
+	pde->address = TABLE_SHIFT_R(ptAddress);
 }
 
-struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( DWORD linearAddress )
+struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( void * linearAddress )
 {
 	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( linearAddress );
-	struct PAGE_TABLE * pt = (struct PAGE_TABLE *)(pde->address << TABLE_SHIFT);
+	struct PAGE_TABLE * pt = (struct PAGE_TABLE *)( TABLE_SHIFT_L(pde->address) );
 	if( pt == NULL )
 	{
 		int i;
 		pt = (struct PAGE_TABLE *)physical_pageAlloc();
-		paging_setPageDirectoryEntry( linearAddress, (DWORD)pt );
+		paging_setPageDirectoryEntry( linearAddress, (void *)pt );
 		for( i=0 ; i<PAGE_ENTRYS ; i++ )
 			paging_setPageTableEntry( linearAddress+SIZE_4KB, 0L, FALSE );
 	}
@@ -60,7 +63,7 @@ struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( DWORD linearAddress )
 }
 
 // maps a linear address to a physical address
-void paging_setPageTableEntry( DWORD linearAddress, DWORD physicalAddress, BOOL present )
+void paging_setPageTableEntry( void * linearAddress, void * physicalAddress, BOOL present )
 {
 	struct PAGE_TABLE_ENTRY * pte = paging_getPageTableEntry( PAGE_ALIGN( linearAddress ) );
 
@@ -74,44 +77,48 @@ void paging_setPageTableEntry( DWORD linearAddress, DWORD physicalAddress, BOOL 
 	pte->attributeindex = 0;
 	pte->globalpage = 0;
 	pte->available = 0;
-	pte->address = PAGE_ALIGN( physicalAddress ) >> TABLE_SHIFT;
+	pte->address = TABLE_SHIFT_R( PAGE_ALIGN( physicalAddress ) );
+	
+	// Flush the TLB... invlpg is more efficent to use here
+	ASM( "movl %cr3, %eax" );
+	ASM( "movl %eax, %cr3" );
 }
 
-void paging_handler( struct REGISTERS * reg )
+// See page 5-43
+void paging_pageFaultHandler( struct REGISTERS * reg )
 {
-	DWORD address;
-	__asm__ __volatile__ ( "movl %%cr2, %0" : "=r" (address) );
-	kprintf( "paging_handler() - General Protection Fault at %x\n", address );
+	void * linearAddress;
+	ASM( "movl %%cr2, %0" : "=r" (linearAddress) );
+	kprintf( "General Protection Fault at CS:EIP %d:%x Address %x\n", reg->cs, reg->eip, linearAddress );
+	// we must hang untill we can fix the gpf
+	while(TRUE);
 }
-
-extern void start;
-extern void end;
 
 void paging_init()
 {
-	DWORD physicalAddress;
-	DWORD linearAddress;
+	void * physicalAddress;
+	void * linearAddress;
 
-	pagedirectory = (struct PAGE_DIRECTORY *)physical_pageAlloc();
+	paging_pageDir = (struct PAGE_DIRECTORY *)physical_pageAlloc();
 
 	// clear out the page directory...
 	paging_clearDirectory();
 		
 	// identity map bottom 4MB's
-	for( physicalAddress=0L ; physicalAddress<(1024*SIZE_4KB) ; physicalAddress+=SIZE_4KB )
+	for( physicalAddress=0L ; physicalAddress<(void *)(1024*PAGE_SIZE) ; physicalAddress+=PAGE_SIZE )
 		paging_setPageTableEntry( physicalAddress, physicalAddress, TRUE );		
 
 	// map the kernel's virtual address to its physical memory location
-	linearAddress = (DWORD)&start;
-	for( physicalAddress=V2P(&start); physicalAddress<V2P(&end) ; physicalAddress+=SIZE_4KB )
+	linearAddress = (void *)&start;
+	for( physicalAddress=V2P(&start) ; physicalAddress<V2P(&end)+physical_getBitmapSize() ; physicalAddress+=PAGE_SIZE )
 	{
 		paging_setPageTableEntry( linearAddress, physicalAddress, TRUE );
-		linearAddress += SIZE_4KB;		
+		linearAddress += PAGE_SIZE;		
 	}
 
 	// Enable Paging...
-	__asm__ __volatile__ ( "movl %%eax, %%cr3" :: "r" ( pagedirectory ) );
-	__asm__ __volatile__ ( "movl %cr0, %eax" );
-	__asm__ __volatile__ ( "orl $0x80000000, %eax" );
-	__asm__ __volatile__ ( "movl %eax, %cr0" );
+	ASM( "movl %%eax, %%cr3" :: "r" ( paging_pageDir ) );
+	ASM( "movl %cr0, %eax" );
+	ASM( "orl $0x80000000, %eax" );
+	ASM( "movl %eax, %cr0" );
 }

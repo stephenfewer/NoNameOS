@@ -6,19 +6,16 @@
 #define SIZE_4KB		4096
 #define SIZE_1KB		1024
 
-#define BITMAP_BYTE_INDEX( address )( (address / SIZE_4KB) / 8  )
+#define BITMAP_BYTE_INDEX( address )( ((DWORD)address / SIZE_4KB) / 8  )
 
-#define BITMAP_BIT_INDEX( address )( 8 - ((address / SIZE_4KB) % 8 ) - 1 )
+#define BITMAP_BIT_INDEX( address )( 8 - (((DWORD)address / SIZE_4KB) % 8 ) - 1 )
 
-DWORD physical_pageAlloc();
+void * physical_pageAlloc();
 
-DWORD physical_pageAllocAddress( DWORD );
-
-void physical_pageFree( DWORD );
+void physical_pageFree( void * );
 
 void physical_init( DWORD );
 
-inline int physical_isPageFree( DWORD );
-
+int physical_getBitmapSize();
 
 #endif

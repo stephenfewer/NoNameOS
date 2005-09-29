@@ -64,5 +64,9 @@ BYTE inportb( WORD );
 
 void outportb( WORD, BYTE );
 
+void kernel_lock();
+
+void kernel_unlock();
+
 #endif
 

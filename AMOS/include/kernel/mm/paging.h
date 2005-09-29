@@ -8,9 +8,9 @@
 
 #define PAGE_SIZE		SIZE_4KB
 
-#define PAGE_ALIGN( address )	( ( (address) + PAGE_SIZE - 1 ) & ~( PAGE_SIZE - 1 ) )
+#define PAGE_ALIGN( address )	(void *)( ( ((DWORD)address) + PAGE_SIZE - 1 ) & ~( PAGE_SIZE - 1 ) )
 
-#define V2P( address ) (DWORD)( address - 0xC0001000 + 0x00101000 )
+#define V2P( address ) (void *)( (DWORD)address - 0xC0001000 + 0x00101000 )
 
 // see page 3-26
 #define SUPERVISOR	0x00
@@ -20,13 +20,15 @@
 #define READWRITE	0x01
 
 // see page 3-21
-#define OFFSET_MASK			0x03FF
-#define DIRECTORY_SHIFT		22
-#define TABLE_SHIFT			12
+#define OFFSET_MASK	0x03FF
 
-#define GET_DIRECTORY_INDEX( linearAddress )( ( linearAddress >> DIRECTORY_SHIFT ) & OFFSET_MASK )
+#define DIRECTORY_SHIFT_R( address )		( (DWORD)address >> 22 )
+#define TABLE_SHIFT_R( address )			( (DWORD)address >> 12 )
+#define TABLE_SHIFT_L( address )			( (DWORD)address << 12 )
 
-#define GET_TABLE_INDEX( linearAddress )( ( linearAddress >> TABLE_SHIFT ) & OFFSET_MASK )
+#define GET_DIRECTORY_INDEX( linearAddress )( ( DIRECTORY_SHIFT_R(linearAddress) ) & OFFSET_MASK )
+
+#define GET_TABLE_INDEX( linearAddress )( ( TABLE_SHIFT_R( linearAddress ) ) & OFFSET_MASK )
 
 // From Intel IA32 Architecture Software Developers Manual Vol. 3 (3-24)
 struct PAGE_DIRECTORY_ENTRY
@@ -69,19 +71,19 @@ struct PAGE_TABLE
     struct PAGE_TABLE_ENTRY entry[PAGE_ENTRYS];
 };
 
-struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( DWORD );
+struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( void * );
 
 void paging_clearDirectory();
 
-struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( DWORD );
+struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( void * );
 
-void paging_setPageTableEntry( DWORD, DWORD, BOOL );
+void paging_setPageTableEntry( void *, void *, BOOL );
 
-void paging_setDirectoryTableEntry( DWORD, DWORD );
+void paging_setDirectoryTableEntry( void *, void * );
 
 void paging_init();
 
-void paging_handler( struct REGISTERS * );
+void paging_pageFaultHandler( struct REGISTERS * );
 
 #endif
 
