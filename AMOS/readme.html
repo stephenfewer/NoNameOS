@@ -56,12 +56,11 @@ p {
     set DJGPP=C:\\DJGPP\djgpp.env</font></p>
 </div>
 <div style="margin-left: 40px;">
+  <p>If you are building this on Windows you will need to install binutils for DJGPP in order to build ELF files.</p>
   <p>The linker will place the finished binary <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
     in the bin directory.</p>
-  <p>You will need to use a program like <a href="http://www.winimage.com/download.htm" target="_blank">WinImage</a> 
-    to place <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
-    in the disk image <font face="Courier New, Courier, mono" size="2">amos.ima</font>. 
-    Place it in the /boot/ directory of the disk image. <a href="http://www.gnu.org/software/grub/" target="_blank">GRUB</a> 
+  <p>Run the batch file elf.bat to create the ELF kernel form the COFF file and it will then place <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
+    in the disk image <font face="Courier New, Courier, mono" size="2">amos.ima</font>. <a href="http://www.gnu.org/software/grub/" target="_blank">GRUB</a> 
     is allready configured to boot the kernel.</p>
   <p>You can now use bochs to boot off the disk image, the <font face="Courier New, Courier, mono" size="2">bochsrc.bxrc</font> 
     config script should be fine but go over it to make sure. Either double click 
@@ -75,10 +74,12 @@ p {
 <h2><a name="Changelog"></a>Changelog<br>
 </h2>
 <div style="margin-left: 40px;">
-  <p>Version 0.1.0 - 9th June 2005</p>
-  <p>Initial release. Basic support for Global Descriptor Table, IRQ and Interrupt 
+  <p>Version 0.2.0 - 30th September 2005<br>
+  Kernel now being built as an ELF file. Build proccess entirely automated within Eclipse.
+  Paging setup and kernel mapped into the higher half. Kernel heap setup as are malloc() & free().</p>
+  <p>Version 0.1.0 - 9th June 2005<br>
+  Initial release. Basic support for Global Descriptor Table, IRQ and Interrupt 
     handling. Also some console support routines are available.</p>
-  <p>&nbsp;</p>
 </div>
 <ul>
 </ul>
