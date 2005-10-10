@@ -39,6 +39,9 @@ void gdt_init()
 	// data segment
     gdt_setEntry( 2, 0L, 0xFFFFFFFF, 0x92, 0xCF );
     
+    // NULL descriptor, we fill it in with a TSS descriptor later in tasking_init()
+    gdt_setEntry( 3, 0L, 0L, 0x00, 0x00 );
+    
 	// Enable flat segmentation...
 	ASM( "lgdt (%0)" :: "r" ( &gdt_pointer ) );
 	ASM( "movw $0x10, %ax" );

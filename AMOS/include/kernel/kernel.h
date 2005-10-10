@@ -4,21 +4,12 @@
 #include <sys/types.h>
 
 #define AMOS_MAJOR_VERSION 0
-#define AMOS_MINOR_VERSION 2
+#define AMOS_MINOR_VERSION 3
 #define AMOS_PATCH_VERSION 0
-
 
 #define sti() __asm__ __volatile__ ("sti")
 
 #define cli() __asm__ __volatile__ ("cli")
-
-struct AOUT_SYSTEM_TABLE
-{
-    DWORD tabsize;
-    DWORD strsize;
-    DWORD addr;
-    DWORD reserved;
-};
 
 struct ELF_SECTION_HEADER_TABLE
 {
@@ -37,14 +28,12 @@ struct MULTIBOOT_INFO
     DWORD cmdline;
     DWORD mods_count;
     DWORD mods_addr;
-    union
-    {
-	  struct AOUT_SYSTEM_TABLE aout_sym;
-	  struct ELF_SECTION_HEADER_TABLE elf_sec;
-    } u;
+    
+    struct ELF_SECTION_HEADER_TABLE elf_sec;
+    
     DWORD mmap_length;
     DWORD mmap_addr;
-
+    
     DWORD drives_length;
     DWORD drives_addr;
     DWORD config_table;
@@ -63,6 +52,8 @@ BYTE * memset( BYTE *, BYTE, int );
 BYTE inportb( WORD );
 
 void outportb( WORD, BYTE );
+
+DWORD kernel_getESP();
 
 void kernel_lock();
 

@@ -7,6 +7,7 @@ TARGET_DIR=../../bin/
 INCLUDE_DIR=../../include/
 
 MEMORY_MANAGER=mm
+MULTI_TASKING=tasking
 
 CC=gcc
 LD=ld
@@ -24,8 +25,8 @@ all: $(TARGET)
 
 $(TARGET): $(OBJ)
 	$(MAKE) -C $(MEMORY_MANAGER)
-	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$@ $(OBJ) ./$(MEMORY_MANAGER)/*.o
-	
+	$(MAKE) -C $(MULTI_TASKING)
+	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$@ $(OBJ) ./$(MEMORY_MANAGER)/*.o ./$(MULTI_TASKING)/*.o
 	
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<

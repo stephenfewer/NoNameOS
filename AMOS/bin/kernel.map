@@ -14,7 +14,10 @@ idt_pointer         0x10              idt.o
 physical_bitmap     0x10              ./mm/physical.o
 console_x           0x10              console.o
 PACKED              0x50              isr.o
+tasking_queue       0x400             ./tasking/tasking.o
 console_attrib      0x10              console.o
+tasking_currentTask
+                    0x10              ./tasking/tasking.o
 console_y           0x10              console.o
 
 Memory Configuration
@@ -90,68 +93,74 @@ Linker script and memory map
                 0xc0001082                isr07
  *(.text)
  *fill*         0xc00011fe        0x2 00
- .text          0xc0001200      0x100 kernel.o
-                0xc000126b                kernel_init
+ .text          0xc0001200       0xa0 kernel.o
+                0xc000124f                kernel_init
                 0xc0001200                memset
-                0xc0001233                kernel_lock
+                0xc0001236                kernel_lock
                 0xc0001229                outportb
-                0xc000123b                kernel_unlock
+                0xc000123e                kernel_unlock
+                0xc0001233                kernel_getESP
                 0xc000121e                inportb
- .text          0xc0001300      0x6a0 console.o
-                0xc00018e6                console_init
-                0xc0001788                console_getAttrib
-                0xc000183b                console_setCursor
-                0xc0001733                console_putChar
-                0xc0001528                console_putuint
-                0xc00018e5                console_beep
-                0xc00014a1                console_puthex
-                0xc00015f0                console_putch
-                0xc0001300                kprintf
-                0xc000189f                console_cls
-                0xc00017a6                console_scrollup
-                0xc000177e                console_setAttrib
-                0xc0001459                console_putint
-                0xc0001761                console_getChar
- .text          0xc00019a0      0x130 gdt.o
-                0xc00019a0                gdt_setEntry
-                0xc00019f6                gdt_init
- .text          0xc0001ad0       0xd0 idt.o
-                0xc0001b0f                idt_init
-                0xc0001ad0                idt_setEntry
- .text          0xc0001ba0       0xd0 irq.o
-                0xc0001c2b                irq_init
-                0xc0001ba0                irq_remap
- .text          0xc0001c70      0x1e0 isr.o
-                0xc0001e3b                isr_setHandler
-                0xc0001dc1                isr_dispatcher
- .text          0xc0001e50      0x480 debug.o
-                0xc0001fe7                debug_putch
-                0xc0001f1f                debug_putuint
-                0xc000200a                debug_kprintf
-                0xc0001e98                debug_puthex
-                0xc0001e50                debug_putint
- .text          0xc00022d0      0x290 ./mm/mm.o
-                0xc000236f                mm_free
-                0xc00022d0                mm_init
-                0xc00023fc                mm_malloc
-                0xc00022e5                mm_morecore
- .text          0xc0002560      0x370 ./mm/paging.o
-                0xc0002571                paging_clearDirectory
-                0xc0002560                paging_getPageDirectoryEntry
-                0xc000280d                paging_init
-                0xc00026ad                paging_setPageTableEntry
-                0xc00025af                paging_setPageDirectoryEntry
-                0xc00025f2                paging_getPageTableEntry
-                0xc00027ed                paging_pageFaultHandler
- .text          0xc00028d0      0x240 ./mm/physical.o
-                0xc00028f2                physical_pageAllocAddress
-                0xc00029d4                physical_pageFree
-                0xc0002a1c                physical_init
-                0xc0002946                physical_pageAlloc
-                0xc00028d0                physical_isPageFree
-                0xc0002940                physical_getBitmapSize
+ .text          0xc00012a0      0x7b0 console.o
+                0xc00018f2                console_init
+                0xc0001728                console_getAttrib
+                0xc00017db                console_setCursor
+                0xc00016d3                console_putChar
+                0xc00014c8                console_putuint
+                0xc00018de                console_beep
+                0xc0001441                console_puthex
+                0xc0001590                console_putch
+                0xc00012a0                kprintf
+                0xc000183f                console_cls
+                0xc0001746                console_scrollup
+                0xc000171e                console_setAttrib
+                0xc00013f9                console_putint
+                0xc0001701                console_getChar
+ .text          0xc0001a50      0x160 gdt.o
+                0xc0001a50                gdt_setEntry
+                0xc0001aa6                gdt_init
+ .text          0xc0001bb0       0xd0 idt.o
+                0xc0001bef                idt_init
+                0xc0001bb0                idt_setEntry
+ .text          0xc0001c80       0xd0 irq.o
+                0xc0001d0b                irq_init
+                0xc0001c80                irq_remap
+ .text          0xc0001d50      0x1e0 isr.o
+                0xc0001f1b                isr_setHandler
+                0xc0001ea1                isr_dispatcher
+ .text          0xc0001f30      0x480 debug.o
+                0xc00020c7                debug_putch
+                0xc0001fff                debug_putuint
+                0xc00020ea                debug_kprintf
+                0xc0001f78                debug_puthex
+                0xc0001f30                debug_putint
+ .text          0xc00023b0      0x290 ./mm/mm.o
+                0xc000244f                mm_free
+                0xc00023b0                mm_init
+                0xc00024dc                mm_malloc
+                0xc00023c5                mm_morecore
+ .text          0xc0002640      0x370 ./mm/paging.o
+                0xc000265d                paging_clearDirectory
+                0xc000264c                paging_getPageDirectoryEntry
+                0xc00028f9                paging_init
+                0xc0002644                paging_setCurrentPageDir
+                0xc0002799                paging_setPageTableEntry
+                0xc000269b                paging_setPageDirectoryEntry
+                0xc00026de                paging_getPageTableEntry
+                0xc0002640                paging_getCurrentPageDir
+                0xc00028d9                paging_pageFaultHandler
+ .text          0xc00029b0      0x240 ./mm/physical.o
+                0xc00029d2                physical_pageAllocAddress
+                0xc0002ab4                physical_pageFree
+                0xc0002afc                physical_init
+                0xc0002a26                physical_pageAlloc
+                0xc00029b0                physical_isPageFree
+                0xc0002a20                physical_getBitmapSize
+ .text          0xc0002bf0      0x190 ./tasking/tasking.o
+                0xc0002c8f                tasking_init
+                0xc0002c03                tasking_schedule
                 0xc0003000                . = ALIGN (0x1000)
- *fill*         0xc0002b10      0x4f0 00
+ *fill*         0xc0002d80      0x280 00
 
 .data           0xc0003000     0x1000 load address 0x00103000
                 0xc0003000                data = .
@@ -165,7 +174,7 @@ Linker script and memory map
                 0xc0004000                . = ALIGN (0x1000)
  *fill*         0xc0003140      0xec0 00
 
-.bss            0xc0004000     0x3000 load address 0x00104000
+.bss            0xc0004000     0x4000 load address 0x00104000
                 0xc0004000                bss = .
  *(.bss)
  .bss           0xc0004000     0x1000 loader.o
@@ -174,8 +183,10 @@ Linker script and memory map
  .bss           0xc0005004        0x8 ./mm/mm.o
                 0xc0005004                mm_heapTop
                 0xc0005008                mm_heapBottom
+ .bss           0xc000500c        0x4 ./tasking/tasking.o
+                0xc000500c                tasking_ticks
                 0xc0006000                . = ALIGN (0x1000)
- *fill*         0xc000500c      0xff4 00
+ *fill*         0xc0005010      0xff0 00
  *(COMMON)
  COMMON         0xc0006000       0x40 console.o
                 0xc0006000                console_mem
@@ -196,9 +207,12 @@ Linker script and memory map
  COMMON         0xc0006ce0       0x20 ./mm/physical.o
                 0xc0006ce0                physical_bitmapSize
                 0xc0006cf0                physical_bitmap
-                0xc0007000                . = ALIGN (0x1000)
- *fill*         0xc0006d00      0x300 00
-                0xc0007000                _end = .
+ COMMON         0xc0006d00      0x410 ./tasking/tasking.o
+                0xc0006d00                tasking_queue
+                0xc0007100                tasking_currentTask
+                0xc0008000                . = ALIGN (0x1000)
+ *fill*         0xc0007110      0xef0 00
+                0xc0008000                _end = .
 LOAD loader.o
 LOAD kernel.o
 LOAD console.o
@@ -210,16 +224,18 @@ LOAD debug.o
 LOAD ./mm/mm.o
 LOAD ./mm/paging.o
 LOAD ./mm/physical.o
+LOAD ./tasking/tasking.o
 OUTPUT(../../bin/kernel.bin coff-go32)
 
-.comment        0xc0007000       0xc8
- .comment       0xc0007000       0x14 kernel.o
- .comment       0xc0007014       0x14 console.o
- .comment       0xc0007028       0x14 gdt.o
- .comment       0xc000703c       0x14 idt.o
- .comment       0xc0007050       0x14 irq.o
- .comment       0xc0007064       0x14 isr.o
- .comment       0xc0007078       0x14 debug.o
- .comment       0xc000708c       0x14 ./mm/mm.o
- .comment       0xc00070a0       0x14 ./mm/paging.o
- .comment       0xc00070b4       0x14 ./mm/physical.o
+.comment        0xc0008000       0xdc
+ .comment       0xc0008000       0x14 kernel.o
+ .comment       0xc0008014       0x14 console.o
+ .comment       0xc0008028       0x14 gdt.o
+ .comment       0xc000803c       0x14 idt.o
+ .comment       0xc0008050       0x14 irq.o
+ .comment       0xc0008064       0x14 isr.o
+ .comment       0xc0008078       0x14 debug.o
+ .comment       0xc000808c       0x14 ./mm/mm.o
+ .comment       0xc00080a0       0x14 ./mm/paging.o
+ .comment       0xc00080b4       0x14 ./mm/physical.o
+ .comment       0xc00080c8       0x14 ./tasking/tasking.o

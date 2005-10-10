@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 
-#define GDT_ENTRYS	3
+#define GDT_ENTRYS	4
 
 struct GDT_ENTRY
 {
@@ -20,6 +20,8 @@ struct GDT_POINTER
     WORD limit;
     unsigned int   base;
 } PACKED;
+
+void gdt_setEntry( int, DWORD, DWORD, BYTE, BYTE );
 
 void gdt_init();
 

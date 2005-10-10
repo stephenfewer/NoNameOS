@@ -3,14 +3,15 @@ MAKEFILE=Makefile
 TARGET=amos.ima
 
 COPY=copy
+MCOPY=..\tools\mcopy
 RM=del
 
 all: $(TARGET)
-	..\tools\mcopy -o .\kernel.bin a:\boot
+	$(MCOPY) -o .\kernel.bin a:\boot
 
 $(TARGET):
 	$(COPY) .\grub.ima .\$(TARGET)
-	..\tools\mcopy -o .\menu.cfg a:\boot
+	$(MCOPY) -o .\menu.cfg a:\boot
 	
 clean:
 	$(RM) $(TARGET)

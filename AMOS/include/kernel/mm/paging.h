@@ -71,6 +71,10 @@ struct PAGE_TABLE
     struct PAGE_TABLE_ENTRY entry[PAGE_ENTRYS];
 };
 
+struct PAGE_DIRECTORY * paging_getCurrentPageDir();
+
+void paging_setCurrentPageDir( struct PAGE_DIRECTORY * );
+
 struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( void * );
 
 void paging_clearDirectory();

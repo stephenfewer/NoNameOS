@@ -33,9 +33,9 @@ void irq_init( void )
 
     irq_remap();
 
-	for( i=32 ; i<48 ; i++ )
+	for( i=IRQ0 ; i<IRQ16 ; i++ )
 	{
-		idt_setEntry(  i, irq_stubs[i-32], 0x08, 0x8E );
+		idt_setEntry(  i, irq_stubs[i-IRQ0], 0x08, 0x8E );
 		isr_setHandler( i, NULL );
 	}
 }

@@ -37,13 +37,13 @@ void idt_init()
 
     memset( (BYTE *)&idt_table, 0, sizeof(struct IDT_ENTRY) * IDT_ENTRYS );
 
-	for( i=0 ; i<32 ; i++ )
+	for( i=INT0 ; i<INT32 ; i++ )
 	{
 		idt_setEntry(  i, isr_stubs[i], 0x08, 0x8E );
 		isr_setHandler( i, NULL );
 	}
 
-	isr_setHandler( 14, paging_pageFaultHandler );
+	isr_setHandler( INT14, paging_pageFaultHandler );
 
 	ASM( "lidt (%0)" : : "r" ( &idt_pointer) );
 }

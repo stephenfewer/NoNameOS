@@ -9,6 +9,18 @@ extern void end;
 
 struct PAGE_DIRECTORY * paging_pageDir;
 
+struct PAGE_DIRECTORY * paging_getCurrentPageDir()
+{
+	struct PAGE_DIRECTORY * page_dir;
+	ASM( "movl %%cr3, %0" : "=r" (page_dir) );
+	return page_dir;
+}
+
+void paging_setCurrentPageDir( struct PAGE_DIRECTORY * page_dir )
+{
+	ASM( "movl %%eax, %%cr3" :: "r" ( page_dir ) );
+}
+
 struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( void * linearAddress )
 {
 	return &paging_pageDir->entry[ GET_DIRECTORY_INDEX(linearAddress) ];
@@ -117,7 +129,8 @@ void paging_init()
 	}
 
 	// Enable Paging...
-	ASM( "movl %%eax, %%cr3" :: "r" ( paging_pageDir ) );
+	paging_setCurrentPageDir( paging_pageDir );
+	
 	ASM( "movl %cr0, %eax" );
 	ASM( "orl $0x80000000, %eax" );
 	ASM( "movl %eax, %cr0" );

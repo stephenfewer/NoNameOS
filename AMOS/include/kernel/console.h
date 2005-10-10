@@ -26,7 +26,7 @@ enum {
 	RED_BG		= 0x40,
 	MAGENTA_BG	= 0x50,
 	YELLOW_BG	= 0x60,
-	WHITE_BG	= 0x70,
+	GREY_BG		= 0x70,
 
 	BLINK		= 0x80
 };

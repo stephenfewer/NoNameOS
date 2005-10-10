@@ -186,7 +186,7 @@ void console_scrollup( void )
 {
 	int i, j;
 
-    for( j=1 ; j<CONSOLE_ROWS-1; j++ )
+    for( j=2 ; j<CONSOLE_ROWS-1; j++ )
     {
 		for( i=0; i<CONSOLE_COLUMNS ; i++ )
 			console_putChar( i, j, console_getChar( i, j+1 ), console_getAttrib( i, j+1 ) );
@@ -194,6 +194,7 @@ void console_scrollup( void )
 
     for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
 		console_putChar( i, CONSOLE_ROWS-1, ' ', console_attrib );
+
 }
 
 void console_setCursor( int x, int y )
@@ -215,9 +216,11 @@ void console_cls( void )
 
     for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
     {
-		for( j=0 ; j<CONSOLE_ROWS ; j++ )
+		for( j=2 ; j<CONSOLE_ROWS ; j++ )
 			console_putChar( i, j, ' ', console_attrib );
     }
+    
+    console_setCursor( 0, 2 );
 }
 
 void console_beep( void )
@@ -227,12 +230,21 @@ void console_beep( void )
 
 void console_init( void )
 {
+    int i;
+	
     console_mem = (BYTE *)VIDEOMEM_BASE;
 
     console_setAttrib( GREEN | RED_BG );
-
+    
     console_cls();
-
+    
     console_setCursor( 0, 0 );
+    for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
+	    kprintf( " " );
+	console_setCursor( 0, 0 );
+    kprintf( "AMOS %d.%d.%d\n", AMOS_MAJOR_VERSION, AMOS_MINOR_VERSION, AMOS_PATCH_VERSION );
+    for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
+	    kprintf( "-" );
+	console_setCursor( 0, 2 );
 }
 
