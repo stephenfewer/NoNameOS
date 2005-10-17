@@ -92,18 +92,19 @@ void paging_setPageTableEntry( void * linearAddress, void * physicalAddress, BOO
 	pte->address = TABLE_SHIFT_R( PAGE_ALIGN( physicalAddress ) );
 	
 	// Flush the TLB... invlpg is more efficent to use here
-	ASM( "movl %cr3, %eax" );
-	ASM( "movl %eax, %cr3" );
+	//ASM( "movl %cr3, %eax" );
+	//ASM( "movl %eax, %cr3" );
 }
 
 // See page 5-43
-void paging_pageFaultHandler( struct REGISTERS * reg )
+DWORD paging_pageFaultHandler( struct REGISTERS * reg )
 {
 	void * linearAddress;
 	ASM( "movl %%cr2, %0" : "=r" (linearAddress) );
-	kprintf( "General Protection Fault at CS:EIP %d:%x Address %x\n", reg->cs, reg->eip, linearAddress );
-	// we must hang untill we can fix the gpf
+	kprintf( "Page Fault at CS:EIP %d:%x Address %x\n", reg->cs, reg->eip, linearAddress );
+	// we must hang untill we can fix the page fault
 	while(TRUE);
+	return NULL;
 }
 
 void paging_init()

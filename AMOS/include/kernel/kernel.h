@@ -53,8 +53,6 @@ BYTE inportb( WORD );
 
 void outportb( WORD, BYTE );
 
-DWORD kernel_getESP();
-
 void kernel_lock();
 
 void kernel_unlock();

@@ -30,13 +30,6 @@ void outportb( WORD port, BYTE data )
     ASM( "outb %1, %0" : : "dN" (port), "a" (data) );
 }
 
-DWORD kernel_getESP()
-{
-	DWORD kernel_esp;
-	ASM( "movl %%esp, %0" : "=r" (kernel_esp) );
-	return kernel_esp;
-}
-
 void kernel_lock()
 {
 	cli();

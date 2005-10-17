@@ -41,13 +41,14 @@ char * isr_messages[] =
     "Reserved"
 };
 
-void isr_dispatcher( struct REGISTERS * reg )
+DWORD isr_dispatcher( struct REGISTERS * reg )
 {
+	DWORD ret = NULL;
 	ISR_HANDLER isr_handler = isr_handlers[ reg->int_no ];
 
 	if( isr_handler != NULL )
 	{
-		isr_handler( reg );
+		ret = isr_handler( reg );
 	}
 	else
 	{
@@ -63,6 +64,8 @@ void isr_dispatcher( struct REGISTERS * reg )
         outportb( PIC_2, EOI );
 	else if( reg->int_no >= 32 && reg->int_no < 48 )
 		outportb( PIC_1, EOI );
+		
+	return ret;
 }
 
 void isr_setHandler( int i, ISR_HANDLER isr_handler )

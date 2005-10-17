@@ -87,7 +87,7 @@ void paging_setDirectoryTableEntry( void *, void * );
 
 void paging_init();
 
-void paging_pageFaultHandler( struct REGISTERS * );
+DWORD paging_pageFaultHandler( struct REGISTERS * );
 
 #endif
 

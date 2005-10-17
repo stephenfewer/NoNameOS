@@ -1,6 +1,8 @@
 #ifndef _KERNEL_ISR_H_
 #define _KERNEL_ISR_H_
 
+#include <sys/types.h>
+
 #define PIC_1				0x20
 #define PIC_2				0xA0
 
@@ -70,14 +72,14 @@ enum {
 struct REGISTERS
 {
     unsigned int ds, es, fs, gs;
-    unsigned int edi, esi, ebp, esp, ebx, edx, ecx, eax;
+    DWORD edi, esi, ebp, esp, ebx, edx, ecx, eax;
     unsigned int int_no, err_code;
     unsigned int eip, cs, eflags, useresp, ss;
 } PACKED;
 
-typedef void (* ISR_HANDLER)( struct REGISTERS * );
+typedef DWORD (* ISR_HANDLER)( struct REGISTERS * );
 
-void isr_dispatcher( struct REGISTERS * );
+DWORD isr_dispatcher( struct REGISTERS * );
 
 void isr_setHandler( int, ISR_HANDLER );
 

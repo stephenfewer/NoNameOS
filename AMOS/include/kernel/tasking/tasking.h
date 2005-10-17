@@ -9,6 +9,7 @@ struct task
 {
 	int id;
 	int tick_slice;
+	DWORD esp;
 	struct PAGE_DIRECTORY * page_dir;	
 };
 

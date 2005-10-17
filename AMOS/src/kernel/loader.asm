@@ -14,6 +14,8 @@ EXTERN text, kernel, setup, data, bss, _end, _kernel_init
 
 EXTERN _isr_dispatcher
 
+EXTERN _current_esp
+
 GLOBAL _VGDTR
 
 GLOBAL _setup
@@ -127,28 +129,39 @@ _start:
     call _kernel_init
     hlt
 isr_common_stub:
-    pusha
-    push ds
+    pushad				; push all general purpose registers
+    push ds				; push al the segments
     push es
     push fs
     push gs
-    mov ax, 0x10
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax
-    mov eax, esp
-    push eax
+    
+    ;mov ax, 0x10		; set data segments for kernel
+    ;mov ds, ax
+    ;mov es, ax
+    ;mov fs, ax
+    ;mov gs, ax
+    
+    mov [_current_esp], esp
+    
+    push esp			; push current stack pointer
+
     mov eax, _isr_dispatcher
-    call eax
-    pop eax
-    pop gs
+    call eax			; call out C isr_dispatcher() function
+    
+    add esp, 4			; clean up the previously pushed stack pointer
+
+    test eax, eax		; test the return value
+    jz movealong		; if its null, dont set new stack pointer
+    mov esp, eax		; set new stack pointer
+movealong:
+    pop gs				; pop al the segments
     pop fs
     pop es
     pop ds
-    popa
-    add esp, 8
-    iret
+    popad				; pop all general purpose registers
+    
+    add esp, 8			; clean up the two bytes we pushed on via the _isrXX routine
+    iret				; iret back
 
 ;  Divide By Zero
 _isr00:
