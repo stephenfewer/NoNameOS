@@ -6,6 +6,8 @@
 #include <kernel/mm/paging.h>
 #include <kernel/gdt.h>
 
+DWORD current_esp = 0x00000000;
+
 DWORD tasking_ticks = 0;
 
 struct task * tasking_currentTask = NULL;
@@ -14,39 +16,19 @@ struct task * tasking_queue[MAX_TASKS];
 
 void ThreadTest1()
 {
- unsigned char * VidMemChar = (unsigned char *)0xB8001;
- int i=0;
- for(;;)
- {
- 	if( *VidMemChar == 'z' )
- 		*VidMemChar = 'a';
- 	else
- 	{
- 		for(i=0;i<100000;i++);
- 		
-	 	*VidMemChar = 'z';
- 	}
- }
+ unsigned char* VidMemChar = (unsigned char*)0xB8000;
+ *VidMemChar='1';
+ for(;;)*VidMemChar++;
 }
 
 void ThreadTest2()
 {
- unsigned char * VidMemChar = (unsigned char *)0xB8003;
- int i=0;
- for(;;)
- {
- 	if( *VidMemChar == 'a' )
- 		*VidMemChar = 'z';
- 	else
- 	{
- 		for(i=0;i<10000;i++);
- 		
-	 	*VidMemChar = 'a';
- 	}
- }
+ unsigned char* VidMemChar = (unsigned char*)0xB8004;
+ *VidMemChar='1';
+ for(;;)*VidMemChar++;
 }
 
-void CreateTask( int id, void (*thread)() )
+struct task * tasking_create( int id, void (*thread)() )
 {
  DWORD * stack;
  struct task * tasking_newTask;
@@ -55,7 +37,7 @@ void CreateTask( int id, void (*thread)() )
  
  tasking_newTask->id = id;
  
- tasking_newTask->tick_slice = 15;
+ tasking_newTask->tick_slice = 1;
  
  tasking_newTask->page_dir = paging_getCurrentPageDir();
  
@@ -91,21 +73,9 @@ void CreateTask( int id, void (*thread)() )
  tasking_newTask->esp = (DWORD)stack; //Update the stack pointer
  
  tasking_queue[ tasking_newTask->id ] = tasking_newTask;
+ 
+ return tasking_newTask;
 }
-/*
-DWORD tasking_getESP()
-{
-	DWORD esp;
-	ASM( "movl %%esp, %0" : "=r" ( esp ) );
-	return esp;
-}
-
-void tasking_setESP( DWORD esp )
-{
-	ASM( "movl %%eax, %%esp" :: "r" ( esp ) );
-}
-*/
-DWORD current_esp = 0x00000000;
 
 DWORD tasking_schedule( struct REGISTERS * reg )
 {
@@ -113,17 +83,19 @@ DWORD tasking_schedule( struct REGISTERS * reg )
 	
 	tasking_ticks++;
 	
+	if( tasking_ticks >= 12 )
+		while(TRUE);
 	
 	if( tasking_currentTask == NULL )
 	{
 		// To-Do: create a kernel task 0 with current_esp
 		tasking_currentTask = tasking_queue[ 0 ];
-		kprintf("first task switch: tasking_currentTask->esp = %x\n", tasking_currentTask->esp );
+		kprintf("first task switch: current_esp = %x\n", current_esp );
 		kernel_unlock();
 		return tasking_currentTask->esp;
 	}
 	
-	kprintf("Timer: [%d] ticks = %d  current_esp = %x\n",tasking_currentTask->id, tasking_ticks, current_esp );
+	kprintf("Timer: [%d] ticks = %d  current_esp = %x\n", tasking_currentTask->id, tasking_ticks, current_esp );
 	
 	tasking_currentTask->esp = current_esp;
 	
@@ -138,9 +110,9 @@ DWORD tasking_schedule( struct REGISTERS * reg )
 			tasking_currentTask = tasking_queue[ 0 ];
 		
 		// we could set this higher/lower depending on its priority: LOW, NORMAL, HIGH
-		tasking_currentTask->tick_slice = 15;
+		tasking_currentTask->tick_slice = 1;
 		
-		paging_setCurrentPageDir( tasking_currentTask->page_dir );
+		//paging_setCurrentPageDir( tasking_currentTask->page_dir );
 	}	
 	else
 	{
@@ -165,19 +137,7 @@ void tasking_init()
 	// create the empty task queue
 	for( i=0 ; i<MAX_TASKS ; i++ )
 		tasking_queue[i] = NULL;
-	/*
-	// create the initial task
-	tasking_currentTask = mm_malloc( sizeof( struct task ) );
-	
-	tasking_currentTask->id = 0;
-	tasking_currentTask->tick_slice = 15;
-	tasking_currentTask->page_dir = paging_getCurrentPageDir();
-	tasking_currentTask->esp = tasking_getESP();
-	
-	kprintf("[tasking_currentTask] esp = %x set esp = %x\n", tasking_getESP(), tasking_currentTask->esp );
-	
-	tasking_queue[ tasking_currentTask->id ] = tasking_currentTask;
-	*/
+
 	// create a TSS for our software task switching (6.2)
 /*	new_tss = mm_malloc( sizeof( struct tss ) );
 	new_tss->cr3 = paging_getCurrentPageDir();
@@ -188,8 +148,9 @@ void tasking_init()
 	tasking_ltr( KERNEL_TSS_SEL );
 */
 
-	CreateTask(0, ThreadTest1); //Install the first task
-	CreateTask(1, ThreadTest2); //Install the second task
+	tasking_create( 0, ThreadTest1 );
+	
+	tasking_create( 1, ThreadTest2 );
 	
 	// calculate the timer interval
 	interval = 1193180 / 100000; //100Hz

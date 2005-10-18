@@ -43,7 +43,7 @@ char * isr_messages[] =
 
 DWORD isr_dispatcher( struct REGISTERS * reg )
 {
-	DWORD ret = NULL;
+	DWORD ret = (DWORD)NULL;
 	ISR_HANDLER isr_handler = isr_handlers[ reg->int_no ];
 
 	if( isr_handler != NULL )

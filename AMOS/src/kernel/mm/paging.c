@@ -104,7 +104,7 @@ DWORD paging_pageFaultHandler( struct REGISTERS * reg )
 	kprintf( "Page Fault at CS:EIP %d:%x Address %x\n", reg->cs, reg->eip, linearAddress );
 	// we must hang untill we can fix the page fault
 	while(TRUE);
-	return NULL;
+	return (DWORD)NULL;
 }
 
 void paging_init()
