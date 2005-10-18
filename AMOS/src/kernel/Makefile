@@ -1,6 +1,7 @@
 MAKEFILE=Makefile
 
-TARGET=kernel.bin
+TARGET_ELF=kernel.elf
+TARGET_COFF=kernel.coff
 
 TARGET_DIR=../../bin/
 
@@ -14,19 +15,22 @@ LD=ld
 AS=nasmw
 RM=del
 STRIP=strip
+OBJCOPY=objcopy-elf
 
 ASFLAGS=-f coff
 LDFLAGS=-T kernel.ld -Map $(TARGET_DIR)kernel.map -nostdlib
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -finline-functions -nostdinc -I $(INCLUDE_DIR)
+OBJCOPY_FLAGS=-I coff-i386 -O elf32-i386
 
 OBJ=loader.o kernel.o console.o gdt.o idt.o irq.o isr.o debug.o
 	
-all: $(TARGET)
+all: $(TARGET_ELF)
 
-$(TARGET): $(OBJ)
+$(TARGET_ELF): $(OBJ)
 	$(MAKE) -C $(MEMORY_MANAGER)
 	$(MAKE) -C $(MULTI_TASKING)
-	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$@ $(OBJ) ./$(MEMORY_MANAGER)/*.o ./$(MULTI_TASKING)/*.o
+	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_COFF) $(OBJ) ./$(MEMORY_MANAGER)/*.o ./$(MULTI_TASKING)/*.o
+	$(OBJCOPY) $(OBJCOPY_FLAGS) $(TARGET_DIR)$(TARGET_COFF) $(TARGET_DIR)$(TARGET_ELF)
 	
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<

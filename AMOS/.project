@@ -26,24 +26,24 @@
 					<value>all</value>
 				</dictionary>
 				<dictionary>
-					<key>org.eclipse.cdt.make.core.environment</key>
-					<value>MTOOLSRC=D:\\workspace\\AMOS\\tools\\mtools.conf|</value>
+					<key>org.eclipse.cdt.make.core.enableAutoBuild</key>
+					<value>false</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.buildLocation</key>
 					<value>/AMOS</value>
 				</dictionary>
 				<dictionary>
-					<key>org.eclipse.cdt.make.core.enableAutoBuild</key>
-					<value>false</value>
-				</dictionary>
-				<dictionary>
-					<key>org.eclipse.cdt.make.core.build.target.inc</key>
-					<value>all</value>
+					<key>org.eclipse.cdt.make.core.environment</key>
+					<value>ANT_HOME=d:\\java\\apache-ant-1.6.1|HOMEDRIVE=F:|NUT_SUFFIXED_SEARCHING=1|USERDNSDOMAIN=COM.CIT.IE|TMP=C:\\DOCUME~1\\fewers\\LOCALS~1\\Temp|LM_LICENSE_FILE=d:\\Program Files\\Metrowerks\\CodeWarrior\\license.dat|HOME=F:\\|PJC_WEBPATH=D:\\Program Files\\Rational\\common\\rwp\\webapps\\ProjectConsole|PATHEXT=.COM;.EXE;.BAT;.CMD;.VBS;.VBE;.JS;.JSE;.WSF;.WSH|MWWINX86LIBRARYFILES=MSL_C_x86.lib;MSL_Extras_x86.lib;MSL_Runtime_x86.lib;MSL_C++_x86.lib;gdi32.lib;user32.lib;kernel32.lib;|CPU=i386|ARTIFACT_REPOSITORY=C:\\Classics\\Projects\\Webshop|INCLUDE=D:\\Program Files\\Microsoft Visual Studio .NET 2003\\SDK\\v1.1\\include\\|MWCWINX86INCLUDES=+d:\\Program Files\\Metrowerks\\CodeWarrior\\MSL;+d:\\Program Files\\Metrowerks\\CodeWarrior\\Win32-X86 Support;d:\\Program Files\\Metrowerks\\CodeWarrior\\MSL\\MSL_C\\MSL_Common\\Include;d:\\Program Files\\Metrowerks\\CodeWarrior\\Win32-X86 Support\\Headers\\Win32 SDK;|USERDOMAIN=COM|ALLUSERSPROFILE=C:\\Documents and Settings\\All Users|PROGRAMFILES=C:\\Program Files|SYSTEMROOT=C:\\WINNT|CWFOLDER=d:\\Program Files\\Metrowerks\\CodeWarrior|APPDATA=C:\\Documents and Settings\\fewers\\Application Data|PROMPT=$P$G|FP_NO_HOST_CHECK=NO|HOMESHARE=\\\\fs-spas\\dcom2002\\FewerS|PROCESSOR_ARCHITECTURE=x86|LOGONSERVER=\\\\FS-SPAS|RWPHOME=D:\\Program Files\\Rational\\common\\rwp|HOMEPATH=\\|SESSIONNAME=Console|IT_IDLGEN_CONFIG_FILE=D:\\\\Iona\\config\\idlgen.cfg|CLASSPATH=&quot;D:\\Program Files\\Java\\jdk1.5.0_04\\lib\\ext\\QTJava.zip&quot;|PROCESSOR_IDENTIFIER=x86 Family 15 Model 4 Stepping 1, GenuineIntel|TISDIR=D:\\Program Files\\Rational\\common|MTOOLSRC=F:\\Project\\workspace\\AMOS\\tools\\mtools.conf|USERPROFILE=C:\\Documents and Settings\\fewers|RATL_RTHOME=d:\\Program Files\\Rational\\Rational Test|SYSTEMDRIVE=C:|ORBIX_HOME=D:\\\\Iona|QTJAVA=&quot;D:\\Program Files\\Java\\jdk1.5.0_04\\lib\\ext\\QTJava.zip&quot;|COMMONPROGRAMFILES=C:\\Program Files\\Common Files|NUMBER_OF_PROCESSORS=2|COMPUTERNAME=MC-H23-187228|OS=Windows_NT|USERNAME=fewers|IBMLDAP_ALTHOME=D:\\Program Files\\Rational\\common\\codeset|TEMP=C:\\DOCUME~1\\fewers\\LOCALS~1\\Temp|IT_CONFIG_PATH=D:\\\\Iona\\config|TMPDIR=C:\\DOCUME~1\\fewers\\LOCALS~1\\Temp|PROCESSOR_LEVEL=15|LIB=D:\\Program Files\\Microsoft Visual Studio .NET 2003\\SDK\\v1.1\\Lib\\|VS71COMNTOOLS=D:\\Program Files\\Microsoft Visual Studio .NET 2003\\Common7\\Tools\\|MWWINX86LIBRARIES=+d:\\Program Files\\Metrowerks\\CodeWarrior\\MSL;+d:\\Program Files\\Metrowerks\\CodeWarrior\\Win32-x86 Support;|COMSPEC=C:\\WINNT\\system32\\cmd.exe|DJGPP=F:\\Project\\software\\djgpp\\djgpp.env|NUTSUFFIX=1|APIPATH=D:\\PROGRA~1\\CINDER~1\\CINDER~1\\Api|JAVA_HOME=D:\\Program Files\\Java\\jdk1.5.0_04|WINDIR=C:\\WINNT|PROCESSOR_REVISION=0401|PATH=C:\\WINNT\\system32;C:\\WINNT;C:\\WINNT\\system32\\WBEM;F:\\Project\\software\\djgpp\\bin|</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.enableFullBuild</key>
 					<value>true</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.build.target.inc</key>
+					<value>all</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.enabledIncrementalBuild</key>
@@ -54,12 +54,12 @@
 					<value>/AMOS</value>
 				</dictionary>
 				<dictionary>
-					<key>org.eclipse.cdt.make.core.build.target.clean</key>
-					<value>clean</value>
-				</dictionary>
-				<dictionary>
 					<key>org.eclipse.cdt.make.core.build.command</key>
 					<value>make</value>
+				</dictionary>
+				<dictionary>
+					<key>org.eclipse.cdt.make.core.build.target.clean</key>
+					<value>clean</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.enableCleanBuild</key>
@@ -71,7 +71,7 @@
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.append_environment</key>
-					<value>true</value>
+					<value>false</value>
 				</dictionary>
 				<dictionary>
 					<key>org.eclipse.cdt.make.core.build.target.full</key>

@@ -2,17 +2,28 @@ MAKEFILE=Makefile
 
 TARGET=amos.ima
 
+KERNEL_ELF=kernel.elf
+KERNEL_COFF=kernel.coff
+KERNEL_TXT=kernel.txt
+
+IMAGE=grub.ima
+IMAGE_DIR=a:\boot
+IMAGE_MENU=menu.cfg
+
 COPY=copy
 MCOPY=..\tools\mcopy
 RM=del
+OBJDUMP=objdump-elf
 
 all: $(TARGET)
-	$(MCOPY) -o .\kernel.bin a:\boot
+	$(MCOPY) -o .\$(KERNEL_ELF) $(IMAGE_DIR)
 
 $(TARGET):
-	$(COPY) .\grub.ima .\$(TARGET)
-	$(MCOPY) -o .\menu.cfg a:\boot
+	$(COPY) .\$(IMAGE) .\$(TARGET)
+	$(MCOPY) .\$(IMAGE_MENU) $(IMAGE_DIR)
 	
 clean:
 	$(RM) $(TARGET)
-	$(RM) *.bin
+	$(RM) $(KERNEL_ELF)
+	$(RM) $(KERNEL_COFF)
+	$(RM) $(KERNEL_TXT)
