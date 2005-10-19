@@ -6,7 +6,7 @@
 #include <kernel/mm/mm.h>
 #include <kernel/mm/paging.h>
 #include <kernel/debug.h>
-#include <kernel/tasking/tasking.h>
+#include <kernel/tasking/scheduler.h>
 
 int kernel_lockCount = 0;
 
@@ -38,7 +38,6 @@ void kernel_lock()
 
 void kernel_unlock()
 {
-	//kernel_lock--;
 	if( --kernel_lockCount == 0 )
 		sti();
 }
@@ -60,7 +59,7 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 		
 		mm_init( m->mem_upper );
 		
-		tasking_init();
+		scheduler_init();
 		
 		kernel_unlock();
 	}

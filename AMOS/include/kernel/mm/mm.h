@@ -5,9 +5,9 @@
 
 #define KERNEL_HEAP_VADDRESS	0xD0000000
 
-struct heap_item
+struct HEAP_ITEM
 {
-	struct heap_item * next;
+	struct HEAP_ITEM * next;
 	unsigned int size;
 	unsigned int used;//:1;
 	//unsigned int available:7;

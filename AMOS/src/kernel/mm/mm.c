@@ -59,8 +59,8 @@ void * mm_morecore( DWORD size )
 void mm_free( void * address )
 {
 	kernel_lock();
-	struct heap_item * tmp_item;
-	struct heap_item * item = (struct heap_item *)( address - sizeof(struct heap_item) );
+	struct HEAP_ITEM * tmp_item;
+	struct HEAP_ITEM * item = (struct HEAP_ITEM *)( address - sizeof(struct HEAP_ITEM) );
 	// find it
 	for( tmp_item=mm_heapBottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
 	{
@@ -80,7 +80,7 @@ void mm_free( void * address )
 	{
 		while( !tmp_item->used && tmp_item->next!=NULL && !tmp_item->next->used )
 		{
-			tmp_item->size += sizeof(struct heap_item) + tmp_item->next->size;
+			tmp_item->size += sizeof(struct HEAP_ITEM) + tmp_item->next->size;
 			tmp_item->next = tmp_item->next->next;
 		}
 	}
@@ -91,7 +91,7 @@ void mm_free( void * address )
 void * mm_malloc( DWORD size )
 {
 	kernel_lock();
-	struct heap_item * new_item, * tmp_item;
+	struct HEAP_ITEM * new_item, * tmp_item;
 	int total_size;
 	// sanity check
 	if( size == 0 )
@@ -100,7 +100,7 @@ void * mm_malloc( DWORD size )
 		return NULL;
 	}
 	// round up by 8 bytes and add header size
-	total_size = ( ( size + 7 ) & ~7 ) + sizeof(struct heap_item);
+	total_size = ( ( size + 7 ) & ~7 ) + sizeof(struct HEAP_ITEM);
 	// search for first fit
 	for( new_item=mm_heapBottom ; new_item!=NULL ; new_item=new_item->next )
 	{
@@ -110,7 +110,7 @@ void * mm_malloc( DWORD size )
 	// if we found one
 	if( new_item != NULL )
 	{
-		tmp_item = (struct heap_item *)( (int)new_item + total_size );
+		tmp_item = (struct HEAP_ITEM *)( (int)new_item + total_size );
 		tmp_item->size = new_item->size - total_size;
 		tmp_item->used = FALSE;
 		tmp_item->next = new_item->next;
@@ -130,8 +130,8 @@ void * mm_malloc( DWORD size )
 		}
 		// create an empty item for the extra space mm_morecore() gave us
 		// we can calculate the size because morecore() allocates space that is page aligned
-		tmp_item = (struct heap_item *)( (int)new_item + total_size );
-		tmp_item->size = PAGE_SIZE - (total_size%PAGE_SIZE ? total_size%PAGE_SIZE : total_size) - sizeof(struct heap_item);
+		tmp_item = (struct HEAP_ITEM *)( (int)new_item + total_size );
+		tmp_item->size = PAGE_SIZE - (total_size%PAGE_SIZE ? total_size%PAGE_SIZE : total_size) - sizeof(struct HEAP_ITEM);
 		tmp_item->used = FALSE;
 		tmp_item->next = NULL;
 		// create the new item
@@ -141,5 +141,5 @@ void * mm_malloc( DWORD size )
 	}
 	// return the newly allocated memory location
 	kernel_unlock();
-	return (void *)( (int)new_item + sizeof(struct heap_item) );
+	return (void *)( (int)new_item + sizeof(struct HEAP_ITEM) );
 }

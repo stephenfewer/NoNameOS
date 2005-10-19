@@ -2,6 +2,7 @@
 #include <kernel/idt.h>
 #include <kernel/console.h>
 #include <kernel/kernel.h>
+#include <kernel/tasking/task.h>
 
 ISR_HANDLER	isr_handlers[IDT_ENTRYS];
 
@@ -41,30 +42,34 @@ char * isr_messages[] =
     "Reserved"
 };
 
-DWORD isr_dispatcher( struct REGISTERS * reg )
+DWORD isr_dispatcher( struct TASK_STACK * taskstack )
 {
+	kernel_lock();
+	
 	DWORD ret = (DWORD)NULL;
-	ISR_HANDLER isr_handler = isr_handlers[ reg->int_no ];
+	ISR_HANDLER isr_handler = isr_handlers[ taskstack->intnumber ];
 
 	if( isr_handler != NULL )
 	{
-		ret = isr_handler( reg );
+		ret = isr_handler( taskstack );
 	}
 	else
 	{
-		if( reg->int_no < 32 )
+		if( taskstack->intnumber < 32 )
 		{
-			kprintf( "isr_dispatcher() - %s\n", isr_messages[ reg->int_no ] );
+			kprintf( "isr_dispatcher() - %s\n", isr_messages[ taskstack->intnumber ] );
 			while(TRUE);
 		}
 	}
 	
 	// if this was an IRQ we must signal an EOI to the PIC
-	if( reg->int_no >= 40 && reg->int_no < 48 )
+	if( taskstack->intnumber >= 40 && taskstack->intnumber < 48 )
         outportb( PIC_2, EOI );
-	else if( reg->int_no >= 32 && reg->int_no < 48 )
+	else if( taskstack->intnumber >= 32 && taskstack->intnumber < 48 )
 		outportb( PIC_1, EOI );
-		
+	
+	kernel_unlock();
+	
 	return ret;
 }
 

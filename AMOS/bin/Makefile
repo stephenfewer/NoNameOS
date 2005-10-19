@@ -20,7 +20,7 @@ all: $(TARGET)
 
 $(TARGET):
 	$(COPY) .\$(IMAGE) .\$(TARGET)
-	$(MCOPY) .\$(IMAGE_MENU) $(IMAGE_DIR)
+	$(MCOPY) -o .\$(IMAGE_MENU) $(IMAGE_DIR)
 	
 clean:
 	$(RM) $(TARGET)

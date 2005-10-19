@@ -148,12 +148,13 @@ isr_common_stub:
     mov eax, _isr_dispatcher
     call eax			; call out C isr_dispatcher() function
     
-    add esp, 4			; clean up the previously pushed stack pointer
-
+    ;add esp, 4			; clean up the previously pushed stack pointer
+    
     test eax, eax		; test the return value
     jz movealong		; if its null, dont set new stack pointer
-    mov esp, eax		; set new stack pointer
+    mov [_current_esp], eax		; set new stack pointer
 movealong:
+	mov esp, [_current_esp]
     pop gs				; pop al the segments
     pop fs
     pop es

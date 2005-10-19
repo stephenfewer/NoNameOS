@@ -2,6 +2,7 @@
 #define _KERNEL_ISR_H_
 
 #include <sys/types.h>
+#include <kernel/tasking/task.h>
 
 #define PIC_1				0x20
 #define PIC_2				0xA0
@@ -69,6 +70,7 @@ enum {
 	IRQ16,
 };
 
+/*
 struct REGISTERS
 {
     unsigned int ds, es, fs, gs;
@@ -76,10 +78,10 @@ struct REGISTERS
     unsigned int int_no, err_code;
     unsigned int eip, cs, eflags, useresp, ss;
 } PACKED;
+*/
+typedef DWORD (* ISR_HANDLER)( struct TASK_STACK * );
 
-typedef DWORD (* ISR_HANDLER)( struct REGISTERS * );
-
-DWORD isr_dispatcher( struct REGISTERS * );
+DWORD isr_dispatcher( struct TASK_STACK * );
 
 void isr_setHandler( int, ISR_HANDLER );
 

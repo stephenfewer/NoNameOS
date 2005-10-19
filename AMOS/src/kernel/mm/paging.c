@@ -3,6 +3,7 @@
 #include <kernel/kernel.h>
 #include <kernel/console.h>
 #include <kernel/isr.h>
+#include <kernel/tasking/task.h>
 
 extern void start;
 extern void end;
@@ -97,11 +98,11 @@ void paging_setPageTableEntry( void * linearAddress, void * physicalAddress, BOO
 }
 
 // See page 5-43
-DWORD paging_pageFaultHandler( struct REGISTERS * reg )
+DWORD paging_pageFaultHandler( struct TASK_STACK * taskstack )
 {
 	void * linearAddress;
 	ASM( "movl %%cr2, %0" : "=r" (linearAddress) );
-	kprintf( "Page Fault at CS:EIP %d:%x Address %x\n", reg->cs, reg->eip, linearAddress );
+	kprintf( "Page Fault at CS:EIP %d:%x Address %x\n", taskstack->cs, taskstack->eip, linearAddress );
 	// we must hang untill we can fix the page fault
 	while(TRUE);
 	return (DWORD)NULL;

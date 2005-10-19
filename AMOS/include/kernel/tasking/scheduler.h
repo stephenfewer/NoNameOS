@@ -1,17 +1,10 @@
-#ifndef _KERNEL_TASKING_TASKING_H_
-#define _KERNEL_TASKING_TASKING_H_
+#ifndef _KERNEL_TASKING_SCHEDULER_H_
+#define _KERNEL_TASKING_SCHEDULER_H_
 
-#include <kernel/mm/paging.h>
+#include <sys/types.h>
+#include <kernel/tasking/task.h>
 
 #define MAX_TASKS	255
-
-struct task
-{
-	int id;
-	int tick_slice;
-	DWORD esp;
-	struct PAGE_DIRECTORY * page_dir;	
-};
 
 struct tss 
 {
@@ -33,6 +26,10 @@ struct tss
        WORD reserved11, io_map_base;
 };
 
-void tasking_init();
+void scheduler_addTask( struct TASK_INFO * );
+
+void scheduler_removeTask( struct TASK_INFO * );
+
+void scheduler_init();
 
 #endif

@@ -2,7 +2,7 @@
 #define _KERNEL_MM_PAGING_H_
 
 #include <sys/types.h>
-#include <kernel/isr.h>
+#include <kernel/tasking/task.h>
 
 #define PAGE_ENTRYS		1024
 
@@ -87,7 +87,7 @@ void paging_setDirectoryTableEntry( void *, void * );
 
 void paging_init();
 
-DWORD paging_pageFaultHandler( struct REGISTERS * );
+DWORD paging_pageFaultHandler( struct TASK_STACK * );
 
 #endif
 

@@ -13,8 +13,8 @@ gdt_table           0x20              gdt.o
 idt_pointer         0x10              idt.o
 physical_bitmap     0x10              ./mm/physical.o
 console_x           0x10              console.o
-tasking_queue       0x400             ./tasking/tasking.o
 console_attrib      0x10              console.o
+scheduler_queue     0x400             ./tasking/scheduler.o
 console_y           0x10              console.o
 
 Memory Configuration
@@ -38,58 +38,58 @@ Linker script and memory map
 .kernel         0xc0001000     0x2000 load address 0x00101000
                 0xc0001000                kernel = .
  *(.kernel)
- .kernel        0xc0001000      0x204 loader.o
-                0xc00010ec                isr20
-                0xc000111e                isr25
-                0xc00011be                irq09
-                0xc0001069                isr03
-                0xc00010ba                isr15
-                0xc0001098                isr10
-                0xc0001178                irq02
-                0xc00010d8                isr18
-                0xc0001054                isr00
-                0xc000110a                isr23
-                0xc0001070                isr04
-                0xc000118c                irq04
-                0xc000116e                irq01
-                0xc00010f6                isr21
-                0xc00011f0                irq14
-                0xc00011a0                irq06
-                0xc0001091                isr09
-                0xc000113c                isr28
-                0xc0001128                isr26
-                0xc0001146                isr29
-                0xc000115a                isr31
-                0xc000109d                isr11
-                0xc00010c4                isr16
-                0xc00010aa                isr13
-                0xc0001114                isr24
-                0xc0001182                irq03
+ .kernel        0xc0001000      0x207 loader.o
+                0xc00010ef                isr20
+                0xc0001121                isr25
+                0xc00011c1                irq09
+                0xc000106c                isr03
+                0xc00010bd                isr15
+                0xc000109b                isr10
+                0xc000117b                irq02
+                0xc00010db                isr18
+                0xc0001057                isr00
+                0xc000110d                isr23
+                0xc0001073                isr04
+                0xc000118f                irq04
+                0xc0001171                irq01
+                0xc00010f9                isr21
+                0xc00011f3                irq14
+                0xc00011a3                irq06
+                0xc0001094                isr09
+                0xc000113f                isr28
+                0xc000112b                isr26
+                0xc0001149                isr29
+                0xc000115d                isr31
+                0xc00010a0                isr11
+                0xc00010c7                isr16
+                0xc00010ad                isr13
+                0xc0001117                isr24
+                0xc0001185                irq03
                 0xc0001000                start
-                0xc00011d2                irq11
-                0xc0001164                irq00
-                0xc00011e6                irq13
-                0xc000107e                isr06
-                0xc000108c                isr08
-                0xc00011b4                irq08
-                0xc0001132                isr27
-                0xc0001062                isr02
-                0xc0001150                isr30
-                0xc00010e2                isr19
-                0xc00010b2                isr14
-                0xc000105b                isr01
-                0xc00010ce                isr17
-                0xc00011c8                irq10
-                0xc0001077                isr05
-                0xc00011fa                irq15
-                0xc00010a2                isr12
-                0xc0001196                irq05
-                0xc0001100                isr22
-                0xc00011dc                irq12
-                0xc00011aa                irq07
-                0xc0001085                isr07
+                0xc00011d5                irq11
+                0xc0001167                irq00
+                0xc00011e9                irq13
+                0xc0001081                isr06
+                0xc000108f                isr08
+                0xc00011b7                irq08
+                0xc0001135                isr27
+                0xc0001065                isr02
+                0xc0001153                isr30
+                0xc00010e5                isr19
+                0xc00010b5                isr14
+                0xc000105e                isr01
+                0xc00010d1                isr17
+                0xc00011cb                irq10
+                0xc000107a                isr05
+                0xc00011fd                irq15
+                0xc00010a5                isr12
+                0xc0001199                irq05
+                0xc0001103                isr22
+                0xc00011df                irq12
+                0xc00011ad                irq07
+                0xc0001088                isr07
  *(.text)
- *fill*         0xc0001204        0xc 00
+ *fill*         0xc0001207        0x9 00
  .text          0xc0001210       0xa0 kernel.o
                 0xc000125c                kernel_init
                 0xc0001210                memset
@@ -122,7 +122,7 @@ Linker script and memory map
                 0xc0001d1b                irq_init
                 0xc0001c90                irq_remap
  .text          0xc0001d60      0x1f0 isr.o
-                0xc0001f36                isr_setHandler
+                0xc0001f40                isr_setHandler
                 0xc0001eb1                isr_dispatcher
  .text          0xc0001f50      0x480 debug.o
                 0xc00020e7                debug_putch
@@ -152,15 +152,19 @@ Linker script and memory map
                 0xc0002a36                physical_pageAlloc
                 0xc00029c0                physical_isPageFree
                 0xc0002a30                physical_getBitmapSize
- .text          0xc0002c00      0x280 ./tasking/tasking.o
-                0xc0002e05                tasking_init
-                0xc0002d3a                tasking_schedule
-                0xc0002c12                tasking_create
+ .text          0xc0002c00      0x1d0 ./tasking/scheduler.o
+                0xc0002d65                scheduler_init
+                0xc0002d5f                scheduler_ltr
+                0xc0002c36                scheduler_addTask
+                0xc0002caa                scheduler_switch
                 0xc0002c00                ThreadTest1
-                0xc0002c09                ThreadTest2
-                0xc0002dff                tasking_ltr
+                0xc0002c44                scheduler_removeTask
+                0xc0002c1b                ThreadTest2
+ .text          0xc0002dd0       0xd0 ./tasking/task.o
+                0xc0002dd0                task_destroy
+                0xc0002dfc                task_create
                 0xc0003000                . = ALIGN (0x1000)
- *fill*         0xc0002e80      0x180 00
+ *fill*         0xc0002ea0      0x160 00
 
 .data           0xc0003000     0x1000 load address 0x00103000
                 0xc0003000                data = .
@@ -183,12 +187,14 @@ Linker script and memory map
  .bss           0xc0005004        0x8 ./mm/mm.o
                 0xc0005004                mm_heapTop
                 0xc0005008                mm_heapBottom
- .bss           0xc000500c        0xc ./tasking/tasking.o
-                0xc0005010                tasking_ticks
+ .bss           0xc000500c        0xc ./tasking/scheduler.o
+                0xc0005010                scheduler_ticks
+                0xc0005014                scheduler_currentTask
                 0xc000500c                current_esp
-                0xc0005014                tasking_currentTask
+ .bss           0xc0005018        0x4 ./tasking/task.o
+                0xc0005018                task_total
                 0xc0006000                . = ALIGN (0x1000)
- *fill*         0xc0005018      0xfe8 00
+ *fill*         0xc000501c      0xfe4 00
  *(COMMON)
  COMMON         0xc0006000       0x40 console.o
                 0xc0006000                console_mem
@@ -208,8 +214,8 @@ Linker script and memory map
  COMMON         0xc0006c90       0x20 ./mm/physical.o
                 0xc0006c90                physical_bitmapSize
                 0xc0006ca0                physical_bitmap
- COMMON         0xc0006cb0      0x400 ./tasking/tasking.o
-                0xc0006cb0                tasking_queue
+ COMMON         0xc0006cb0      0x400 ./tasking/scheduler.o
+                0xc0006cb0                scheduler_queue
                 0xc0008000                . = ALIGN (0x1000)
  *fill*         0xc00070b0      0xf50 00
                 0xc0008000                _end = .
@@ -224,10 +230,11 @@ LOAD debug.o
 LOAD ./mm/mm.o
 LOAD ./mm/paging.o
 LOAD ./mm/physical.o
-LOAD ./tasking/tasking.o
+LOAD ./tasking/scheduler.o
+LOAD ./tasking/task.o
 OUTPUT(../../bin/kernel.coff coff-go32)
 
-.comment        0xc0008000       0xdc
+.comment        0xc0008000       0xf0
  .comment       0xc0008000       0x14 kernel.o
  .comment       0xc0008014       0x14 console.o
  .comment       0xc0008028       0x14 gdt.o
@@ -238,4 +245,5 @@ OUTPUT(../../bin/kernel.coff coff-go32)
  .comment       0xc000808c       0x14 ./mm/mm.o
  .comment       0xc00080a0       0x14 ./mm/paging.o
  .comment       0xc00080b4       0x14 ./mm/physical.o
- .comment       0xc00080c8       0x14 ./tasking/tasking.o
+ .comment       0xc00080c8       0x14 ./tasking/scheduler.o
+ .comment       0xc00080dc       0x14 ./tasking/task.o
