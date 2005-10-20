@@ -26,19 +26,19 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 {
 	struct TASK_STACK * stack;
 	//DWORD * stack;
-	struct TASK_INFO * tasking_newTask;
+	struct TASK_INFO * task;
 	// create a new task info structure
-	tasking_newTask = mm_malloc( sizeof( struct TASK_INFO ) );
+	task = mm_malloc( sizeof( struct TASK_INFO ) );
 	// assign a task id
-	tasking_newTask->id = task_total++;
+	task->id = task_total++;
 	// give it an initial tick slice
-	tasking_newTask->tick_slice = 1;
+	task->tick_slice = 1;
 	// set its page directory
-	tasking_newTask->page_dir = paging_getCurrentPageDir();
+	task->page_dir = paging_getCurrentPageDir();
 	// allocate a stack for the task
-	tasking_newTask->stack = mm_malloc( 4096 );
+	task->stack = mm_malloc( 4096 );
 	// setup the initial stack fo we can perform a task switch
-	stack = (struct TASK_STACK *)( (DWORD)tasking_newTask->stack + 4096 - sizeof(struct TASK_STACK) );
+	stack = (struct TASK_STACK *)( (DWORD)task->stack + 4096 - sizeof(struct TASK_STACK) );
 	// clear the stack
 	memset( (BYTE *)stack, 0x00, sizeof(struct TASK_STACK) );
 	// set the code segment
@@ -55,9 +55,9 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	// set the interrupt number we will return from
 	stack->intnumber = IRQ0;
 	// set the tasks current esp to the stack
-	tasking_newTask->current_esp = (DWORD)stack;
+	task->current_esp = (DWORD)stack;
 	// add the task to the scheduler
-	scheduler_addTask( tasking_newTask );
+	scheduler_addTask( task );
 	// return with new task info
-	return tasking_newTask;
+	return task;
 }

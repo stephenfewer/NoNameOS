@@ -6,7 +6,7 @@
 
 #define MAX_TASKS	255
 
-struct tss 
+struct TSS 
 {
        WORD previous_tasklink, reserved0;
        DWORD esp0;

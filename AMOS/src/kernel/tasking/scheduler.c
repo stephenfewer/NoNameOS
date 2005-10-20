@@ -15,6 +15,8 @@ struct TASK_INFO * scheduler_currentTask = NULL;
 // this really really should be a dynamic linked list
 struct TASK_INFO * scheduler_queue[MAX_TASKS];
 
+struct TSS * scheduler_tss = NULL;
+
 void ThreadTest1()
 {
 	unsigned char* VidMemChar = (unsigned char*)0xB8000;
@@ -60,6 +62,8 @@ DWORD scheduler_switch( struct TASK_STACK * taskstack )
 		// To-Do: create a kernel task 0 with current_esp
 		scheduler_currentTask = scheduler_queue[ 0 ];
 		kprintf("first task switch: current_esp = %x\n", current_esp );
+		//scheduler_tss->cr3 = scheduler_currentTask->page_dir;
+		//scheduler_tss->esp = scheduler_currentTask->current_esp;
 		kernel_unlock();
 		return scheduler_currentTask->current_esp;
 	}
@@ -81,7 +85,10 @@ DWORD scheduler_switch( struct TASK_STACK * taskstack )
 		// we could set this higher/lower depending on its priority: LOW, NORMAL, HIGH
 		scheduler_currentTask->tick_slice = 1;
 		
-		//paging_setCurrentPageDir( tasking_currentTask->page_dir );
+		//paging_setCurrentPageDir( scheduler_currentTask->page_dir );
+		
+		//scheduler_tss->cr3 = scheduler_currentTask->page_dir;
+		//scheduler_tss->esp = scheduler_currentTask->current_esp;
 	}	
 	else
 	{
@@ -99,24 +106,20 @@ void scheduler_ltr( WORD selector )
 void scheduler_init()
 {
 	int i, interval;
-	//struct tss * new_tss;
 	
 	// create the empty task queue
 	for( i=0 ; i<MAX_TASKS ; i++ )
 		scheduler_queue[i] = NULL;
 
 	// create a TSS for our software task switching (6.2)
-/*	new_tss = mm_malloc( sizeof( struct tss ) );
-	new_tss->cr3 = paging_getCurrentPageDir();
-	new_tss->esp = tasking_getESP();
+	//scheduler_tss = mm_malloc( sizeof( struct TSS ) );
+	//scheduler_tss->cr3 = paging_getCurrentPageDir();
 	
 	// setup the TSS Descriptor (6.2.2)
-	gdt_setEntry( KERNEL_TSS_SEL, (DWORD)new_tss, sizeof(struct tss)-1, 0x89, 0x00 );
-	tasking_ltr( KERNEL_TSS_SEL );
-*/
+	//gdt_setEntry( KERNEL_TSS_SEL, (DWORD)scheduler_tss, sizeof(struct TSS)-1, 0x89, 0x00 );
+	//tasking_ltr( KERNEL_TSS_SEL );
 
 	task_create( ThreadTest1 );
-
 	task_create( ThreadTest2 );
 	
 	// calculate the timer interval

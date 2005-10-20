@@ -3,30 +3,7 @@
 
 #include <sys/types.h>
 //#include <kernel/mm/paging.h>
-/*
-struct TASK_STACK_REVERSED
-{
-	DWORD ss;
-	DWORD userstack;
-	DWORD eflags;
-	DWORD cs;
-	DWORD eip;
-	DWORD errorcode;
-	DWORD intnumber;
-	DWORD eax;
-	DWORD ecx;
-	DWORD edx;
-	DWORD ebx;
-	DWORD esp;
-	DWORD ebp;
-	DWORD esi;
-	DWORD edi;
-	DWORD gs;
-	DWORD fs;
-	DWORD es;
-	DWORD ds;
-};
-*/
+
 struct TASK_STACK
 {
 	DWORD ds;
