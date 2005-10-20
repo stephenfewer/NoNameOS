@@ -4,6 +4,8 @@
 #include <sys/types.h>
 //#include <kernel/mm/paging.h>
 
+#define TASK_STACKSIZE		4096
+
 struct TASK_STACK
 {
 	DWORD ds;

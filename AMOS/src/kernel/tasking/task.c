@@ -36,9 +36,9 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	// set its page directory
 	task->page_dir = paging_getCurrentPageDir();
 	// allocate a stack for the task
-	task->stack = mm_malloc( 4096 );
+	task->stack = mm_malloc( TASK_STACKSIZE );
 	// setup the initial stack fo we can perform a task switch
-	stack = (struct TASK_STACK *)( (DWORD)task->stack + 4096 - sizeof(struct TASK_STACK) );
+	stack = (struct TASK_STACK *)( (DWORD)task->stack + TASK_STACKSIZE - sizeof(struct TASK_STACK) );
 	// clear the stack
 	memset( (BYTE *)stack, 0x00, sizeof(struct TASK_STACK) );
 	// set the code segment
