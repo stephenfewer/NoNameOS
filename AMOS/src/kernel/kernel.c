@@ -10,14 +10,6 @@
 
 int kernel_lockCount = 0;
 
-BYTE * memset( BYTE * dest, BYTE val, int count )
-{
-    BYTE * temp = dest;
-    for( ; count !=0 ; count-- )
-    	*temp++ = val;
-    return dest;
-}
-
 BYTE inportb( WORD port )
 {
     BYTE rv;
@@ -30,13 +22,13 @@ void outportb( WORD port, BYTE data )
     ASM( "outb %1, %0" : : "dN" (port), "a" (data) );
 }
 
-void kernel_lock()
+inline void kernel_lock()
 {
 	cli();
 	kernel_lockCount++;
 }
 
-void kernel_unlock()
+inline void kernel_unlock()
 {
 	if( --kernel_lockCount == 0 )
 		sti();

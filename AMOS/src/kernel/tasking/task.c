@@ -6,9 +6,20 @@
 #include <kernel/kernel.h>
 #include <kernel/console.h>
 
-
 int task_total = 0;
 
+/*
+extern DWORD scheduler_ticks;
+
+void task_sleep( int ticks )
+{
+    unsigned long tickend;
+
+    tickend = scheduler_ticks + ticks;
+    
+    while( scheduler_ticks < tickend );
+}
+*/
 void task_destroy( struct TASK_INFO * task )
 {
 	scheduler_removeTask( task );
@@ -25,7 +36,6 @@ void task_destroy( struct TASK_INFO * task )
 struct TASK_INFO * task_create( void (*entrypoint)() )
 {
 	struct TASK_STACK * stack;
-	//DWORD * stack;
 	struct TASK_INFO * task;
 	// create a new task info structure
 	task = mm_malloc( sizeof( struct TASK_INFO ) );
@@ -33,6 +43,8 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	task->id = task_total++;
 	// give it an initial tick slice
 	task->tick_slice = 1;
+	// set the initial task state
+	task->state = READY;
 	// set its page directory
 	task->page_dir = paging_getCurrentPageDir();
 	// allocate a stack for the task
@@ -40,7 +52,7 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	// setup the initial stack fo we can perform a task switch
 	stack = (struct TASK_STACK *)( (DWORD)task->stack + TASK_STACKSIZE - sizeof(struct TASK_STACK) );
 	// clear the stack
-	memset( (BYTE *)stack, 0x00, sizeof(struct TASK_STACK) );
+	mm_memset( (BYTE *)stack, 0x00, sizeof(struct TASK_STACK) );
 	// set the code segment
 	stack->cs = 0x08;
 	// set the data segments

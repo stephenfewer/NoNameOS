@@ -2,6 +2,7 @@
 #include <kernel/kernel.h>
 #include <kernel/isr.h>
 #include <kernel/mm/paging.h>
+#include <kernel/mm/mm.h>
 
 struct IDT_ENTRY   idt_table[IDT_ENTRYS];
 
@@ -35,7 +36,7 @@ void idt_init()
     idt_pointer.limit = ( sizeof(struct IDT_ENTRY) * IDT_ENTRYS ) - 1;
     idt_pointer.base = (unsigned int)&idt_table;
 
-    memset( (BYTE *)&idt_table, 0, sizeof(struct IDT_ENTRY) * IDT_ENTRYS );
+    mm_memset( (BYTE *)&idt_table, 0, sizeof(struct IDT_ENTRY) * IDT_ENTRYS );
 
 	for( i=INT0 ; i<INT32 ; i++ )
 	{

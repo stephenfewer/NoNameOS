@@ -15,7 +15,7 @@ struct TASK_INFO * scheduler_currentTask = NULL;
 // this really really should be a dynamic linked list
 struct TASK_INFO * scheduler_queue[MAX_TASKS];
 
-struct TSS * scheduler_tss = NULL;
+//struct TSS * scheduler_tss = NULL;
 
 void ThreadTest1()
 {
@@ -56,27 +56,50 @@ void scheduler_removeTask( struct TASK_INFO * task )
 DWORD scheduler_switch( struct TASK_STACK * taskstack )
 {
 	scheduler_ticks++;
+/*
+if(scheduler_ticks>8)
+{
+	while(TRUE);
+}*/
 
 	if( scheduler_currentTask == NULL )
 	{
 		// To-Do: create a kernel task 0 with current_esp
 		scheduler_currentTask = scheduler_queue[ 0 ];
-		kprintf("first task switch: current_esp = %x\n", current_esp );
+		// set the current_esp to our new stack
+		current_esp = scheduler_currentTask->current_esp;
+		// set the task state to running as we are switching into this task
+		scheduler_currentTask->state = RUNNING;
+		
 		//scheduler_tss->cr3 = scheduler_currentTask->page_dir;
 		//scheduler_tss->esp = scheduler_currentTask->current_esp;
-		kernel_unlock();
-		return scheduler_currentTask->current_esp;
 	}
-
-	kprintf("Timer: [%d] ticks = %d  current_esp = %x\n", scheduler_currentTask->id, scheduler_ticks, current_esp );
 	
 	scheduler_currentTask->current_esp = current_esp;
 	
 	// if the current task has reached the end of its tick slice
 	// we must switch to a new task
 	if( scheduler_currentTask->tick_slice <= 0 )
-	{
+	{/*
+		int i=scheduler_currentTask->id + 1;
 		// get the next task to switch to in a round robin fashine
+		while( TRUE )
+		{
+			if( scheduler_queue[ i ] == NULL || i>=MAX_TASKS )
+				i=0;
+	
+			if( (scheduler_queue[ i ])->state == READY )
+			{
+				// set the current task's state to ready
+				scheduler_currentTask->state = READY;
+				// select the new task we will switch into
+				scheduler_currentTask = scheduler_queue[ i ];
+				break;
+			}
+			i++;
+		}
+		*/
+		
 		if( scheduler_queue[ scheduler_currentTask->id + 1 ] != NULL )
 			scheduler_currentTask = scheduler_queue[ scheduler_currentTask->id + 1 ];
 		else
@@ -84,6 +107,9 @@ DWORD scheduler_switch( struct TASK_STACK * taskstack )
 		
 		// we could set this higher/lower depending on its priority: LOW, NORMAL, HIGH
 		scheduler_currentTask->tick_slice = 1;
+		
+		// set the task state to running as we are switching into this task
+		scheduler_currentTask->state = RUNNING;
 		
 		//paging_setCurrentPageDir( scheduler_currentTask->page_dir );
 		
@@ -94,6 +120,8 @@ DWORD scheduler_switch( struct TASK_STACK * taskstack )
 	{
 		scheduler_currentTask->tick_slice--;
 	}
+		
+	//kprintf("Timer: [%d] ticks = %d  current_esp = %x\n", scheduler_currentTask->id, scheduler_ticks, current_esp );
 	
 	return scheduler_currentTask->current_esp;
 }
@@ -121,7 +149,7 @@ void scheduler_init()
 
 	task_create( ThreadTest1 );
 	task_create( ThreadTest2 );
-	
+
 	// calculate the timer interval
 	interval = 1193180 / 100000; //100Hz
 	// square wave mode

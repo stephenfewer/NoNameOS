@@ -1,5 +1,6 @@
 #include <kernel/mm/paging.h>
 #include <kernel/mm/physical.h>
+#include <kernel/mm/mm.h>
 #include <kernel/kernel.h>
 #include <kernel/console.h>
 #include <kernel/isr.h>
@@ -31,7 +32,7 @@ void paging_clearDirectory()
 {
 	int i=0;
 	
-	memset( (BYTE *)paging_pageDir, 0x00, sizeof(struct PAGE_DIRECTORY) );
+	mm_memset( (BYTE *)paging_pageDir, 0x00, sizeof(struct PAGE_DIRECTORY) );
 	
 	for( i=0 ; i<PAGE_ENTRYS; i++ )
 	{
@@ -45,7 +46,7 @@ void paging_clearDirectory()
 void paging_setPageDirectoryEntry( void * linearAddress, void * ptAddress )
 {
 	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( linearAddress );
-	memset( (BYTE *)ptAddress, 0x00, sizeof(struct PAGE_TABLE) );
+	mm_memset( (BYTE *)ptAddress, 0x00, sizeof(struct PAGE_TABLE) );
 	
 	pde->present = TRUE;
 	pde->readwrite = READWRITE;

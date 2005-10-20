@@ -47,8 +47,6 @@ struct MULTIBOOT_INFO
     WORD  vbe_interface_len;
 };
 
-BYTE * memset( BYTE *, BYTE, int );
-
 BYTE inportb( WORD );
 
 void outportb( WORD, BYTE );

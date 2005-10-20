@@ -5,7 +5,7 @@ INCLUDE_DIR=../../../include/
 CC=gcc
 RM=del
 
-CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -fno-strict-aliasing -nostdlib -fno-builtin -finline-functions -nostdinc -I $(INCLUDE_DIR)
+CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -finline-functions -nostdinc -I $(INCLUDE_DIR)
 
 OBJ=scheduler.o task.o
 	

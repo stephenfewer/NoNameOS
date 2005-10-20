@@ -1,5 +1,6 @@
 #include <kernel/mm/physical.h>
 #include <kernel/mm/paging.h>
+#include <kernel/mm/mm.h>
 #include <kernel/kernel.h>
 #include <kernel/console.h>
 
@@ -75,7 +76,7 @@ void physical_init( DWORD memUpper )
 	physical_bitmap = (char *)&end;
 
 	// clear the bitmap so all pages are marked as free
-	memset( (BYTE *)physical_bitmap, 0x00, physical_bitmapSize );
+	mm_memset( (BYTE *)physical_bitmap, 0x00, physical_bitmapSize );
 
 	// reserve the bios and video memory
 	for( physicalAddress=(void *)0xA0000 ; physicalAddress<(void *)0x100000 ; physicalAddress+=SIZE_4KB )

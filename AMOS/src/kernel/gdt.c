@@ -1,5 +1,6 @@
 #include <kernel/gdt.h>
 #include <kernel/kernel.h>
+#include <kernel/mm/mm.h>
 
 struct GDT_ENTRY	gdt_table[GDT_ENTRYS];
 
@@ -30,7 +31,7 @@ void gdt_init()
     // base should be physical?
     gdt_pointer.base = (unsigned int)&gdt_table;
 
-	memset( (BYTE *)&gdt_table, 0x00, sizeof(struct GDT_ENTRY) * GDT_ENTRYS );
+	mm_memset( (BYTE *)&gdt_table, 0x00, sizeof(struct GDT_ENTRY) * GDT_ENTRYS );
 
     // NULL descriptor
     gdt_setEntry( KERNEL_NULL_SEL, 0L, 0L, 0x00, 0x00 );

@@ -29,10 +29,18 @@ struct TASK_STACK
 	DWORD ss;
 };
 
+enum
+{
+	READY=0,
+	RUNNING,
+	BLOCKED,
+};
+
 struct TASK_INFO
 {
 	int id;
 	int tick_slice;
+	int state;
 	DWORD current_esp;
 	void * stack;
 	struct PAGE_DIRECTORY * page_dir;	
