@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 
+#define KERNEL_CODE_VADDRESS	(void *)0xC0000000
 #define KERNEL_HEAP_VADDRESS	(void *)0xD0000000
 
 struct HEAP_ITEM

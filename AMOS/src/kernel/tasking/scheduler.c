@@ -129,8 +129,7 @@ if(scheduler_ticks>128)
 		
 	//kprintf("Timer: [%d] ticks = %d  current_esp = %x\n", scheduler_currentTask->id, scheduler_ticks, current_esp );
 	
-	// switch over to the tasks address space
-	//paging_setCurrentPageDir( scheduler_currentTask->page_dir );
+	// set the current page directory
 	current_cr3 = (DWORD)scheduler_currentTask->page_dir;
 	
 	return scheduler_currentTask->current_esp;

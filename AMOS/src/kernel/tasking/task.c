@@ -25,10 +25,8 @@ void task_destroy( struct TASK_INFO * task )
 {
 	// remove the task from the scheduler so it cant be switched back in
 	scheduler_removeTask( task );
-	// destroy the tasks page directory
+	// destroy the tasks page directory, inturn destroying the stack
 	paging_destroyDirectory( task->page_dir );
-	// free the stack
-	physical_pageFree( task->stack );
 	// destroy the task info structure
 	mm_free( task );
 	
@@ -42,7 +40,6 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	struct TASK_STACK * stack;
 	struct TASK_INFO * task;
 	void * physicalAddress;
-	
 	// create a new task info structure
 	task = mm_malloc( sizeof( struct TASK_INFO ) );
 	// assign a task id
@@ -51,19 +48,10 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	task->tick_slice = 1;
 	// set the initial task state
 	task->state = READY;
-	
-	// set its page directory
-	//task->page_dir = paging_kernelPageDir;//paging_getCurrentPageDir();
-	
 	// create the new tasks page directory
 	task->page_dir = paging_createDirectory();
-	// map in the kernel
+	// map in the kernel including its heap and bottom 4 megs
 	paging_mapKernel( task->page_dir );
-	// map in the kernel's heap
-	paging_mapKernelHeap( task->page_dir );
-	// identity map bottom 4MB's
-	for( physicalAddress=0L ; physicalAddress<(void *)(1024*PAGE_SIZE) ; physicalAddress+=PAGE_SIZE )
-		paging_setPageTableEntry( task->page_dir, physicalAddress, physicalAddress, TRUE );	
 	// allocate a page for the stack
 	physicalAddress = physical_pageAlloc();
 	//  map in the stack to the kernels address space so we can write to it
@@ -91,10 +79,8 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	stack->intnumber = IRQ0;
 	// set the tasks current esp to the stack
 	task->current_esp = (DWORD)stack;
-	
 	// unmap the stack from the kernels address space
 	paging_setPageTableEntry( paging_kernelPageDir, TASK_STACKADDRESS, NULL, FALSE );
-
 	// add the task to the scheduler
 	scheduler_addTask( task );
 	// return with new task info

@@ -125,15 +125,31 @@ struct PAGE_DIRECTORY * paging_createDirectory()
 // not tested but will be used to destroy a tasks page directory when it terminates
 void paging_destroyDirectory( struct PAGE_DIRECTORY * pd )
 {
-	int i;
+	struct PAGE_DIRECTORY_ENTRY * pde;
+	struct PAGE_TABLE * pt;
+	struct PAGE_TABLE_ENTRY * pte;
 	void * physicalAddress;
-	// free up all the page tables we created, TO-DO: DONT FREE SHARED MEM LIKE KERNEL!! > 3GB
-	for( i=0 ; i<PAGE_ENTRYS; i++ )
+	int i, x;
+	// free up all the page tables we created but we dont free bottom 4 megs or kernel (anything above 3GB)
+	// we also free the physical memory the page table entrys map
+	for( i=1 ; i<768; i++ )
 	{
-		struct PAGE_DIRECTORY_ENTRY * pde = &pd->entry[i];
-		physicalAddress = (void *)TABLE_SHIFT_L( pde->address );
-		if( physicalAddress != NULL )
-			physical_pageFree( physicalAddress );
+		pde = &pd->entry[i];
+		pt = (struct PAGE_TABLE *)( TABLE_SHIFT_L(pde->address) );
+		if( pt != NULL )
+		{
+			// loop through all entrys in the page table
+			for( x=0 ; x<PAGE_ENTRYS; x++ )
+			{
+				pte = &pt->entry[x];
+				physicalAddress = (void *)TABLE_SHIFT_L( pte->address );
+				// free the memory mapped to the page table entry
+				if( physicalAddress != NULL )
+					physical_pageFree( physicalAddress );
+			}
+			// free the page table
+			physical_pageFree( pt );
+		}
 	}
 	// free the page directory itself
 	physical_pageFree( pd );
@@ -142,27 +158,22 @@ void paging_destroyDirectory( struct PAGE_DIRECTORY * pd )
 // map the kernel's virtual address to its physical memory location into pd
 void paging_mapKernel( struct PAGE_DIRECTORY * pd )
 {
-	void * physicalAddress = V2P( &start );
-	void * linearAddress = (void *)&start;
-	
-	for( ; physicalAddress<V2P(&end)+physical_getBitmapSize() ; physicalAddress+=PAGE_SIZE )
-	{
-		paging_setPageTableEntry( pd, linearAddress, physicalAddress, TRUE );
-		linearAddress += PAGE_SIZE;		
-	}
-}
-
-void paging_mapKernelHeap( struct PAGE_DIRECTORY * pd )
-{
 	struct PAGE_DIRECTORY_ENTRY * pde;
-	
+	// map in the bottom 4MB's ( which are identity mapped, see paging_init() )
+	pde = paging_getPageDirectoryEntry( paging_kernelPageDir, NULL );
+	paging_setPageDirectoryEntry( pd, NULL, (void *)TABLE_SHIFT_L(pde->address), FALSE );
+	// map in the kernel
+	pde = paging_getPageDirectoryEntry( paging_kernelPageDir, KERNEL_CODE_VADDRESS );
+	paging_setPageDirectoryEntry( pd, KERNEL_CODE_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	
+	// map in the kernel's heap
 	pde = paging_getPageDirectoryEntry( paging_kernelPageDir, KERNEL_HEAP_VADDRESS );
-	paging_setPageDirectoryEntry( pd, KERNEL_HEAP_VADDRESS, TABLE_SHIFT_L(pde->address), FALSE );	
+	paging_setPageDirectoryEntry( pd, KERNEL_HEAP_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	
 }
 
 void paging_init()
 {
 	void * physicalAddress;
+	void * linearAddress;
 
 	// create the kernels page directory
 	paging_kernelPageDir = paging_createDirectory();
@@ -171,9 +182,16 @@ void paging_init()
 	for( physicalAddress=0L ; physicalAddress<(void *)(1024*PAGE_SIZE) ; physicalAddress+=PAGE_SIZE )
 		paging_setPageTableEntry( paging_kernelPageDir, physicalAddress, physicalAddress, TRUE );		
 
-	// map the kernel into the kernels page directory
-	paging_mapKernel( paging_kernelPageDir );
-
+	// map in the kernel
+	physicalAddress = V2P( &start );
+	linearAddress = (void *)&start;
+	
+	for( ; physicalAddress<V2P(&end)+physical_getBitmapSize() ; physicalAddress+=PAGE_SIZE )
+	{
+		paging_setPageTableEntry( paging_kernelPageDir, linearAddress, physicalAddress, TRUE );
+		linearAddress += PAGE_SIZE;		
+	}
+	
 	// enable paging
 	paging_setCurrentPageDir( paging_kernelPageDir );
 	

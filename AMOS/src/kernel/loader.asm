@@ -153,7 +153,7 @@ isr_common_stub:
     test eax, eax		; test the return value
     jz movealong		; if its null, dont set new stack pointer
     mov [_current_esp], eax		; set new stack pointer
-    mov eax, [_current_cr3]		; set the new page directory
+    mov eax, [_current_cr3]		; switch over to the tasks address space
     mov cr3, eax
 movealong:
 	mov esp, [_current_esp]

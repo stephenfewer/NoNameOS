@@ -36,7 +36,7 @@ Linker script and memory map
                 0x00101000                . = ALIGN (0x1000)
  *fill*         0x00100070      0xf90 00
 
-.kernel         0xc0001000     0x2000 load address 0x00101000
+.kernel         0xc0001000     0x3000 load address 0x00101000
                 0xc0001000                kernel = .
  *(.kernel)
  .kernel        0xc0001000      0x215 loader.o
@@ -136,95 +136,94 @@ Linker script and memory map
                 0xc0002509                mm_malloc
                 0xc00023f3                mm_morecore
                 0xc00023d5                mm_memset
- .text          0xc0002660      0x490 ./mm/paging.o
+ .text          0xc0002660      0x540 ./mm/paging.o
                 0xc000267b                paging_clearDirectory
                 0xc000266c                paging_getPageDirectoryEntry
                 0xc0002939                paging_destroyDirectory
                 0xc00028f7                paging_createDirectory
-                0xc0002a38                paging_init
+                0xc0002ae7                paging_init
                 0xc0002664                paging_setCurrentPageDir
                 0xc00027b7                paging_setPageTableEntry
                 0xc00026b5                paging_setPageDirectoryEntry
-                0xc000299a                paging_mapKernel
-                0xc00029d8                paging_mapKernelHeap
+                0xc00029ed                paging_mapKernel
                 0xc0002708                paging_getPageTableEntry
                 0xc0002660                paging_getCurrentPageDir
                 0xc00028d7                paging_pageFaultHandler
- .text          0xc0002af0      0x240 ./mm/physical.o
-                0xc0002b12                physical_pageAllocAddress
-                0xc0002bf4                physical_pageFree
-                0xc0002c3c                physical_init
-                0xc0002b66                physical_pageAlloc
-                0xc0002af0                physical_isPageFree
-                0xc0002b60                physical_getBitmapSize
- .text          0xc0002d30      0x160 ./tasking/scheduler.o
-                0xc0002e1e                scheduler_init
-                0xc0002d4b                Thread2
-                0xc0002d30                Thread1
-                0xc0002e18                scheduler_ltr
-                0xc0002d66                scheduler_addTask
-                0xc0002d86                scheduler_switch
-                0xc0002d74                scheduler_removeTask
- .text          0xc0002e90      0x160 ./tasking/task.o
-                0xc0002e90                task_destroy
-                0xc0002ec7                task_create
-                0xc0003000                . = ALIGN (0x1000)
- *fill*         0xc0002ff0       0x10 00
-
-.data           0xc0003000     0x1000 load address 0x00103000
-                0xc0003000                data = .
- *(.data)
- .data          0xc0003000       0x80 idt.o
-                0xc0003000                isr_stubs
- .data          0xc0003080       0x40 irq.o
-                0xc0003080                irq_stubs
- .data          0xc00030c0       0x80 isr.o
-                0xc00030c0                isr_messages
+ .text          0xc0002ba0      0x240 ./mm/physical.o
+                0xc0002bc2                physical_pageAllocAddress
+                0xc0002ca4                physical_pageFree
+                0xc0002cec                physical_init
+                0xc0002c16                physical_pageAlloc
+                0xc0002ba0                physical_isPageFree
+                0xc0002c10                physical_getBitmapSize
+ .text          0xc0002de0      0x160 ./tasking/scheduler.o
+                0xc0002ece                scheduler_init
+                0xc0002dfb                Thread2
+                0xc0002de0                Thread1
+                0xc0002ec8                scheduler_ltr
+                0xc0002e16                scheduler_addTask
+                0xc0002e36                scheduler_switch
+                0xc0002e24                scheduler_removeTask
+ .text          0xc0002f40      0x130 ./tasking/task.o
+                0xc0002f40                task_destroy
+                0xc0002f6c                task_create
                 0xc0004000                . = ALIGN (0x1000)
- *fill*         0xc0003140      0xec0 00
+ *fill*         0xc0003070      0xf90 00
 
-.bss            0xc0004000     0x4000 load address 0x00104000
-                0xc0004000                bss = .
+.data           0xc0004000     0x1000 load address 0x00104000
+                0xc0004000                data = .
+ *(.data)
+ .data          0xc0004000       0x80 idt.o
+                0xc0004000                isr_stubs
+ .data          0xc0004080       0x40 irq.o
+                0xc0004080                irq_stubs
+ .data          0xc00040c0       0x80 isr.o
+                0xc00040c0                isr_messages
+                0xc0005000                . = ALIGN (0x1000)
+ *fill*         0xc0004140      0xec0 00
+
+.bss            0xc0005000     0x4000 load address 0x00105000
+                0xc0005000                bss = .
  *(.bss)
- .bss           0xc0004000     0x1000 loader.o
- .bss           0xc0005000        0x4 kernel.o
-                0xc0005000                kernel_lockCount
- .bss           0xc0005004        0x8 ./mm/mm.o
-                0xc0005004                mm_heapTop
-                0xc0005008                mm_heapBottom
- .bss           0xc000500c       0x10 ./tasking/scheduler.o
-                0xc0005014                scheduler_ticks
-                0xc0005010                current_cr3
-                0xc0005018                scheduler_currentTask
-                0xc000500c                current_esp
- .bss           0xc000501c        0x4 ./tasking/task.o
-                0xc000501c                task_total
-                0xc0006000                . = ALIGN (0x1000)
- *fill*         0xc0005020      0xfe0 00
+ .bss           0xc0005000     0x1000 loader.o
+ .bss           0xc0006000        0x4 kernel.o
+                0xc0006000                kernel_lockCount
+ .bss           0xc0006004        0x8 ./mm/mm.o
+                0xc0006004                mm_heapTop
+                0xc0006008                mm_heapBottom
+ .bss           0xc000600c       0x10 ./tasking/scheduler.o
+                0xc0006014                scheduler_ticks
+                0xc0006010                current_cr3
+                0xc0006018                scheduler_currentTask
+                0xc000600c                current_esp
+ .bss           0xc000601c        0x4 ./tasking/task.o
+                0xc000601c                task_total
+                0xc0007000                . = ALIGN (0x1000)
+ *fill*         0xc0006020      0xfe0 00
  *(COMMON)
- COMMON         0xc0006000       0x40 console.o
-                0xc0006000                console_mem
-                0xc0006010                console_x
-                0xc0006020                console_attrib
-                0xc0006030                console_y
- COMMON         0xc0006040       0x30 gdt.o
-                0xc0006040                gdt_pointer
-                0xc0006050                gdt_table
- COMMON         0xc0006070      0x810 idt.o
-                0xc0006070                idt_table
-                0xc0006870                idt_pointer
- COMMON         0xc0006880      0x400 isr.o
-                0xc0006880                isr_handlers
- COMMON         0xc0006c80       0x10 ./mm/paging.o
-                0xc0006c80                paging_kernelPageDir
- COMMON         0xc0006c90       0x20 ./mm/physical.o
-                0xc0006c90                physical_bitmapSize
-                0xc0006ca0                physical_bitmap
- COMMON         0xc0006cb0      0x400 ./tasking/scheduler.o
-                0xc0006cb0                scheduler_queue
-                0xc0008000                . = ALIGN (0x1000)
- *fill*         0xc00070b0      0xf50 00
-                0xc0008000                _end = .
+ COMMON         0xc0007000       0x40 console.o
+                0xc0007000                console_mem
+                0xc0007010                console_x
+                0xc0007020                console_attrib
+                0xc0007030                console_y
+ COMMON         0xc0007040       0x30 gdt.o
+                0xc0007040                gdt_pointer
+                0xc0007050                gdt_table
+ COMMON         0xc0007070      0x810 idt.o
+                0xc0007070                idt_table
+                0xc0007870                idt_pointer
+ COMMON         0xc0007880      0x400 isr.o
+                0xc0007880                isr_handlers
+ COMMON         0xc0007c80       0x10 ./mm/paging.o
+                0xc0007c80                paging_kernelPageDir
+ COMMON         0xc0007c90       0x20 ./mm/physical.o
+                0xc0007c90                physical_bitmapSize
+                0xc0007ca0                physical_bitmap
+ COMMON         0xc0007cb0      0x400 ./tasking/scheduler.o
+                0xc0007cb0                scheduler_queue
+                0xc0009000                . = ALIGN (0x1000)
+ *fill*         0xc00080b0      0xf50 00
+                0xc0009000                _end = .
 LOAD loader.o
 LOAD kernel.o
 LOAD console.o
@@ -240,16 +239,16 @@ LOAD ./tasking/scheduler.o
 LOAD ./tasking/task.o
 OUTPUT(../../bin/kernel.coff coff-go32)
 
-.comment        0xc0008000       0xf0
- .comment       0xc0008000       0x14 kernel.o
- .comment       0xc0008014       0x14 console.o
- .comment       0xc0008028       0x14 gdt.o
- .comment       0xc000803c       0x14 idt.o
- .comment       0xc0008050       0x14 irq.o
- .comment       0xc0008064       0x14 isr.o
- .comment       0xc0008078       0x14 debug.o
- .comment       0xc000808c       0x14 ./mm/mm.o
- .comment       0xc00080a0       0x14 ./mm/paging.o
- .comment       0xc00080b4       0x14 ./mm/physical.o
- .comment       0xc00080c8       0x14 ./tasking/scheduler.o
- .comment       0xc00080dc       0x14 ./tasking/task.o
+.comment        0xc0009000       0xf0
+ .comment       0xc0009000       0x14 kernel.o
+ .comment       0xc0009014       0x14 console.o
+ .comment       0xc0009028       0x14 gdt.o
+ .comment       0xc000903c       0x14 idt.o
+ .comment       0xc0009050       0x14 irq.o
+ .comment       0xc0009064       0x14 isr.o
+ .comment       0xc0009078       0x14 debug.o
+ .comment       0xc000908c       0x14 ./mm/mm.o
+ .comment       0xc00090a0       0x14 ./mm/paging.o
+ .comment       0xc00090b4       0x14 ./mm/physical.o
+ .comment       0xc00090c8       0x14 ./tasking/scheduler.o
+ .comment       0xc00090dc       0x14 ./tasking/task.o
