@@ -7,6 +7,7 @@
 #include <kernel/gdt.h>
 
 DWORD current_esp = 0x00000000;
+DWORD current_cr3 = 0x00000000;
 
 DWORD scheduler_ticks = 0;
 
@@ -17,7 +18,7 @@ struct TASK_INFO * scheduler_queue[MAX_TASKS];
 
 //struct TSS * scheduler_tss = NULL;
 
-void ThreadTest1()
+void Thread1()
 {
 	unsigned char* VidMemChar = (unsigned char*)0xB8000;
 	*VidMemChar='1';
@@ -30,16 +31,19 @@ void ThreadTest1()
 	}
 }
 
-void ThreadTest2()
+void Thread2()
 {
 	unsigned char* VidMemChar = (unsigned char*)0xB8002;
+	//unsigned char* crash = (unsigned char*)0xDEADC0DE;
 	*VidMemChar='a';
 	for(;;)
 	{
 		if( *VidMemChar=='a' )
 			*VidMemChar='b';
-		else
+		else{
 			*VidMemChar='a';
+			//*crash=0xDEADBEEF;
+		}
 	}
 }
 
@@ -53,15 +57,20 @@ void scheduler_removeTask( struct TASK_INFO * task )
 	scheduler_queue[ task->id ] = NULL;	
 }
 
+extern struct PAGE_DIRECTORY * paging_kernelPageDir;
+
 DWORD scheduler_switch( struct TASK_STACK * taskstack )
 {
+	// go into the kernels address space
+	//paging_setCurrentPageDir( paging_kernelPageDir );
+	
 	scheduler_ticks++;
 /*
-if(scheduler_ticks>8)
+if(scheduler_ticks>128)
 {
 	while(TRUE);
-}*/
-
+}
+*/
 	if( scheduler_currentTask == NULL )
 	{
 		// To-Do: create a kernel task 0 with current_esp
@@ -70,7 +79,7 @@ if(scheduler_ticks>8)
 		current_esp = scheduler_currentTask->current_esp;
 		// set the task state to running as we are switching into this task
 		scheduler_currentTask->state = RUNNING;
-		
+
 		//scheduler_tss->cr3 = scheduler_currentTask->page_dir;
 		//scheduler_tss->esp = scheduler_currentTask->current_esp;
 	}
@@ -97,22 +106,19 @@ if(scheduler_ticks>8)
 				break;
 			}
 			i++;
-		}
-		*/
+		}*/
 		
 		if( scheduler_queue[ scheduler_currentTask->id + 1 ] != NULL )
 			scheduler_currentTask = scheduler_queue[ scheduler_currentTask->id + 1 ];
 		else
 			scheduler_currentTask = scheduler_queue[ 0 ];
-		
+
 		// we could set this higher/lower depending on its priority: LOW, NORMAL, HIGH
 		scheduler_currentTask->tick_slice = 1;
 		
 		// set the task state to running as we are switching into this task
 		scheduler_currentTask->state = RUNNING;
-		
-		//paging_setCurrentPageDir( scheduler_currentTask->page_dir );
-		
+
 		//scheduler_tss->cr3 = scheduler_currentTask->page_dir;
 		//scheduler_tss->esp = scheduler_currentTask->current_esp;
 	}	
@@ -122,6 +128,10 @@ if(scheduler_ticks>8)
 	}
 		
 	//kprintf("Timer: [%d] ticks = %d  current_esp = %x\n", scheduler_currentTask->id, scheduler_ticks, current_esp );
+	
+	// switch over to the tasks address space
+	//paging_setCurrentPageDir( scheduler_currentTask->page_dir );
+	current_cr3 = (DWORD)scheduler_currentTask->page_dir;
 	
 	return scheduler_currentTask->current_esp;
 }
@@ -147,8 +157,8 @@ void scheduler_init()
 	//gdt_setEntry( KERNEL_TSS_SEL, (DWORD)scheduler_tss, sizeof(struct TSS)-1, 0x89, 0x00 );
 	//tasking_ltr( KERNEL_TSS_SEL );
 
-	task_create( ThreadTest1 );
-	task_create( ThreadTest2 );
+	task_create( Thread1 );
+	task_create( Thread2 );
 
 	// calculate the timer interval
 	interval = 1193180 / 100000; //100Hz
@@ -160,4 +170,5 @@ void scheduler_init()
 	outportb( PIT_TIMER_0, interval >> 8);
 	// set the scheduler to run via the timer interrupt
 	isr_setHandler( IRQ0, scheduler_switch );
+
 }

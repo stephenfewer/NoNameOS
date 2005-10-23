@@ -9,44 +9,46 @@
 extern void start;
 extern void end;
 
-struct PAGE_DIRECTORY * paging_pageDir;
+struct PAGE_DIRECTORY * paging_kernelPageDir;
 
 struct PAGE_DIRECTORY * paging_getCurrentPageDir()
 {
-	struct PAGE_DIRECTORY * page_dir;
-	ASM( "movl %%cr3, %0" : "=r" (page_dir) );
-	return page_dir;
+	struct PAGE_DIRECTORY * pd;
+	ASM( "movl %%cr3, %0" : "=r" ( pd ) );
+	return pd;
 }
 
-void paging_setCurrentPageDir( struct PAGE_DIRECTORY * page_dir )
+void paging_setCurrentPageDir( struct PAGE_DIRECTORY * pd )
 {
-	ASM( "movl %%eax, %%cr3" :: "r" ( page_dir ) );
+	ASM( "movl %%eax, %%cr3" :: "r" ( pd ) );
 }
 
-struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( void * linearAddress )
+struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( struct PAGE_DIRECTORY * pd, void * linearAddress )
 {
-	return &paging_pageDir->entry[ GET_DIRECTORY_INDEX(linearAddress) ];
+	return &pd->entry[ GET_DIRECTORY_INDEX(linearAddress) ];
 }
 
-void paging_clearDirectory()
+void paging_clearDirectory( struct PAGE_DIRECTORY * pd )
 {
 	int i=0;
 	
-	mm_memset( (BYTE *)paging_pageDir, 0x00, sizeof(struct PAGE_DIRECTORY) );
+	mm_memset( (BYTE *)pd, 0x00, sizeof(struct PAGE_DIRECTORY) );
 	
 	for( i=0 ; i<PAGE_ENTRYS; i++ )
 	{
-		struct PAGE_DIRECTORY_ENTRY * pde = &paging_pageDir->entry[i];
+		struct PAGE_DIRECTORY_ENTRY * pde = &pd->entry[i];
 		pde->present = FALSE;
 		pde->readwrite = READWRITE;
 		pde->user = SUPERVISOR;
 	}
 }
 
-void paging_setPageDirectoryEntry( void * linearAddress, void * ptAddress )
+void paging_setPageDirectoryEntry( struct PAGE_DIRECTORY * pd, void * linearAddress, void * ptAddress, BOOL clear )
 {
-	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( linearAddress );
-	mm_memset( (BYTE *)ptAddress, 0x00, sizeof(struct PAGE_TABLE) );
+	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( pd, linearAddress );
+	
+	if( clear )
+		mm_memset( (BYTE *)ptAddress, 0x00, sizeof(struct PAGE_TABLE) );
 	
 	pde->present = TRUE;
 	pde->readwrite = READWRITE;
@@ -61,25 +63,25 @@ void paging_setPageDirectoryEntry( void * linearAddress, void * ptAddress )
 	pde->address = TABLE_SHIFT_R(ptAddress);
 }
 
-struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( void * linearAddress )
+struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( struct PAGE_DIRECTORY * pd, void * linearAddress )
 {
-	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( linearAddress );
+	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( pd, linearAddress );
 	struct PAGE_TABLE * pt = (struct PAGE_TABLE *)( TABLE_SHIFT_L(pde->address) );
 	if( pt == NULL )
 	{
 		int i;
 		pt = (struct PAGE_TABLE *)physical_pageAlloc();
-		paging_setPageDirectoryEntry( linearAddress, (void *)pt );
+		paging_setPageDirectoryEntry( pd, linearAddress, (void *)pt, TRUE );
 		for( i=0 ; i<PAGE_ENTRYS ; i++ )
-			paging_setPageTableEntry( linearAddress+SIZE_4KB, 0L, FALSE );
+			paging_setPageTableEntry( pd, linearAddress+SIZE_4KB, 0L, FALSE );
 	}
 	return (struct PAGE_TABLE_ENTRY *)&pt->entry[ GET_TABLE_INDEX(linearAddress) ];
 }
 
 // maps a linear address to a physical address
-void paging_setPageTableEntry( void * linearAddress, void * physicalAddress, BOOL present )
+void paging_setPageTableEntry( struct PAGE_DIRECTORY * pd, void * linearAddress, void * physicalAddress, BOOL present )
 {
-	struct PAGE_TABLE_ENTRY * pte = paging_getPageTableEntry( PAGE_ALIGN( linearAddress ) );
+	struct PAGE_TABLE_ENTRY * pte = paging_getPageTableEntry( pd, PAGE_ALIGN( linearAddress ) );
 
 	pte->present = present;
 	pte->readwrite = READWRITE;
@@ -109,30 +111,71 @@ DWORD paging_pageFaultHandler( struct TASK_STACK * taskstack )
 	return (DWORD)NULL;
 }
 
+struct PAGE_DIRECTORY * paging_createDirectory()
+{
+	struct PAGE_DIRECTORY * pd;
+	// allocate some physical memory for the page directory
+	pd = (struct PAGE_DIRECTORY *)physical_pageAlloc();
+	// clear out the page directory
+	paging_clearDirectory( pd );
+	// return the new page directory
+	return pd;
+}
+
+// not tested but will be used to destroy a tasks page directory when it terminates
+void paging_destroyDirectory( struct PAGE_DIRECTORY * pd )
+{
+	int i;
+	void * physicalAddress;
+	// free up all the page tables we created, TO-DO: DONT FREE SHARED MEM LIKE KERNEL!! > 3GB
+	for( i=0 ; i<PAGE_ENTRYS; i++ )
+	{
+		struct PAGE_DIRECTORY_ENTRY * pde = &pd->entry[i];
+		physicalAddress = (void *)TABLE_SHIFT_L( pde->address );
+		if( physicalAddress != NULL )
+			physical_pageFree( physicalAddress );
+	}
+	// free the page directory itself
+	physical_pageFree( pd );
+}
+
+// map the kernel's virtual address to its physical memory location into pd
+void paging_mapKernel( struct PAGE_DIRECTORY * pd )
+{
+	void * physicalAddress = V2P( &start );
+	void * linearAddress = (void *)&start;
+	
+	for( ; physicalAddress<V2P(&end)+physical_getBitmapSize() ; physicalAddress+=PAGE_SIZE )
+	{
+		paging_setPageTableEntry( pd, linearAddress, physicalAddress, TRUE );
+		linearAddress += PAGE_SIZE;		
+	}
+}
+
+void paging_mapKernelHeap( struct PAGE_DIRECTORY * pd )
+{
+	struct PAGE_DIRECTORY_ENTRY * pde;
+	
+	pde = paging_getPageDirectoryEntry( paging_kernelPageDir, KERNEL_HEAP_VADDRESS );
+	paging_setPageDirectoryEntry( pd, KERNEL_HEAP_VADDRESS, TABLE_SHIFT_L(pde->address), FALSE );	
+}
+
 void paging_init()
 {
 	void * physicalAddress;
-	void * linearAddress;
 
-	paging_pageDir = (struct PAGE_DIRECTORY *)physical_pageAlloc();
+	// create the kernels page directory
+	paging_kernelPageDir = paging_createDirectory();
 
-	// clear out the page directory...
-	paging_clearDirectory();
-		
 	// identity map bottom 4MB's
 	for( physicalAddress=0L ; physicalAddress<(void *)(1024*PAGE_SIZE) ; physicalAddress+=PAGE_SIZE )
-		paging_setPageTableEntry( physicalAddress, physicalAddress, TRUE );		
+		paging_setPageTableEntry( paging_kernelPageDir, physicalAddress, physicalAddress, TRUE );		
 
-	// map the kernel's virtual address to its physical memory location
-	linearAddress = (void *)&start;
-	for( physicalAddress=V2P(&start) ; physicalAddress<V2P(&end)+physical_getBitmapSize() ; physicalAddress+=PAGE_SIZE )
-	{
-		paging_setPageTableEntry( linearAddress, physicalAddress, TRUE );
-		linearAddress += PAGE_SIZE;		
-	}
+	// map the kernel into the kernels page directory
+	paging_mapKernel( paging_kernelPageDir );
 
-	// Enable Paging...
-	paging_setCurrentPageDir( paging_pageDir );
+	// enable paging
+	paging_setCurrentPageDir( paging_kernelPageDir );
 	
 	ASM( "movl %cr0, %eax" );
 	ASM( "orl $0x80000000, %eax" );

@@ -15,6 +15,8 @@
 #include <kernel/console.h>
 #include <kernel/kernel.h>
 
+extern struct PAGE_DIRECTORY * paging_kernelPageDir;
+
 void * mm_heapTop = NULL;
 void * mm_heapBottom = NULL;
 
@@ -53,7 +55,7 @@ void * mm_morecore( DWORD size )
 	int pages = ( size / PAGE_SIZE ) + 1;
 	// when mm_heapTop == NULL we must create the initial heap
 	if( mm_heapTop == NULL )
-		mm_heapBottom = mm_heapTop = (void *)KERNEL_HEAP_VADDRESS;
+		mm_heapBottom = mm_heapTop = KERNEL_HEAP_VADDRESS;
 	// set the address to return
 	void * prevTop = mm_heapTop;
 	// create the pages
@@ -63,8 +65,8 @@ void * mm_morecore( DWORD size )
 		void * physicalAddress = physical_pageAlloc();
 		if( physicalAddress == 0L )
 			return NULL;
-		// map it onto the end of the heap
-		paging_setPageTableEntry( mm_heapTop, physicalAddress, TRUE );
+		// map it onto the end of the kernel heap
+		paging_setPageTableEntry( paging_kernelPageDir, mm_heapTop, physicalAddress, TRUE );
 		// clear it for safety
 		mm_memset( mm_heapTop, 0x00, PAGE_SIZE );
 	}

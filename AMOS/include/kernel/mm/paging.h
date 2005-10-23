@@ -75,15 +75,24 @@ struct PAGE_DIRECTORY * paging_getCurrentPageDir();
 
 void paging_setCurrentPageDir( struct PAGE_DIRECTORY * );
 
-struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( void * );
+struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( struct PAGE_DIRECTORY *, void * );
 
-void paging_clearDirectory();
+void paging_clearDirectory( struct PAGE_DIRECTORY * );
 
-struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( void * );
+struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( struct PAGE_DIRECTORY *, void * );
 
-void paging_setPageTableEntry( void *, void *, BOOL );
+void paging_setPageTableEntry( struct PAGE_DIRECTORY *, void *, void *, BOOL );
 
-void paging_setDirectoryTableEntry( void *, void * );
+//void paging_setDirectoryTableEntry( struct PAGE_DIRECTORY *, void *, void * );
+void paging_setPageDirectoryEntry( struct PAGE_DIRECTORY *, void *, void *, BOOL );
+
+struct PAGE_DIRECTORY * paging_createDirectory();
+
+void paging_destroyDirectory( struct PAGE_DIRECTORY * );
+
+void paging_mapKernel( struct PAGE_DIRECTORY * );
+
+void paging_mapKernelHeap( struct PAGE_DIRECTORY * );
 
 void paging_init();
 

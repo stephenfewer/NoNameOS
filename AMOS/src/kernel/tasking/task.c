@@ -1,6 +1,7 @@
 //#include <kernel/tasking/task.h>
 #include <kernel/tasking/scheduler.h>
 #include <kernel/mm/paging.h>
+#include <kernel/mm/physical.h>
 #include <kernel/mm/mm.h>
 #include <kernel/isr.h>
 #include <kernel/kernel.h>
@@ -22,21 +23,26 @@ void task_sleep( int ticks )
 */
 void task_destroy( struct TASK_INFO * task )
 {
+	// remove the task from the scheduler so it cant be switched back in
 	scheduler_removeTask( task );
-	// if we created a page directory destroy it and all its tables
-	//task->page_dir;
+	// destroy the tasks page directory
+	paging_destroyDirectory( task->page_dir );
 	// free the stack
-	mm_free( task->stack );
+	physical_pageFree( task->stack );
 	// destroy the task info structure
 	mm_free( task );
 	
 	task_total--;
 }
 
+extern struct PAGE_DIRECTORY * paging_kernelPageDir;
+
 struct TASK_INFO * task_create( void (*entrypoint)() )
 {
 	struct TASK_STACK * stack;
 	struct TASK_INFO * task;
+	void * physicalAddress;
+	
 	// create a new task info structure
 	task = mm_malloc( sizeof( struct TASK_INFO ) );
 	// assign a task id
@@ -45,12 +51,29 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	task->tick_slice = 1;
 	// set the initial task state
 	task->state = READY;
+	
 	// set its page directory
-	task->page_dir = paging_getCurrentPageDir();
-	// allocate a stack for the task
-	task->stack = mm_malloc( TASK_STACKSIZE );
-	// setup the initial stack fo we can perform a task switch
-	stack = (struct TASK_STACK *)( (DWORD)task->stack + TASK_STACKSIZE - sizeof(struct TASK_STACK) );
+	//task->page_dir = paging_kernelPageDir;//paging_getCurrentPageDir();
+	
+	// create the new tasks page directory
+	task->page_dir = paging_createDirectory();
+	// map in the kernel
+	paging_mapKernel( task->page_dir );
+	// map in the kernel's heap
+	paging_mapKernelHeap( task->page_dir );
+	// identity map bottom 4MB's
+	for( physicalAddress=0L ; physicalAddress<(void *)(1024*PAGE_SIZE) ; physicalAddress+=PAGE_SIZE )
+		paging_setPageTableEntry( task->page_dir, physicalAddress, physicalAddress, TRUE );	
+	// allocate a page for the stack
+	physicalAddress = physical_pageAlloc();
+	//  map in the stack to the kernels address space so we can write to it
+	paging_setPageTableEntry( paging_kernelPageDir, TASK_STACKADDRESS, physicalAddress, TRUE );
+	//  map in the stack to the tasks address space
+	paging_setPageTableEntry( task->page_dir, TASK_STACKADDRESS, physicalAddress, TRUE );
+	// save the physical stack address
+	task->stack = physicalAddress;
+	// create the initial stack fo we can perform a task switch
+	stack = (struct TASK_STACK *)( TASK_STACKADDRESS + TASK_STACKSIZE - sizeof(struct TASK_STACK) );
 	// clear the stack
 	mm_memset( (BYTE *)stack, 0x00, sizeof(struct TASK_STACK) );
 	// set the code segment
@@ -68,6 +91,10 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	stack->intnumber = IRQ0;
 	// set the tasks current esp to the stack
 	task->current_esp = (DWORD)stack;
+	
+	// unmap the stack from the kernels address space
+	paging_setPageTableEntry( paging_kernelPageDir, TASK_STACKADDRESS, NULL, FALSE );
+
 	// add the task to the scheduler
 	scheduler_addTask( task );
 	// return with new task info

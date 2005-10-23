@@ -4,7 +4,9 @@
 #include <sys/types.h>
 //#include <kernel/mm/paging.h>
 
-#define TASK_STACKSIZE		4096
+#define TASK_CODEADDRESS	(void *)0x10000000
+#define TASK_STACKADDRESS	(void *)0x20000000
+#define TASK_STACKSIZE		SIZE_4KB
 
 struct TASK_STACK
 {

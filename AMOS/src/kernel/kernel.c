@@ -55,7 +55,8 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 		
 		kernel_unlock();
 	}
-/*
+/*	
+	kprintf( "going to malloc some memory\n" );
 	p = mm_malloc( 32 );
 	kprintf( "p = %x\n", p );
 	//mm_free( p );

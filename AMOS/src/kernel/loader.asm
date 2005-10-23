@@ -14,7 +14,7 @@ EXTERN text, kernel, setup, data, bss, _end, _kernel_init
 
 EXTERN _isr_dispatcher
 
-EXTERN _current_esp
+EXTERN _current_esp, _current_cr3
 
 GLOBAL _VGDTR
 
@@ -153,6 +153,8 @@ isr_common_stub:
     test eax, eax		; test the return value
     jz movealong		; if its null, dont set new stack pointer
     mov [_current_esp], eax		; set new stack pointer
+    mov eax, [_current_cr3]		; set the new page directory
+    mov cr3, eax
 movealong:
 	mov esp, [_current_esp]
 	
