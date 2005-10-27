@@ -12,8 +12,8 @@ p {
 </head>
 <body bgcolor="#FFFFFF" text="#000000" link="#0000FF" vlink="#FF00CC" alink="#FF0000">
 <h2>AMOS</h2>
-<p>Version 0.1.0<br>
-  9th June 2005<br>
+<p>Version 0.3.0<br>
+  27th October 2005<br>
 </p>
 <h2>Contents<br>
 </h2>
@@ -56,7 +56,7 @@ p {
     set DJGPP=C:\\DJGPP\djgpp.env</font></p>
 </div>
 <div style="margin-left: 40px;">
-  <p>If you are building this on Windows you will need to install binutils for DJGPP in order to build ELF files.</p>
+  <p>If you are building this on Windows you will need to install <a href="http://membres.lycos.fr/placr/binutils.html" target="_blank">binutils</a> for DJGPP in order to build ELF files.</p>
   <p>The linker will place the finished binary <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
     in the bin directory.</p>
   <p>Run the batch file elf.bat to create the ELF kernel form the COFF file and it will then place <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
@@ -74,6 +74,8 @@ p {
 <h2><a name="Changelog"></a>Changelog<br>
 </h2>
 <div style="margin-left: 40px;">
+  <p>Version 0.3.0 - 27th October 2005<br>
+  Initial multitasking up and running. Eack task runs in its own 4GB address space.</p>
   <p>Version 0.2.0 - 30th September 2005<br>
   Kernel now being built as an ELF file. Build proccess entirely automated within Eclipse.
   Paging setup and kernel mapped into the higher half. Kernel heap setup as are malloc() & free().</p>
