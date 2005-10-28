@@ -1,7 +1,8 @@
-#ifndef _KERNEL_CONSOLE_H_
-#define _KERNEL_CONSOLE_H_
+#ifndef _KERNEL_IO_DEV_CONSOLE_H_
+#define _KERNEL_IO_DEV_CONSOLE_H_
 
 #include <sys/types.h>
+#include <kernel/io/io.h>
 
 #define CONSOLE_ROWS		25
 #define CONSOLE_COLUMNS		80
@@ -31,13 +32,13 @@ enum {
 	BLINK		= 0x80
 };
 
-void kprintf( char *, ... );
+struct DEVICE_HANDLE * console_open( char * );
 
-void console_putint( int );
+int console_close( struct DEVICE_HANDLE * );
 
-void console_puthex( DWORD );
+int console_read( struct DEVICE_HANDLE *, BYTE *, DWORD );
 
-void console_putuint( int );
+int console_write( struct DEVICE_HANDLE *, BYTE *, DWORD );
 
 void console_putch( BYTE );
 

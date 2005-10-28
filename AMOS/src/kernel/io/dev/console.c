@@ -1,5 +1,6 @@
 #include <kernel/kernel.h>
-#include <kernel/console.h>
+#include <kernel/mm/mm.h>
+#include <kernel/io/dev/console.h>
 
 BYTE * console_mem;
 
@@ -7,118 +8,35 @@ int console_x, console_y;
 
 BYTE console_attrib;
 
-void kprintf( char * text, ... )
+struct DEVICE_HANDLE * console_open( char * filename )
 {
-	int i, j;
-	BYTE * string;
-	va_list args;
-
-	va_start( args, text );
-
-	i = 0;
-
-	while( text[i] )
-	{
-		if( text[i] == '%' )
-		{
-			i++;
-
-			switch( text[i] )
-			{
-				case 's':
-					string = va_arg( args, BYTE * );
-					j = 0;
-					while( string[j] ) 
-						console_putch( string[j++] );
-					break;
-				case 'c':
-					console_putch( va_arg( args, BYTE ) );
-					break;
-				case 'd':
-					console_putint( va_arg( args, int ) );
-					break;
-				case 'i':
-					console_putint( va_arg( args, int ) );
-					break;
-				case 'u':
-					console_putuint( va_arg( args, unsigned int ) );
-					break;
-				case 'x':
-					console_puthex( va_arg( args, DWORD ) );
-					break;
-				default:
-					console_putch( text[i] );
-			}
-
-			i++;
-
-		} else {
-			console_putch( text[i] );
-			i++;
-		}
-
-	}
-
-	va_end( args );
-}
-
-void console_putint( int i )
-{
-	if( i >= 0 )
-	{
-		console_putuint( i );
-	} else {
-		console_putch( '-' );
-		console_putuint( -i );
-	}
-}
-
-void console_puthex( DWORD i )
-{
-	const unsigned char hex[ 16 ]  =	{ '0', '1', '2', '3', '4', '5', '6', '7',
-                            			  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
-    unsigned int n, d = 0x10000000;
-
-	console_putch( '0' );
-	console_putch( 'x' );
+	struct DEVICE_HANDLE * handle;
 	
-    while( ( i / d == 0 ) && ( d >= 0x10 ) )
-		d /= 0x10;
-    
-    n = i;
-    
-    while( d >= 0xF )
-    {
-		console_putch( hex[n / d] );
-		n = n % d;
-		d /= 0x10;
-    }
+	handle = (struct DEVICE_HANDLE *)mm_malloc( sizeof(struct DEVICE_HANDLE) );
+	handle->type = CONSOLE;
+	
+	// we could use the handle to store the virtual console number if we set them up
+	
+	return handle;
 }
 
-void console_putuint( int i )
+int console_close( struct DEVICE_HANDLE * handle )
 {
-    unsigned int n, d = 1000000000;
-    BYTE ustr[ 255 ];
-    unsigned int dec_index = 0;
-    
-    while( ( i / d == 0 ) && ( d >= 10 ) )
-		d /= 10;
-	
-    n = i;
-    
-    while( d >= 10 )
-    {
-		ustr[ dec_index++ ] = ( ( BYTE ) ( ( int ) '0' + n / d ) );
-		n = n % d;
-		d /= 10;
-    }
-    
-    ustr[ dec_index++ ] = ( BYTE ) ( ( int ) '0' + n );
-    ustr[ dec_index ] = 0;
-    					
-    n = 0;					
-	while( ustr[n] ) 
-		console_putch( ustr[n++] );
+	mm_free( handle );
+	return 0;
+}
+
+int console_read( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
+{
+	return -1;
+}
+
+int console_write( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
+{
+	int i=0;
+	while( i < size )
+		console_putch( buffer[i++] );
+	return 0;
 }
 
 void console_putch( BYTE c )
@@ -186,7 +104,7 @@ void console_scrollup( void )
 {
 	int i, j;
 
-    for( j=2 ; j<CONSOLE_ROWS-1; j++ )
+    for( j=0 ; j<CONSOLE_ROWS-1; j++ )
     {
 		for( i=0; i<CONSOLE_COLUMNS ; i++ )
 			console_putChar( i, j, console_getChar( i, j+1 ), console_getAttrib( i, j+1 ) );
@@ -216,11 +134,11 @@ void console_cls( void )
 
     for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
     {
-		for( j=2 ; j<CONSOLE_ROWS ; j++ )
+		for( j=0 ; j<CONSOLE_ROWS ; j++ )
 			console_putChar( i, j, ' ', console_attrib );
     }
     
-    console_setCursor( 0, 2 );
+    console_setCursor( 0, 0 );
 }
 
 void console_beep( void )
@@ -230,7 +148,7 @@ void console_beep( void )
 
 void console_init( void )
 {
-    int i;
+    //int i;
 	
     console_mem = (BYTE *)VIDEOMEM_BASE;
 
@@ -239,12 +157,12 @@ void console_init( void )
     console_cls();
     
     console_setCursor( 0, 0 );
-    for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
-	    kprintf( " " );
+  /*  for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
+	    console_putch( ' ' );
 	console_setCursor( 0, 0 );
-    kprintf( "AMOS %d.%d.%d\n", AMOS_MAJOR_VERSION, AMOS_MINOR_VERSION, AMOS_PATCH_VERSION );
+    //kprintf( "AMOS %d.%d.%d\n", AMOS_MAJOR_VERSION, AMOS_MINOR_VERSION, AMOS_PATCH_VERSION );
     for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
-	    kprintf( "-" );
-	console_setCursor( 0, 2 );
+	    console_putch( '-' );
+	console_setCursor( 0, 2 );*/
 }
 

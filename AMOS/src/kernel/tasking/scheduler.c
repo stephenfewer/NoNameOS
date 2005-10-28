@@ -2,8 +2,9 @@
 #include <kernel/tasking/task.h>
 #include <kernel/isr.h>
 #include <kernel/kernel.h>
-#include <kernel/console.h>
+#include <kernel/kprintf.h>
 #include <kernel/mm/paging.h>
+#include <kernel/mm/mm.h>
 #include <kernel/gdt.h>
 
 DWORD current_esp = 0x00000000;
@@ -16,7 +17,7 @@ struct TASK_INFO * scheduler_currentTask = NULL;
 // this really really should be a dynamic linked list
 struct TASK_INFO * scheduler_queue[MAX_TASKS];
 
-//struct TSS * scheduler_tss = NULL;
+struct TSS * scheduler_tss = NULL;
 
 void Thread1()
 {
@@ -75,13 +76,13 @@ if(scheduler_ticks>128)
 	{
 		// To-Do: create a kernel task 0 with current_esp
 		scheduler_currentTask = scheduler_queue[ 0 ];
+		// if we dont have any tasks yet we perform no task switch
+		if( scheduler_currentTask == NULL )
+			return (DWORD)NULL;
 		// set the current_esp to our new stack
 		current_esp = scheduler_currentTask->current_esp;
 		// set the task state to running as we are switching into this task
 		scheduler_currentTask->state = RUNNING;
-
-		//scheduler_tss->cr3 = scheduler_currentTask->page_dir;
-		//scheduler_tss->esp = scheduler_currentTask->current_esp;
 	}
 	
 	scheduler_currentTask->current_esp = current_esp;
@@ -118,9 +119,6 @@ if(scheduler_ticks>128)
 		
 		// set the task state to running as we are switching into this task
 		scheduler_currentTask->state = RUNNING;
-
-		//scheduler_tss->cr3 = scheduler_currentTask->page_dir;
-		//scheduler_tss->esp = scheduler_currentTask->current_esp;
 	}	
 	else
 	{
@@ -132,6 +130,10 @@ if(scheduler_ticks>128)
 	// set the current page directory
 	current_cr3 = (DWORD)scheduler_currentTask->page_dir;
 	
+	// fixup the tss
+	//scheduler_tss->cr3 = scheduler_currentTask->page_dir;
+	//scheduler_tss->esp0 = scheduler_currentTask->current_esp;
+		
 	return scheduler_currentTask->current_esp;
 }
 
@@ -140,6 +142,13 @@ void scheduler_ltr( WORD selector )
 	ASM( "ltr %0" : : "rm" (selector) );
 }
    
+DWORD getESP()
+{
+	DWORD esp;
+	ASM( "movl %%esp, %0" : "=r" ( esp ) );
+	return esp;
+}
+
 void scheduler_init()
 {
 	int i, interval;
@@ -149,15 +158,17 @@ void scheduler_init()
 		scheduler_queue[i] = NULL;
 
 	// create a TSS for our software task switching (6.2)
-	//scheduler_tss = mm_malloc( sizeof( struct TSS ) );
+	//scheduler_tss = (struct TSS *)mm_malloc( sizeof( struct TSS ) );
+	//mm_memset( (BYTE*)scheduler_tss, 0x00, sizeof( struct TSS ) );
 	//scheduler_tss->cr3 = paging_getCurrentPageDir();
+	//scheduler_tss->esp0 = getESP();
 	
 	// setup the TSS Descriptor (6.2.2)
 	//gdt_setEntry( KERNEL_TSS_SEL, (DWORD)scheduler_tss, sizeof(struct TSS)-1, 0x89, 0x00 );
-	//tasking_ltr( KERNEL_TSS_SEL );
+	//scheduler_ltr( KERNEL_TSS_SEL );
 
-	task_create( Thread1 );
-	task_create( Thread2 );
+	//task_create( Thread1 );
+	//task_create( Thread2 );
 
 	// calculate the timer interval
 	interval = 1193180 / 100000; //100Hz

@@ -4,7 +4,7 @@
 #include <sys/types.h>
 
 #define AMOS_MAJOR_VERSION 0
-#define AMOS_MINOR_VERSION 3
+#define AMOS_MINOR_VERSION 4
 #define AMOS_PATCH_VERSION 0
 
 #define sti() __asm__ __volatile__ ("sti")

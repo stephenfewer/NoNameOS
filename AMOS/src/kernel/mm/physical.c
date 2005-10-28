@@ -2,7 +2,7 @@
 #include <kernel/mm/paging.h>
 #include <kernel/mm/mm.h>
 #include <kernel/kernel.h>
-#include <kernel/console.h>
+#include <kernel/kprintf.h>
 
 extern void start;
 extern void end;

@@ -12,7 +12,7 @@
 #include <kernel/mm/mm.h>
 #include <kernel/mm/physical.h>
 #include <kernel/mm/paging.h>
-#include <kernel/console.h>
+#include <kernel/kprintf.h>
 #include <kernel/kernel.h>
 
 extern struct PAGE_DIRECTORY * paging_kernelPageDir;

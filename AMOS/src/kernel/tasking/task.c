@@ -5,7 +5,7 @@
 #include <kernel/mm/mm.h>
 #include <kernel/isr.h>
 #include <kernel/kernel.h>
-#include <kernel/console.h>
+#include <kernel/kprintf.h>
 
 int task_total = 0;
 

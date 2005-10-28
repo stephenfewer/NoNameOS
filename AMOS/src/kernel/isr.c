@@ -1,6 +1,6 @@
 #include <kernel/isr.h>
 #include <kernel/idt.h>
-#include <kernel/console.h>
+#include <kernel/kprintf.h>
 #include <kernel/kernel.h>
 #include <kernel/tasking/task.h>
 

@@ -1,12 +1,12 @@
 #include <kernel/kernel.h>
-#include <kernel/console.h>
 #include <kernel/gdt.h>
 #include <kernel/idt.h>
 #include <kernel/irq.h>
 #include <kernel/mm/mm.h>
 #include <kernel/mm/paging.h>
-#include <kernel/debug.h>
+#include <kernel/kprintf.h>
 #include <kernel/tasking/scheduler.h>
+#include <kernel/io/io.h>
 
 int kernel_lockCount = 0;
 
@@ -36,33 +36,30 @@ inline void kernel_unlock()
 
 void kernel_init( struct MULTIBOOT_INFO * m )
 {
-	//char * p, * q;
+	// lock protected code
+	kernel_lock();
+	// setup the global descriptor table
+	gdt_init();
+	// setup the interrupt descriptor table
+	idt_init();
+	// setup interrupts
+	irq_init();
+	// setup our memory manager
+	mm_init( m->mem_upper );
+	// setup the io subsystem
+	io_init();
+	// setup scheduling
+	scheduler_init();
+	// unlock protected code
+	kernel_unlock();
+}
 
-	{
-		kernel_lock();
-		
-		console_init();
-		
-		gdt_init();
-		
-		idt_init();
+void kernel_main( struct MULTIBOOT_INFO * m )
+{
+	kernel_init( m );
 	
-		irq_init();
+	kprintf( "AMOS %d.%d.%d\n", AMOS_MAJOR_VERSION, AMOS_MINOR_VERSION, AMOS_PATCH_VERSION );
 		
-		mm_init( m->mem_upper );
-		
-		scheduler_init();
-		
-		kernel_unlock();
-	}
-/*	
-	kprintf( "going to malloc some memory\n" );
-	p = mm_malloc( 32 );
-	kprintf( "p = %x\n", p );
-	//mm_free( p );
-	q = mm_malloc( 32 );
-	kprintf( "q = %x\n", q );
-*/
-    while(TRUE);
+	while(TRUE);
 }
 

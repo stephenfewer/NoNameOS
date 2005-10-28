@@ -2,7 +2,7 @@
 #include <kernel/mm/physical.h>
 #include <kernel/mm/mm.h>
 #include <kernel/kernel.h>
-#include <kernel/console.h>
+#include <kernel/kprintf.h>
 #include <kernel/isr.h>
 #include <kernel/tasking/task.h>
 

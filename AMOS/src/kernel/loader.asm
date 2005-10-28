@@ -10,7 +10,7 @@ MULTIBOOT_HEADER_MAGIC	equ 0x1BADB002
 MULTIBOOT_HEADER_FLAGS	equ MULTIBOOT_PAGE_ALIGN | MULTIBOOT_MEMORY_INFO
 MULTIBOOT_CHECKSUM		equ -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)
 
-EXTERN text, kernel, setup, data, bss, _end, _kernel_init
+EXTERN text, kernel, setup, data, bss, _end, _kernel_main
 
 EXTERN _isr_dispatcher
 
@@ -126,7 +126,7 @@ _start:
 
 	push ebx
 
-    call _kernel_init
+    call _kernel_main
     hlt
 isr_common_stub:
     pushad				; push all general purpose registers
