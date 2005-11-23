@@ -1,3 +1,12 @@
+;     AAA    M M    OOO    SSSS
+;    A   A  M M M  O   O  S 
+;    AAAAA  M M M  O   O   SSS
+;    A   A  M   M  O   O      S
+;    A   A  M   M   OOO   SSSS 
+;
+;    Author:  Stephen Fewer
+;    License: GNU General Public License (GPL)
+
 BITS 32
 
 KERNEL_VMA	equ 0xC0001000

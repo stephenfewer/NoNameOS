@@ -1,3 +1,14 @@
+/*
+ *     AAA    M M    OOO    SSSS
+ *    A   A  M M M  O   O  S 
+ *    AAAAA  M M M  O   O   SSS
+ *    A   A  M   M  O   O      S
+ *    A   A  M   M   OOO   SSSS 
+ *
+ *    Author:  Stephen Fewer
+ *    License: GNU General Public License (GPL)
+ */
+
 #include <kernel/tasking/scheduler.h>
 #include <kernel/tasking/task.h>
 #include <kernel/isr.h>
@@ -18,35 +29,6 @@ struct TASK_INFO * scheduler_currentTask = NULL;
 struct TASK_INFO * scheduler_queue[MAX_TASKS];
 
 struct TSS * scheduler_tss = NULL;
-
-void Thread1()
-{
-	unsigned char* VidMemChar = (unsigned char*)0xB8000;
-	*VidMemChar='1';
-	for(;;)
-	{
-		if( *VidMemChar=='1' )
-			*VidMemChar='2';
-		else
-			*VidMemChar='1';
-	}
-}
-
-void Thread2()
-{
-	unsigned char* VidMemChar = (unsigned char*)0xB8002;
-	//unsigned char* crash = (unsigned char*)0xDEADC0DE;
-	*VidMemChar='a';
-	for(;;)
-	{
-		if( *VidMemChar=='a' )
-			*VidMemChar='b';
-		else{
-			*VidMemChar='a';
-			//*crash=0xDEADBEEF;
-		}
-	}
-}
 
 void scheduler_addTask( struct TASK_INFO * task )
 {
@@ -149,9 +131,29 @@ DWORD getESP()
 	return esp;
 }
 
+void scheduler_enable()
+{
+	int interval;
+	// calculate the timer interval
+	interval = 1193180 / 100000; //100Hz
+	// square wave mode
+	outportb( PIT_COMMAND_REG, 0x36);
+	// set the low interval for timer 0 (mapped to IRQ0)
+	outportb( PIT_TIMER_0, interval & 0xFF);
+	// set the high interval for timer 0
+	outportb( PIT_TIMER_0, interval >> 8);
+	// set the scheduler to run via the timer interrupt
+	isr_setHandler( IRQ0, scheduler_switch );	
+}
+
+void scheduler_disable()
+{
+	isr_setHandler( IRQ0, NULL );	
+}
+
 void scheduler_init()
 {
-	int i, interval;
+	int i;
 	
 	// create the empty task queue
 	for( i=0 ; i<MAX_TASKS ; i++ )
@@ -167,18 +169,5 @@ void scheduler_init()
 	//gdt_setEntry( KERNEL_TSS_SEL, (DWORD)scheduler_tss, sizeof(struct TSS)-1, 0x89, 0x00 );
 	//scheduler_ltr( KERNEL_TSS_SEL );
 
-	//task_create( Thread1 );
-	//task_create( Thread2 );
-
-	// calculate the timer interval
-	interval = 1193180 / 100000; //100Hz
-	// square wave mode
-	outportb( PIT_COMMAND_REG, 0x36);
-	// set the low interval for timer 0 (mapped to IRQ0)
-	outportb( PIT_TIMER_0, interval & 0xFF);
-	// set the high interval for timer 0
-	outportb( PIT_TIMER_0, interval >> 8);
-	// set the scheduler to run via the timer interrupt
-	isr_setHandler( IRQ0, scheduler_switch );
 
 }

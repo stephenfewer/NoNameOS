@@ -8,7 +8,7 @@
  *    Author:  Stephen Fewer
  *    License: GNU General Public License (GPL)
  */
- 
+
 #include <kernel/mm/mm.h>
 #include <kernel/mm/physical.h>
 #include <kernel/mm/paging.h>

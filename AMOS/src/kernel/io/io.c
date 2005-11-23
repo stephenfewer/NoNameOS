@@ -1,6 +1,20 @@
+/*
+ *     AAA    M M    OOO    SSSS
+ *    A   A  M M M  O   O  S 
+ *    AAAAA  M M M  O   O   SSS
+ *    A   A  M   M  O   O      S
+ *    A   A  M   M   OOO   SSSS 
+ *
+ *    Author:  Stephen Fewer
+ *    License: GNU General Public License (GPL)
+ */
+
 #include <kernel/io/io.h>
+#include <kernel/io/device.h>
 #include <kernel/mm/mm.h>
 #include <kernel/io/dev/console.h>
+#include <kernel/io/dev/keyboard.h>
+#include <kernel/io/dev/floppy.h>
 /*
  *  we should be able to do this:
  * 
@@ -22,70 +36,60 @@
  *  io_close( h );
  * 
  */
- 
-// this is our virtual function table to the io calls
-struct IO_CALLTABLE io_calltable[IO_TOTALDEVICES];
-
-int strcmp( char * src, char * dest )
-{
-	return 1;
-}
-
-enum DEVICE_TYPE io_getDevice( char * filename )
-{
-	if( strcmp( filename, "/dev/console" ) )
-		return CONSOLE;
-	else if( strcmp( filename, "/dev/keyboard" ) )
-		return KEYBOARD;
-
-	return UNKNOWN;
-}
 
 struct DEVICE_HANDLE * io_open( char * filename )
 {
-	enum DEVICE_TYPE type;
-	
-	type = io_getDevice( filename );
-	if( type == UNKNOWN )
+	struct DEVICE_ENTRY * device;
+
+	device = device_find( filename );
+	if( device == NULL )
 		return NULL;
 		
-	if( io_calltable[type].open != NULL )
-		return io_calltable[type].open( filename );
-	
+	if( device->calltable->open != NULL )
+	{
+		struct DEVICE_HANDLE * handle;
+		handle = (struct DEVICE_HANDLE *)mm_malloc( sizeof(struct DEVICE_HANDLE) );
+		handle->device = device;
+		handle->data = NULL;
+		return handle->device->calltable->open( handle, filename );
+	}
 	return NULL;
 }
 
 int io_close( struct DEVICE_HANDLE * handle )
 {
-	if( io_calltable[handle->type].close != NULL )
-		return io_calltable[handle->type].close( handle );
+	if( handle->device->calltable->close != NULL )
+	{
+		int ret;
+		ret = handle->device->calltable->close( handle );
+		mm_free( handle );
+		return ret;
+	}
 	return -1;
 }
 
 int io_read( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
-	if( io_calltable[handle->type].read != NULL )
-		return io_calltable[handle->type].read( handle, buffer, size  );
+	if( handle->device->calltable->read != NULL )
+		return handle->device->calltable->read( handle, buffer, size  );
 	return -1;
 }
 
 int io_write( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size )
 {
-	if( io_calltable[handle->type].write != NULL )
-		return io_calltable[handle->type].write( handle, buffer, size );
+	if( handle->device->calltable->write != NULL )
+		return handle->device->calltable->write( handle, buffer, size );
 	return -1;
 }
 
 void io_init()
 {
-	// clear the call table
-	mm_memset( (BYTE *)&io_calltable, 0x00, (sizeof(struct IO_CALLTABLE)*IO_TOTALDEVICES) );
-	
-	// setup the console driver
-	io_calltable[CONSOLE].open = console_open;
-	io_calltable[CONSOLE].close = console_close;
-	io_calltable[CONSOLE].read = console_read;
-	io_calltable[CONSOLE].write = console_write;
-	// init the driver
+	// init the console driver
 	console_init();
+
+	// init the keyboard driver
+	keyboard_init();
+
+	// init the floppy driver
+	floppy_init();
 }

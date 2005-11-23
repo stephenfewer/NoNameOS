@@ -1,6 +1,18 @@
+/*
+ *     AAA    M M    OOO    SSSS
+ *    A   A  M M M  O   O  S 
+ *    AAAAA  M M M  O   O   SSS
+ *    A   A  M   M  O   O      S
+ *    A   A  M   M   OOO   SSSS 
+ *
+ *    Author:  Stephen Fewer
+ *    License: GNU General Public License (GPL)
+ */
+
 #include <kernel/kernel.h>
 #include <kernel/mm/mm.h>
 #include <kernel/io/dev/console.h>
+#include <kernel/io/device.h>
 
 BYTE * console_mem;
 
@@ -8,27 +20,15 @@ int console_x, console_y;
 
 BYTE console_attrib;
 
-struct DEVICE_HANDLE * console_open( char * filename )
+struct DEVICE_HANDLE * console_open( struct DEVICE_HANDLE * handle, char * filename )
 {
-	struct DEVICE_HANDLE * handle;
-	
-	handle = (struct DEVICE_HANDLE *)mm_malloc( sizeof(struct DEVICE_HANDLE) );
-	handle->type = CONSOLE;
-	
-	// we could use the handle to store the virtual console number if we set them up
-	
+	// we could use the handle to store the virtual console number if we set them up	
 	return handle;
 }
 
 int console_close( struct DEVICE_HANDLE * handle )
 {
-	mm_free( handle );
 	return 0;
-}
-
-int console_read( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
-{
-	return -1;
 }
 
 int console_write( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
@@ -148,7 +148,15 @@ void console_beep( void )
 
 void console_init( void )
 {
-    //int i;
+    struct IO_CALLTABLE * calltable;
+	
+	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
+	calltable->open = console_open;
+	calltable->close = console_close;
+	calltable->read = NULL;
+	calltable->write = console_write;
+	
+	device_add( "/device/console", calltable );
 	
     console_mem = (BYTE *)VIDEOMEM_BASE;
 

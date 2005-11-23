@@ -3,17 +3,9 @@
 
 #include <sys/types.h>
 
-#define IO_TOTALDEVICES	2
-enum DEVICE_TYPE
-{
-	UNKNOWN=-1,
-	CONSOLE,
-	KEYBOARD
-};
-
 struct IO_CALLTABLE
 {
-	struct DEVICE_HANDLE * (*open)(char *);
+	struct DEVICE_HANDLE * (*open)(struct DEVICE_HANDLE *, char *);
 	int (*close)(struct DEVICE_HANDLE *);
 	int (*read)(struct DEVICE_HANDLE *, BYTE *, DWORD );
 	int (*write)(struct DEVICE_HANDLE *, BYTE *, DWORD );
@@ -21,7 +13,8 @@ struct IO_CALLTABLE
 
 struct DEVICE_HANDLE
 {
-	enum DEVICE_TYPE type;
+	struct DEVICE_ENTRY * device;
+	void * data;
 };
 
 struct DEVICE_HANDLE * io_open( char * );

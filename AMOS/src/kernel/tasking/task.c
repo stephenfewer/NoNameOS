@@ -1,3 +1,14 @@
+/*
+ *     AAA    M M    OOO    SSSS
+ *    A   A  M M M  O   O  S 
+ *    AAAAA  M M M  O   O   SSS
+ *    A   A  M   M  O   O      S
+ *    A   A  M   M   OOO   SSSS 
+ *
+ *    Author:  Stephen Fewer
+ *    License: GNU General Public License (GPL)
+ */
+
 //#include <kernel/tasking/task.h>
 #include <kernel/tasking/scheduler.h>
 #include <kernel/mm/paging.h>
@@ -23,6 +34,7 @@ void task_sleep( int ticks )
 */
 void task_destroy( struct TASK_INFO * task )
 {
+	kernel_lock();
 	// remove the task from the scheduler so it cant be switched back in
 	scheduler_removeTask( task );
 	// destroy the tasks page directory, inturn destroying the stack
@@ -31,6 +43,7 @@ void task_destroy( struct TASK_INFO * task )
 	mm_free( task );
 	
 	task_total--;
+	kernel_unlock();
 }
 
 extern struct PAGE_DIRECTORY * paging_kernelPageDir;
@@ -40,6 +53,8 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	struct TASK_STACK * stack;
 	struct TASK_INFO * task;
 	void * physicalAddress;
+	
+	kernel_lock();
 	// create a new task info structure
 	task = mm_malloc( sizeof( struct TASK_INFO ) );
 	// assign a task id
@@ -83,6 +98,8 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	paging_setPageTableEntry( paging_kernelPageDir, TASK_STACKADDRESS, NULL, FALSE );
 	// add the task to the scheduler
 	scheduler_addTask( task );
+	
+	kernel_unlock();
 	// return with new task info
 	return task;
 }

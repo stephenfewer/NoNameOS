@@ -1,20 +1,24 @@
+/*
+ *     AAA    M M    OOO    SSSS
+ *    A   A  M M M  O   O  S 
+ *    AAAAA  M M M  O   O   SSS
+ *    A   A  M   M  O   O      S
+ *    A   A  M   M   OOO   SSSS 
+ *
+ *    Author:  Stephen Fewer
+ *    License: GNU General Public License (GPL)
+ */
+
 #include <kernel/kprintf.h>
 #include <kernel/io/io.h>
+#include <kernel/lib/string.h>
 
 struct DEVICE_HANDLE * kprintf_consoleHandle = NULL;
-
-DWORD strlen( BYTE * src )
-{
-	int i=0;
-	while( src[i] )
-		i++;
-	return i;
-}
 
 void kprintf_putuint( int i )
 {
     unsigned int n, d = 1000000000;
-    BYTE ustr[ 255 ];
+    char str[ 255 ];
     unsigned int dec_index = 0;
     
     while( ( i / d == 0 ) && ( d >= 10 ) )
@@ -24,15 +28,15 @@ void kprintf_putuint( int i )
     
     while( d >= 10 )
     {
-		ustr[ dec_index++ ] = ( ( BYTE ) ( ( int ) '0' + n / d ) );
+		str[ dec_index++ ] = ( ( char ) ( ( int ) '0' + n / d ) );
 		n = n % d;
 		d /= 10;
     }
     
-    ustr[ dec_index++ ] = ( BYTE ) ( ( int ) '0' + n );
-    ustr[ dec_index ] = 0;
+    str[ dec_index++ ] = ( char ) ( ( int ) '0' + n );
+    str[ dec_index ] = 0;
 
-	io_write( kprintf_consoleHandle, ustr, strlen(ustr) );
+	io_write( kprintf_consoleHandle, str, strlen(str) );
 }
 
 void kprintf_putint( int i )
@@ -66,6 +70,8 @@ void kprintf_puthex( DWORD i )
 		n = n % d;
 		d /= 0x10;
     }
+    
+    io_write( kprintf_consoleHandle, (BYTE*)&hex[n], 1 );
 }
 
 void kprintf( char * text, ... )
@@ -79,7 +85,7 @@ void kprintf( char * text, ... )
 	i = 0;
 	
 	if( kprintf_consoleHandle == NULL )
-		kprintf_consoleHandle = io_open( "/dev/console" );
+		kprintf_consoleHandle = io_open( "/device/console" );
 		
 	while( text[i] )
 	{
@@ -91,7 +97,7 @@ void kprintf( char * text, ... )
 			{
 				case 's':
 					string = va_arg( args, BYTE * );
-					io_write( kprintf_consoleHandle, string, strlen( string ) );
+					io_write( kprintf_consoleHandle, string, strlen( (char)string ) );
 					break;
 				case 'c':
 					io_write( kprintf_consoleHandle, (BYTE*)va_arg( args, BYTE ), 1 );

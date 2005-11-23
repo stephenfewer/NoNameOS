@@ -30,6 +30,10 @@ void scheduler_addTask( struct TASK_INFO * );
 
 void scheduler_removeTask( struct TASK_INFO * );
 
+void scheduler_enable();
+
+void scheduler_disable();
+
 void scheduler_init();
 
 #endif

@@ -32,14 +32,6 @@ enum {
 	BLINK		= 0x80
 };
 
-struct DEVICE_HANDLE * console_open( char * );
-
-int console_close( struct DEVICE_HANDLE * );
-
-int console_read( struct DEVICE_HANDLE *, BYTE *, DWORD );
-
-int console_write( struct DEVICE_HANDLE *, BYTE *, DWORD );
-
 void console_putch( BYTE );
 
 BYTE console_getChar( int, int );
