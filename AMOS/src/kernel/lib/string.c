@@ -26,6 +26,21 @@ int strcmp( char * src, char * dest )
         src++;
         dest++;
     }
-    
     return( *src - *dest );
+}
+
+void * memset( void * dest, BYTE val, int count )
+{
+    register char * d = (char *)dest;
+    while( count-- )
+    	*d++ = val;
+    return dest;
+}
+
+void memcpy( void * dest, void * src, int count )
+{
+	register char * d = (char *)dest;
+	register char * s = (char *)src;
+	while( count-- )
+		*d++ = *s++;
 }

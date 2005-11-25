@@ -17,6 +17,7 @@
 #include <kernel/mm/paging.h>
 #include <kernel/mm/mm.h>
 #include <kernel/gdt.h>
+#include <kernel/lib/string.h>
 
 DWORD current_esp = 0x00000000;
 DWORD current_cr3 = 0x00000000;
@@ -161,7 +162,7 @@ void scheduler_init()
 
 	// create a TSS for our software task switching (6.2)
 	//scheduler_tss = (struct TSS *)mm_malloc( sizeof( struct TSS ) );
-	//mm_memset( (BYTE*)scheduler_tss, 0x00, sizeof( struct TSS ) );
+	//memset( (void*)scheduler_tss, 0x00, sizeof( struct TSS ) );
 	//scheduler_tss->cr3 = paging_getCurrentPageDir();
 	//scheduler_tss->esp0 = getESP();
 	

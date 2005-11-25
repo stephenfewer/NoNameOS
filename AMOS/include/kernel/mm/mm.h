@@ -14,8 +14,6 @@ struct HEAP_ITEM
 	//unsigned int available:7;
 } PACKED;
 
-BYTE * mm_memset( BYTE *, BYTE, int );
-
 void mm_init( DWORD );
 
 void mm_free( void * );

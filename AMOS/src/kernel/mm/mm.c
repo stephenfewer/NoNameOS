@@ -14,6 +14,7 @@
 #include <kernel/mm/paging.h>
 #include <kernel/kprintf.h>
 #include <kernel/kernel.h>
+#include <kernel/lib/string.h>
 
 extern struct PAGE_DIRECTORY * paging_kernelPageDir;
 
@@ -30,23 +31,6 @@ void mm_init( DWORD memUpper )
 	
 	// from here on in we can use mm_malloc() & mm_free()
 }
-
-// this probably doesnt belong here but it'll do for now :)
-BYTE * mm_memset( BYTE * dest, BYTE val, int count )
-{
-    BYTE * temp = dest;
-    for( ; count !=0 ; count-- )
-    	*temp++ = val;
-    return dest;
-}
-/*
-void mm_memcpy( BYTE * dest, BYTE * src, int count )
-{
-  DWORD i = 0;
-  for( ; i < count ; i++ )
-      dest[i] = src[i]; 
-}
-*/
 
 // increase the heap by some amount, this will be rounded up by the page size 
 void * mm_morecore( DWORD size )
@@ -68,7 +52,7 @@ void * mm_morecore( DWORD size )
 		// map it onto the end of the kernel heap
 		paging_setPageTableEntry( paging_kernelPageDir, mm_heapTop, physicalAddress, TRUE );
 		// clear it for safety
-		mm_memset( mm_heapTop, 0x00, PAGE_SIZE );
+		memset( mm_heapTop, 0x00, PAGE_SIZE );
 	}
 	// return the start address of the memory we allocated to the heap
 	return prevTop;

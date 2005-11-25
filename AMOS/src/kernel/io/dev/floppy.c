@@ -14,26 +14,267 @@
 #include <kernel/mm/mm.h>
 #include <kernel/io/device.h>
 #include <kernel/io/io.h>
+#include <kernel/io/dma.h>
 #include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
+#include <kernel/isr.h>
 
 struct FLOPPY_DRIVE * floppy0 = NULL;
 struct FLOPPY_DRIVE * floppy1 = NULL;
-/*
-struct FLOPPY_FORMAT floppy_formats[6] = {
-	{ 0, 0, 0 },
-	{ 40, 2, 9 },
-	{ 80, 2, 15 },
-	{ 80, 2, 9 },
-	{ 80, 2, 18 },
-	{ 80, 2, 36 }
+
+// we must use the volatile keyword here to force the compiler to
+// check the physical location and not optimize or cache this value
+static volatile BYTE floppy_donewait = FALSE;
+
+struct FLOPPY_GEOMETRY floppy_geometrys[6] = {
+	{ 0, 0, 0, 512 },
+	{ 40, 2, 9, 512 },
+	{ 80, 2, 15, 512 },
+	{ 80, 2, 9, 512 },
+	{ 80, 2, 18, 512 },
+	{ 80, 2, 36, 512 }
 };
-*/
+
+// Send_Byte Routine as outlined in Figure 8.1 of the Intel 82077AA spec
+void floppy_sendbyte( struct FLOPPY_DRIVE * floppy, BYTE byte )
+{
+    struct MSR msr;
+    //initialize timeout counter
+    int timeout = FLOPPY_TIMEOUT;
+    
+    while( timeout-- )
+    {
+    	// read MSR
+		msr.data = inportb( floppy->base + FLOPPY_MSR );
+		// loop untill ready status and FIFO direction is inward
+		if( msr.bits.mrq && !msr.bits.dio )
+		{
+			// write byte to FIFO
+		    outportb( floppy->base + FLOPPY_DATA, byte );
+		    return;
+		}
+		// delay
+		inportb( 0x80 );
+    }	
+}
+
+// Get_Byte Routine as outlined in Figure 8.2 of the Intel 82077AA spec
+BYTE floppy_getbyte( struct FLOPPY_DRIVE * floppy )
+{
+    struct MSR msr;
+    //initialize timeout counter
+    int timeout = FLOPPY_TIMEOUT;
+    
+    while( timeout-- )
+    {
+    	// read MSR
+		msr.data = inportb( floppy->base + FLOPPY_MSR );
+		// loop untill ready status and FIFO direction is outward
+		if( msr.bits.mrq && msr.bits.dio )
+			// return data byte from FIFO
+		    return inportb( floppy->base + FLOPPY_DATA );
+	    // delay
+		inportb( 0x80 );
+    }
+    
+    return -1;	
+}
+
+int floppy_on( struct FLOPPY_DRIVE * floppy )
+{
+	struct DOR dor;
+
+	dor.data = 0x00;
+
+	dor.bits.dma = TRUE;
+	dor.bits.drive = ( floppy->base == FLOPPY_PRIMARY ? 0 : 1 );
+	dor.bits.reset = TRUE;
+	
+	if( floppy->base == FLOPPY_PRIMARY )
+		dor.bits.mota = TRUE;
+	else
+		dor.bits.motb = TRUE;
+	
+	outportb( floppy->base + FLOPPY_DOR, dor.data );
+	
+	return TRUE;
+}
+
+int floppy_off( struct FLOPPY_DRIVE * floppy )
+{
+	struct DOR dor;
+
+	dor.data = 0x00;
+	
+	dor.bits.dma = TRUE;
+	dor.bits.drive = ( floppy->base == FLOPPY_PRIMARY ? 0 : 1 );
+	dor.bits.reset = TRUE;
+	
+	outportb( floppy->base + FLOPPY_DOR, dor.data );
+	
+	return TRUE;
+}
+
+DWORD floppy_handler( struct TASK_STACK * taskstack )
+{
+	// set the donewait flag to signal a floppy_wait() to finish
+	floppy_donewait = TRUE;
+	return (DWORD)NULL;
+}
+
+int floppy_wait( struct FLOPPY_DRIVE * floppy )
+{
+	// wait for interrupt to set the donewait flag
+    while( TRUE )
+    {
+    	if( floppy_donewait == TRUE )
+    		break;
+    	//inportb( 0x80 );
+    }
+    // reset the donewait flag
+    floppy_donewait = FALSE;
+    // issue a sence interrupt status command
+	floppy_sendbyte( floppy, FLOPPY_SIS );
+    // get the result
+    floppy->st0.data = floppy_getbyte( floppy );
+    // get the current cylinder
+    floppy->current_cylinder = floppy_getbyte( floppy );
+    return TRUE;
+}
+
+int floppy_recalibrate( struct FLOPPY_DRIVE * floppy )
+{
+	// turn on the floppy motor
+    floppy_on( floppy );
+    // recalibrate the drive
+    floppy_sendbyte( floppy, FLOPPY_RECALIBRATE );
+    // specify which drive
+    floppy_sendbyte( floppy, ( floppy->base == FLOPPY_PRIMARY ? 0 : 1 ) );
+    // wait
+    floppy_wait( floppy );
+    // turn off the motor
+    floppy_off( floppy );
+    return TRUE;
+}
+
+int floppy_seek( struct FLOPPY_DRIVE * floppy, BYTE cylinder )
+{
+	// check if we actually need to perform this operation
+	if( floppy->current_cylinder == cylinder )
+		return TRUE;
+	// issue a seek command
+	floppy_sendbyte( floppy, FLOPPY_SEEK );
+	// specify drive
+	floppy_sendbyte( floppy, ( floppy->base == FLOPPY_PRIMARY ? 0 : 1 ) );
+	// specify cylinder
+	floppy_sendbyte( floppy, cylinder );
+	// wait for the controller to send an interrupt back
+	floppy_wait( floppy );
+	// test if the seek operation performed correctly
+	if( floppy->current_cylinder != cylinder )
+		return FALSE;
+	return TRUE;
+}
+
+int floppy_reset( struct FLOPPY_DRIVE * floppy )
+{
+	struct DOR dor;
+	dor.data = 0x00;
+	// disable the controller and irq and dma
+	outportb( floppy->base + FLOPPY_DOR, dor.data );
+	// enable the controller
+	dor.bits.dma = TRUE;
+	dor.bits.reset = TRUE;
+	outportb( floppy->base + FLOPPY_DOR, dor.data );
+	// wait for the controller to send an interrupt back
+	floppy_wait( floppy );
+	// write 0x00 to the config controll register
+	outportb( floppy->base + FLOPPY_CCR, 0x00 );
+	// recalibrate the drive
+//	floppy_recalibrate( floppy );
+	return TRUE;
+}
+
+void floppy_blockGeometry( struct FLOPPY_DRIVE * floppy, int block, struct FLOPPY_GEOMETRY * geometry )
+{
+	// locate the correct cylinder
+	geometry->cylinders = block / ( floppy->geometry->sectors * floppy->geometry->heads );
+	// locate the correct head
+	geometry->heads = ( block % ( floppy->geometry->sectors * floppy->geometry->heads ) ) / floppy->geometry->sectors;
+	// locate the correct sector
+	geometry->sectors = block % floppy->geometry->sectors + 1;
+}
+
+// based on Figure 8.5 (read/write) of the Intel 82077AA spec
+int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer )
+{
+	void * dma_address = (void *)0x00080000;
+	int tries = FLOPPY_RWTRIES;
+	struct FLOPPY_GEOMETRY blockGeometry;
+	// retrieve the block geometry
+	floppy_blockGeometry( floppy, block, &blockGeometry );
+	// we try this 3 times as laid out int the Intel documentation
+    while( tries-- )
+    {		
+    	// turn on the floppy motor
+    	floppy_on( floppy );
+    	// seek to the correct location
+    	if( !floppy_seek( floppy, blockGeometry.cylinders ) )
+    	{
+    		// turn off the floppy motor
+    		floppy_off( floppy );
+    		return FALSE;	
+    	}
+    	// setup DMA
+    	dma_write( FLOPPY_DMA_CHANNEL, dma_address, floppy->geometry->blocksize );
+    	// issue a read command
+    	floppy_sendbyte( floppy, FLOPPY_READ );
+    	// followed by the read data
+    	floppy_sendbyte( floppy, (blockGeometry.heads << 2) | ( floppy->base == FLOPPY_PRIMARY ? 0 : 1 ) );
+    	floppy_sendbyte( floppy, blockGeometry.cylinders );
+		floppy_sendbyte( floppy, blockGeometry.heads );
+		floppy_sendbyte( floppy, blockGeometry.sectors );
+		floppy_sendbyte( floppy, 2 );
+		floppy_sendbyte( floppy, floppy->geometry->sectors );
+		floppy_sendbyte( floppy, 0x1B );
+		floppy_sendbyte( floppy, 0xFF );
+		// wait for the floppy drive to send back an interrupt
+		if( !floppy_wait( floppy ) )
+		{
+			// if this fails reset the drive
+			floppy_reset( floppy );
+			return FALSE;
+		}
+		// read in the result phase of the read command
+		// we dont need the bytes we just need to clear the FIFO queue
+		floppy_getbyte( floppy ); // st0
+		floppy_getbyte( floppy ); // st1
+		floppy_getbyte( floppy ); // st2
+		floppy_getbyte( floppy ); // cylinder
+		floppy_getbyte( floppy ); // head
+		floppy_getbyte( floppy ); // sector number
+		floppy_getbyte( floppy ); // sector size
+		// test if operation was successfull, st0 was set by the previous floppy_wait() call
+		if( floppy->st0.bits.int_code == 0x00 )
+		{
+			// turn off the floppy motor
+    		floppy_off( floppy );
+			// copy block back to buffer
+			memcpy( buffer, dma_address, floppy->geometry->blocksize );
+			return TRUE;
+		}
+		// recalibrate the drive
+		floppy_recalibrate( floppy );
+    }
+	// we fail if we cant read in three tries
+	return FALSE;
+}
+
 struct DEVICE_HANDLE * floppy_open( struct DEVICE_HANDLE * handle, char * filename )
 {
-	if( strcmp( filename, "/device/floppy0" ) == 0 )
-		handle->data = floppy0;
-	else if( strcmp( filename, "/device/floppy1" ) == 0 )
+	if( strcmp( filename, floppy0->name ) == 0 )
+		handle->data = floppy0;		
+	else if( strcmp( filename, floppy1->name ) == 0 )
 		handle->data = floppy1;
 	else
 	{
@@ -46,67 +287,35 @@ struct DEVICE_HANDLE * floppy_open( struct DEVICE_HANDLE * handle, char * filena
 
 int floppy_close( struct DEVICE_HANDLE * handle)
 {
-	return -1;	
+	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data;
+	// reset the drive
+	floppy_reset( floppy );
+	// set the current block to zero for future access
+	floppy->current_block = 0;
+	return 0;	
 }
 
 int floppy_read( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
-	return -1;	
+	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data;
+	// make sure the buffer is big enough	
+	if( size < floppy->geometry->blocksize )
+		return -1;
+	// try to read in the next block into the buffer
+	if( floppy_readBlock( floppy, floppy->current_block, buffer ) )
+	{
+		// if we succeed increment the current block for the next read
+		floppy->current_block++;
+		// return th block size
+		return floppy->geometry->blocksize;
+	}
+	// return fail
+	return -1;
 }
 
 int floppy_write( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	return -1;	
-}
-#define FLOPPY_DATA		0x3F5
-#define FLOPPY_MSR		0x3F4
-#define FLOPPY_TIMEOUT	128
-
-#define FDC_DOR  (0x3f2)   /* Digital Output Register */
-#define FDC_DRS  (0x3f4)   /* Data Rate Select Register (output) */
-#define FDC_DIR  (0x3f7)   /* Digital Input Register (input) */
-#define FDC_CCR  (0x3f7)   /* Configuration Control Register (output) */
-/* command bytes (these are 765 commands + options such as MFM, etc) */
-#define CMD_SPECIFY (0x03)  /* specify drive timings */
-#define CMD_WRITE   (0xc5)  /* write data (+ MT,MFM) */
-#define CMD_READ    (0xe6)  /* read data (+ MT,MFM,SK) */
-#define CMD_RECAL   (0x07)  /* recalibrate */
-#define CMD_SENSEI  (0x08)  /* sense interrupt status */
-#define CMD_FORMAT  (0x4d)  /* format track (+ MFM) */
-#define CMD_SEEK    (0x0f)  /* seek track */
-#define CMD_VERSION (0x10)  /* FDC version */
-
-void floppy_sendbyte( BYTE b )
-{
-    BYTE msr;
-    int timeout = FLOPPY_TIMEOUT;
-    
-    while( timeout-- )
-    {
-		msr = inportb( FLOPPY_MSR );
-		if( ( msr & 0xC0 ) == 0x80 )
-		{
-		    outportb( FLOPPY_DATA, b );
-		    return;
-		}
-		inportb( 0x80 );
-    }	
-}
-
-BYTE floppy_getbyte()
-{
-    BYTE msr;
-    int timeout = FLOPPY_TIMEOUT;
-    
-    while( timeout-- )
-    {
-		msr = inportb( FLOPPY_MSR );
-		if( ( msr & 0xD0 ) == 0xD0 )
-		    return inportb( FLOPPY_DATA );
-		inportb( 0x80 );
-    }
-    
-    return -1;	
 }
 
 void floppy_init()
@@ -120,7 +329,11 @@ void floppy_init()
 	calltable->read = floppy_read;
 	calltable->write = floppy_write;
     
+    // setup the floppy handler
+	isr_setHandler( IRQ6, floppy_handler );
+	
     // ask the CMOS if we have any floppy drives
+    // location 0x10 has the floppy info
 	outportb( 0x70, 0x10 );
 	i = inportb( 0x71 );
 
@@ -128,13 +341,29 @@ void floppy_init()
 	floppy_type = i >> 4;
 	if( floppy_type != 0 )
 	{
+		//BYTE buff[512];
+		//int i, x;
+		
 		floppy0 = (struct FLOPPY_DRIVE *)mm_malloc( sizeof(struct FLOPPY_DRIVE) );
-		floppy0->type = floppy_type;	
-	/*	floppy0->format.cylinders = floppy_formats[floppy_type].cylinders;
-		floppy0->format.heads = floppy_formats[floppy_type].heads;
-		floppy0->format.tracks = floppy_formats[floppy_type].tracks;
-		*/
-		device_add( "/device/floppy0", calltable );
+		floppy0->name = "/device/floppy0";
+		floppy0->base = FLOPPY_PRIMARY;
+		floppy0->geometry = &floppy_geometrys[floppy_type];
+		
+		floppy_reset( floppy0 );
+		/*
+		for(x=0;x<7;x++)
+		{
+			if( floppy_readBlock( floppy0, x, &buff ) == TRUE )
+			{
+				kprintf( "\nread success! :) %d\n", x );
+				//for(i=0;i<512;i++)
+			    //	kprintf("%c", (char)buff[i] );
+			} else {
+				kprintf( "read fail!\n" );
+			}
+		}*/
+		
+		device_add( floppy0->name, calltable );
 	}
 	
 	// detect the second floppy drive
@@ -142,12 +371,12 @@ void floppy_init()
  	if( floppy_type != 0 )
 	{
 		floppy1 = (struct FLOPPY_DRIVE *)mm_malloc( sizeof(struct FLOPPY_DRIVE) );
-		floppy1->type = floppy_type;
-	/*	floppy1->format.cylinders = floppy_formats[floppy_type].cylinders;
-		floppy1->format.heads = floppy_formats[floppy_type].heads;
-		floppy1->format.tracks = floppy_formats[floppy_type].tracks;
-		*/		
-		device_add( "/device/floppy1", calltable );
+		floppy1->name = "/device/floppy1";
+		floppy1->base = FLOPPY_SECONDARY;
+		floppy1->geometry = &floppy_geometrys[floppy_type];
+		floppy_reset( floppy1 );
+				
+		device_add( floppy1->name, calltable );
 	}
-
+	
 }

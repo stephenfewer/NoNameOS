@@ -16,6 +16,7 @@
 #include <kernel/kprintf.h>
 #include <kernel/isr.h>
 #include <kernel/tasking/task.h>
+#include <kernel/lib/string.h>
 
 extern void start;
 extern void end;
@@ -43,7 +44,7 @@ void paging_clearDirectory( struct PAGE_DIRECTORY * pd )
 {
 	int i=0;
 	
-	mm_memset( (BYTE *)pd, 0x00, sizeof(struct PAGE_DIRECTORY) );
+	memset( (void *)pd, 0x00, sizeof(struct PAGE_DIRECTORY) );
 	
 	for( i=0 ; i<PAGE_ENTRYS; i++ )
 	{
@@ -59,7 +60,7 @@ void paging_setPageDirectoryEntry( struct PAGE_DIRECTORY * pd, void * linearAddr
 	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( pd, linearAddress );
 	
 	if( clear )
-		mm_memset( (BYTE *)ptAddress, 0x00, sizeof(struct PAGE_TABLE) );
+		memset( ptAddress, 0x00, sizeof(struct PAGE_TABLE) );
 	
 	pde->present = TRUE;
 	pde->readwrite = READWRITE;

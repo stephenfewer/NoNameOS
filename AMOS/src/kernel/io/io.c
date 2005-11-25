@@ -18,19 +18,19 @@
 /*
  *  we should be able to do this:
  * 
- *  h = io_open( "/dev/console" );
+ *  h = io_open( "/device/console" );
  *  io_write( h, "hello world", 12 );
  *  io_close( h );
  * 
  *  or this:
  * 
- *  h = io_open( "/dev/keyboard" );
+ *  h = io_open( "/device/keyboard" );
  *  io_read( h, (char *)&buffer, 1 );
  *  io_close( h );
  * 
  *  or this:
  *
- *  h = io_open( "/dev/fd0" );
+ *  h = io_open( "/device/floppy0" );
  *  io_read( h, (char *)&buffer, 512 );
  *  io_write( h, (char *)&buffer, 512 );
  *  io_close( h );
@@ -84,6 +84,9 @@ int io_write( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size )
 
 void io_init()
 {
+	// we unlock here as the driver init routines may need to use interrupts to setup
+	kernel_unlock();
+	
 	// init the console driver
 	console_init();
 
@@ -92,4 +95,7 @@ void io_init()
 
 	// init the floppy driver
 	floppy_init();
+	
+	// lock again
+	kernel_lock();
 }

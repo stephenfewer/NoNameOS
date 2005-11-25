@@ -42,6 +42,7 @@ struct DEVICE_ENTRY * device_add( char * name, struct IO_CALLTABLE * calltable )
 	return device;
 }
 
+/*
 void device_remove( struct DEVICE_ENTRY * device )
 {
 	// remove from linked list
@@ -51,6 +52,7 @@ void device_remove( struct DEVICE_ENTRY * device )
 	mm_free( device->name );
 	mm_free( device );
 }
+*/
 
 struct DEVICE_ENTRY * device_find( char * name )
 {

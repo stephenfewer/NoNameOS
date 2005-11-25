@@ -36,7 +36,7 @@ void kprintf_putuint( int i )
     str[ dec_index++ ] = ( char ) ( ( int ) '0' + n );
     str[ dec_index ] = 0;
 
-	io_write( kprintf_consoleHandle, str, strlen(str) );
+	io_write( kprintf_consoleHandle, (unsigned char *)&str, strlen(str) );
 }
 
 void kprintf_putint( int i )
@@ -97,10 +97,10 @@ void kprintf( char * text, ... )
 			{
 				case 's':
 					string = va_arg( args, BYTE * );
-					io_write( kprintf_consoleHandle, string, strlen( (char)string ) );
+					io_write( kprintf_consoleHandle, string, strlen( (char *)string ) );
 					break;
 				case 'c':
-					io_write( kprintf_consoleHandle, (BYTE*)va_arg( args, BYTE ), 1 );
+					io_write( kprintf_consoleHandle, (BYTE*)(va_arg( args, BYTE )), 1 );
 					break;
 				case 'd':
 					kprintf_putint( va_arg( args, int ) );
@@ -118,13 +118,13 @@ void kprintf( char * text, ... )
 					io_write( kprintf_consoleHandle, (BYTE*)&text[i], 1 );
 			}
 
-			i++;
-
-		} else {
-			io_write( kprintf_consoleHandle, (BYTE*)&text[i], 1 );
-			i++;
 		}
-
+		else
+		{
+			io_write( kprintf_consoleHandle, (BYTE*)&text[i], 1 );
+		}
+		
+		i++;
 	}
 
 	va_end( args );

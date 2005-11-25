@@ -17,6 +17,7 @@
 #include <kernel/isr.h>
 #include <kernel/kernel.h>
 #include <kernel/kprintf.h>
+#include <kernel/lib/string.h>
 
 int task_total = 0;
 
@@ -78,7 +79,7 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	// create the initial stack fo we can perform a task switch
 	stack = (struct TASK_STACK *)( TASK_STACKADDRESS + TASK_STACKSIZE - sizeof(struct TASK_STACK) );
 	// clear the stack
-	mm_memset( (BYTE *)stack, 0x00, sizeof(struct TASK_STACK) );
+	memset( (void *)stack, 0x00, sizeof(struct TASK_STACK) );
 	// set the code segment
 	stack->cs = 0x08;
 	// set the data segments
