@@ -187,6 +187,9 @@ void paging_init()
 	void * physicalAddress;
 	void * linearAddress;
 
+	// install the page fault handler
+	isr_setHandler( INT14, paging_pageFaultHandler );
+
 	// create the kernels page directory
 	paging_kernelPageDir = paging_createDirectory();
 

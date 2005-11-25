@@ -56,17 +56,17 @@ unsigned char keymap[128] =
     0,	/* All other keys are undefined */
 };	
 
-struct DEVICE_HANDLE * keyboard_open( struct DEVICE_HANDLE * handle, char * filename )
+struct IO_HANDLE * keyboard_open( struct IO_HANDLE * handle, char * filename )
 {
 	return handle;
 }
 
-int keyboard_close( struct DEVICE_HANDLE * handle )
+int keyboard_close( struct IO_HANDLE * handle )
 {
 	return 0;
 }
 
-int keyboard_read( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
+int keyboard_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	// read some bytes off the buffer
 	return -1;
@@ -103,6 +103,7 @@ void keyboard_init()
 	calltable->close = keyboard_close;
 	calltable->read = keyboard_read;
 	calltable->write = NULL;
+	calltable->seek = NULL;
 	
 	device_add( "/device/keyboard", calltable );
 	

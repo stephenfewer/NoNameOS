@@ -20,18 +20,18 @@ int console_x, console_y;
 
 BYTE console_attrib;
 
-struct DEVICE_HANDLE * console_open( struct DEVICE_HANDLE * handle, char * filename )
+struct IO_HANDLE * console_open( struct IO_HANDLE * handle, char * filename )
 {
 	// we could use the handle to store the virtual console number if we set them up	
 	return handle;
 }
 
-int console_close( struct DEVICE_HANDLE * handle )
+int console_close( struct IO_HANDLE * handle )
 {
 	return 0;
 }
 
-int console_write( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
+int console_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	int i=0;
 	while( i < size )
@@ -155,6 +155,7 @@ void console_init( void )
 	calltable->close = console_close;
 	calltable->read = NULL;
 	calltable->write = console_write;
+	calltable->seek = NULL;
 	
 	device_add( "/device/console", calltable );
 	

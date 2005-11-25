@@ -96,7 +96,5 @@ void paging_mapKernelHeap( struct PAGE_DIRECTORY * );
 
 void paging_init();
 
-DWORD paging_pageFaultHandler( struct TASK_STACK * );
-
 #endif
 

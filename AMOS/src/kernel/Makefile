@@ -11,6 +11,7 @@ MEMORY_MANAGER=mm
 MULTI_TASKING=tasking
 IO=io
 DEV=dev
+FS=fs
 LIB=lib
 
 CC=gcc
@@ -34,7 +35,7 @@ $(TARGET_ELF): $(OBJ)
 	$(MAKE) -C $(MULTI_TASKING)
 	$(MAKE) -C $(IO)
 	$(MAKE) -C $(LIB)
-	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_COFF) $(OBJ) ./$(MEMORY_MANAGER)/*.o ./$(MULTI_TASKING)/*.o ./$(IO)/*.o ./$(IO)/$(DEV)/*.o ./$(LIB)/*.o
+	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_COFF) $(OBJ) ./$(MEMORY_MANAGER)/*.o ./$(MULTI_TASKING)/*.o ./$(IO)/*.o ./$(IO)/$(DEV)/*.o ./$(IO)/$(FS)/*.o ./$(LIB)/*.o
 	$(OBJCOPY) $(OBJCOPY_FLAGS) $(TARGET_DIR)$(TARGET_COFF) $(TARGET_DIR)$(TARGET_ELF)
 	
 %.o: %.c

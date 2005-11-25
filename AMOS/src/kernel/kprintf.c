@@ -13,7 +13,7 @@
 #include <kernel/io/io.h>
 #include <kernel/lib/string.h>
 
-struct DEVICE_HANDLE * kprintf_consoleHandle = NULL;
+struct IO_HANDLE * kprintf_consoleHandle = NULL;
 
 void kprintf_putuint( int i )
 {

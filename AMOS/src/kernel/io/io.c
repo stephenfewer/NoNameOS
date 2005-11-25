@@ -37,7 +37,7 @@
  * 
  */
 
-struct DEVICE_HANDLE * io_open( char * filename )
+struct IO_HANDLE * io_open( char * filename )
 {
 	struct DEVICE_ENTRY * device;
 
@@ -47,16 +47,19 @@ struct DEVICE_HANDLE * io_open( char * filename )
 		
 	if( device->calltable->open != NULL )
 	{
-		struct DEVICE_HANDLE * handle;
-		handle = (struct DEVICE_HANDLE *)mm_malloc( sizeof(struct DEVICE_HANDLE) );
+		struct IO_HANDLE * handle;
+		handle = (struct IO_HANDLE *)mm_malloc( sizeof(struct IO_HANDLE) );
 		handle->device = device;
 		handle->data = NULL;
-		return handle->device->calltable->open( handle, filename );
+		if( handle->device->calltable->open( handle, filename ) == NULL )
+			mm_free( handle );
+		else
+			return handle;
 	}
 	return NULL;
 }
 
-int io_close( struct DEVICE_HANDLE * handle )
+int io_close( struct IO_HANDLE * handle )
 {
 	if( handle->device->calltable->close != NULL )
 	{
@@ -68,18 +71,25 @@ int io_close( struct DEVICE_HANDLE * handle )
 	return -1;
 }
 
-int io_read( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
+int io_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	if( handle->device->calltable->read != NULL )
 		return handle->device->calltable->read( handle, buffer, size  );
 	return -1;
 }
 
-int io_write( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size )
+int io_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size )
 {
 	if( handle->device->calltable->write != NULL )
 		return handle->device->calltable->write( handle, buffer, size );
 	return -1;
+}
+
+int io_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin )
+{
+	if( handle->device->calltable->seek != NULL )
+		return handle->device->calltable->seek( handle, offset, origin );
+	return -1;	
 }
 
 void io_init()
@@ -95,7 +105,7 @@ void io_init()
 
 	// init the floppy driver
 	floppy_init();
-	
+
 	// lock again
 	kernel_lock();
 }

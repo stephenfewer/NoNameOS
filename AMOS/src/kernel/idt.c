@@ -12,7 +12,6 @@
 #include <kernel/idt.h>
 #include <kernel/kernel.h>
 #include <kernel/isr.h>
-#include <kernel/mm/paging.h>
 #include <kernel/lib/string.h>
 
 struct IDT_ENTRY   idt_table[IDT_ENTRYS];
@@ -54,8 +53,6 @@ void idt_init()
 		idt_setEntry(  i, isr_stubs[i], 0x08, 0x8E );
 		isr_setHandler( i, NULL );
 	}
-
-	isr_setHandler( INT14, paging_pageFaultHandler );
 
 	ASM( "lidt (%0)" : : "r" ( &idt_pointer) );
 }

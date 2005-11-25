@@ -19,6 +19,7 @@
 #include <kernel/tasking/scheduler.h>
 #include <kernel/tasking/task.h>
 #include <kernel/io/io.h>
+#include <kernel/io/fs/fat.h>
 
 int kernel_lockCount = 0;
 
@@ -106,6 +107,9 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	kernel_init( m );
 	
 	kprintf( "AMOS %d.%d.%d\n", AMOS_MAJOR_VERSION, AMOS_MINOR_VERSION, AMOS_PATCH_VERSION );
+	
+	fat_mount( "/device/floppy0" );
+	
 /*
 	kprintf( "\nSystem Info:\n" );
 	kprintf( "\tPhysical Memory    = %d MB\n", (m->mem_upper/1024)+1 );

@@ -27,12 +27,12 @@ struct FLOPPY_DRIVE * floppy1 = NULL;
 static volatile BYTE floppy_donewait = FALSE;
 
 struct FLOPPY_GEOMETRY floppy_geometrys[6] = {
-	{ 0, 0, 0, 512 },
-	{ 40, 2, 9, 512 },
-	{ 80, 2, 15, 512 },
-	{ 80, 2, 9, 512 },
-	{ 80, 2, 18, 512 },
-	{ 80, 2, 36, 512 }
+	{  0, 0,  0,   0 },	// no drive
+	{ 40, 2,  9, 512 },	// 360KB 5.25"
+	{ 80, 2, 15, 512 },	// 1.2MB 5.25"
+	{ 80, 2,  9, 512 },	// 720KB 3.5"
+	{ 80, 2, 18, 512 },	// 1.44MB 3.5"
+	{ 80, 2, 36, 512 }	// 2.88MB 3.5"
 };
 
 // Send_Byte Routine as outlined in Figure 8.1 of the Intel 82077AA spec
@@ -41,7 +41,7 @@ void floppy_sendbyte( struct FLOPPY_DRIVE * floppy, BYTE byte )
     struct MSR msr;
     //initialize timeout counter
     int timeout = FLOPPY_TIMEOUT;
-    
+    // loop untill we timeout
     while( timeout-- )
     {
     	// read MSR
@@ -64,7 +64,7 @@ BYTE floppy_getbyte( struct FLOPPY_DRIVE * floppy )
     struct MSR msr;
     //initialize timeout counter
     int timeout = FLOPPY_TIMEOUT;
-    
+    // loop untill we timeout
     while( timeout-- )
     {
     	// read MSR
@@ -76,7 +76,6 @@ BYTE floppy_getbyte( struct FLOPPY_DRIVE * floppy )
 	    // delay
 		inportb( 0x80 );
     }
-    
     return -1;	
 }
 
@@ -103,9 +102,9 @@ int floppy_on( struct FLOPPY_DRIVE * floppy )
 int floppy_off( struct FLOPPY_DRIVE * floppy )
 {
 	struct DOR dor;
-
+	// clear it
 	dor.data = 0x00;
-	
+
 	dor.bits.dma = TRUE;
 	dor.bits.drive = ( floppy->base == FLOPPY_PRIMARY ? 0 : 1 );
 	dor.bits.reset = TRUE;
@@ -157,7 +156,7 @@ int floppy_recalibrate( struct FLOPPY_DRIVE * floppy )
     return TRUE;
 }
 
-int floppy_seek( struct FLOPPY_DRIVE * floppy, BYTE cylinder )
+int floppy_seekcylinder( struct FLOPPY_DRIVE * floppy, BYTE cylinder )
 {
 	// check if we actually need to perform this operation
 	if( floppy->current_cylinder == cylinder )
@@ -191,7 +190,7 @@ int floppy_reset( struct FLOPPY_DRIVE * floppy )
 	// write 0x00 to the config controll register
 	outportb( floppy->base + FLOPPY_CCR, 0x00 );
 	// recalibrate the drive
-//	floppy_recalibrate( floppy );
+	floppy_recalibrate( floppy );
 	return TRUE;
 }
 
@@ -219,7 +218,7 @@ int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer )
     	// turn on the floppy motor
     	floppy_on( floppy );
     	// seek to the correct location
-    	if( !floppy_seek( floppy, blockGeometry.cylinders ) )
+    	if( !floppy_seekcylinder( floppy, blockGeometry.cylinders ) )
     	{
     		// turn off the floppy motor
     		floppy_off( floppy );
@@ -270,32 +269,52 @@ int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer )
 	return FALSE;
 }
 
-struct DEVICE_HANDLE * floppy_open( struct DEVICE_HANDLE * handle, char * filename )
+struct IO_HANDLE * floppy_open( struct IO_HANDLE * handle, char * filename )
 {
+	// see if were trying to open floppy0
 	if( strcmp( filename, floppy0->name ) == 0 )
-		handle->data = floppy0;		
+	{
+		// if its allready locked we cant open it
+		if( floppy0->locked == TRUE )
+			return NULL;
+		// lock the drive
+		floppy0->locked = TRUE;
+		// associate flopp0 with the handle
+		handle->data = floppy0;	
+		// reset the drive
+		floppy_reset( floppy0 );
+	}
 	else if( strcmp( filename, floppy1->name ) == 0 )
+	{
+		if( floppy1->locked == TRUE )
+			return NULL;
 		handle->data = floppy1;
+		floppy1->locked = TRUE;
+		// reset the drive
+		floppy_reset( floppy1 );
+	}
 	else
 	{
-		mm_free( handle );
-		handle = NULL;
+		// cant open the device
+		return NULL;
 	}
-	
+	// return the floppy handle
 	return handle;	
 }
 
-int floppy_close( struct DEVICE_HANDLE * handle)
+int floppy_close( struct IO_HANDLE * handle)
 {
 	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data;
-	// reset the drive
-	floppy_reset( floppy );
+	// turn off the drive if its on
+	floppy_off( floppy );
 	// set the current block to zero for future access
 	floppy->current_block = 0;
+	// unlock the drive
+	floppy->locked = FALSE;
 	return 0;	
 }
 
-int floppy_read( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
+int floppy_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data;
 	// make sure the buffer is big enough	
@@ -313,70 +332,67 @@ int floppy_read( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
 	return -1;
 }
 
-int floppy_write( struct DEVICE_HANDLE * handle, BYTE * buffer, DWORD size  )
+int floppy_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	return -1;	
+}
+
+int floppy_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin )
+{
+	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data;
+	// calculate the current block from the offset
+	floppy->current_block = ( offset / floppy->geometry->blocksize );
+	// returnt he current block to the caller
+	return floppy->current_block;	
 }
 
 void floppy_init()
 {
 	BYTE i, floppy_type;
 	struct IO_CALLTABLE * calltable;
-	
+	// create and initilise the call table
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open = floppy_open;
 	calltable->close = floppy_close;
 	calltable->read = floppy_read;
 	calltable->write = floppy_write;
-    
+    calltable->seek = floppy_seek;
     // setup the floppy handler
 	isr_setHandler( IRQ6, floppy_handler );
-	
     // ask the CMOS if we have any floppy drives
     // location 0x10 has the floppy info
 	outportb( 0x70, 0x10 );
 	i = inportb( 0x71 );
-
 	// detect the first floppy drive
 	floppy_type = i >> 4;
 	if( floppy_type != 0 )
 	{
-		//BYTE buff[512];
-		//int i, x;
-		
 		floppy0 = (struct FLOPPY_DRIVE *)mm_malloc( sizeof(struct FLOPPY_DRIVE) );
+		// set the device name
 		floppy0->name = "/device/floppy0";
+		// set the floppy command base address
 		floppy0->base = FLOPPY_PRIMARY;
+		// set the correct floppy geometry
 		floppy0->geometry = &floppy_geometrys[floppy_type];
-		
-		floppy_reset( floppy0 );
-		/*
-		for(x=0;x<7;x++)
-		{
-			if( floppy_readBlock( floppy0, x, &buff ) == TRUE )
-			{
-				kprintf( "\nread success! :) %d\n", x );
-				//for(i=0;i<512;i++)
-			    //	kprintf("%c", (char)buff[i] );
-			} else {
-				kprintf( "read fail!\n" );
-			}
-		}*/
-		
+		// unlock the drive
+		floppy0->locked = FALSE;
+		// add it to the device manager
 		device_add( floppy0->name, calltable );
 	}
-	
 	// detect the second floppy drive
     floppy_type = i & 0x0F;
  	if( floppy_type != 0 )
 	{
 		floppy1 = (struct FLOPPY_DRIVE *)mm_malloc( sizeof(struct FLOPPY_DRIVE) );
+		// set the device name
 		floppy1->name = "/device/floppy1";
+		// set the floppy command base address
 		floppy1->base = FLOPPY_SECONDARY;
+		// set the correct floppy geometry
 		floppy1->geometry = &floppy_geometrys[floppy_type];
-		floppy_reset( floppy1 );
-				
+		// unlock the drive
+		floppy1->locked = FALSE;
+		// add it to the device manager
 		device_add( floppy1->name, calltable );
 	}
-	
 }

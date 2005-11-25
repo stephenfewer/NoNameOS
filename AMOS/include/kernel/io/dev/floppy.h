@@ -97,6 +97,7 @@ struct ST0
 struct FLOPPY_DRIVE
 {
 	char * name;
+	BYTE locked;
 	WORD base;
 	int current_block;
 	BYTE current_cylinder;
