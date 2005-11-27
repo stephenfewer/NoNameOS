@@ -15,6 +15,7 @@
 #include <kernel/io/dev/console.h>
 #include <kernel/io/dev/keyboard.h>
 #include <kernel/io/dev/floppy.h>
+#include <kernel/kernel.h>
 /*
  *  we should be able to do this:
  * 
