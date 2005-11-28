@@ -85,7 +85,7 @@ void kprintf( char * text, ... )
 	i = 0;
 	
 	if( kprintf_consoleHandle == NULL )
-		kprintf_consoleHandle = io_open( "/device/console" );
+		kprintf_consoleHandle = io_open( "/device/console0" );
 		
 	while( text[i] )
 	{

@@ -13,6 +13,7 @@
 #include <kernel/mm/mm.h>
 #include <kernel/io/dev/console.h>
 #include <kernel/io/device.h>
+#include <kernel/kprintf.h>
 
 BYTE * console_mem;
 
@@ -60,7 +61,6 @@ void console_putch( BYTE c )
 			break;
 		case '\f':
 			console_cls();
-			console_setCursor( 0, 0 );
 			break;
 		default:
 			console_putChar( console_x, console_y, c, console_attrib );
@@ -104,7 +104,7 @@ void console_scrollup( void )
 {
 	int i, j;
 
-    for( j=0 ; j<CONSOLE_ROWS-1; j++ )
+    for( j=2 ; j<CONSOLE_ROWS-1; j++ )
     {
 		for( i=0; i<CONSOLE_COLUMNS ; i++ )
 			console_putChar( i, j, console_getChar( i, j+1 ), console_getAttrib( i, j+1 ) );
@@ -131,14 +131,21 @@ void console_setCursor( int x, int y )
 void console_cls( void )
 {
 	int i, j;
-
+	// clear the entire sconsole
     for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
     {
 		for( j=0 ; j<CONSOLE_ROWS ; j++ )
 			console_putChar( i, j, ' ', console_attrib );
     }
-    
+    // display the banner on the top of the console
     console_setCursor( 0, 0 );
+    for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
+	    console_putch( ' ' );
+	console_setCursor( 0, 0 );
+    kprintf( "AMOS %d.%d.%d\n", AMOS_MAJOR_VERSION, AMOS_MINOR_VERSION, AMOS_PATCH_VERSION );
+    for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
+	    console_putch( '-' );
+	console_setCursor( 0, 2 );
 }
 
 void console_beep( void )
@@ -149,7 +156,7 @@ void console_beep( void )
 void console_init( void )
 {
     struct IO_CALLTABLE * calltable;
-	
+
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open = console_open;
 	calltable->close = console_close;
@@ -157,21 +164,12 @@ void console_init( void )
 	calltable->write = console_write;
 	calltable->seek = NULL;
 	
-	device_add( "/device/console", calltable );
+	device_add( "/device/console0", calltable );
 	
     console_mem = (BYTE *)VIDEOMEM_BASE;
 
     console_setAttrib( GREEN | RED_BG );
     
     console_cls();
-    
-    console_setCursor( 0, 0 );
-  /*  for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
-	    console_putch( ' ' );
-	console_setCursor( 0, 0 );
-    //kprintf( "AMOS %d.%d.%d\n", AMOS_MAJOR_VERSION, AMOS_MINOR_VERSION, AMOS_PATCH_VERSION );
-    for( i=0 ; i<CONSOLE_COLUMNS ; i++ )
-	    console_putch( '-' );
-	console_setCursor( 0, 2 );*/
 }
 

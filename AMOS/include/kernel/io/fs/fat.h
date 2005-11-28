@@ -4,7 +4,50 @@
 #include <sys/types.h>
 #include <kernel/io/io.h>
 
+#define FAT_CLUSTER12(c)	( c & 0x00000FFF )	// 12 bits
+#define FAT_CLUSTER16(c)	( c & 0x0000FFFF )	// 16 bits
+#define FAT_CLUSTER31(c)	( c & 0x0FFFFFFF )	// 28 bits
+
+
+#define FAT_EOC12			0xFF8
+#define FAT_BAD_CLUSTER		0xFF7
+#define FAT_EOC16			0xFFF8
+#define FAT_EOC32			0xFFFFFFF8
+
+#define FAT_12		12
+#define FAT_16		16
+#define FAT_32		32
+
 #define FAT_MAGIC	0xAA55
+
+// for FAT 12 and 16
+struct FAT_BOOTSECTOR16
+{
+	BYTE BS_DrvNum;
+	BYTE BS_Reserved1;
+	BYTE BS_BootSig;
+	DWORD BS_VolID;
+	BYTE BS_VolLab[11];
+	BYTE BS_FilSysType[8];
+} PACKED;
+
+// for FAT 32
+struct FAT_BOOTSECTOR32
+{
+	DWORD BPB_FATSz32;
+	WORD BPB_ExtFlags;
+	WORD BPB_FSVer;
+	DWORD BPB_RootClus;
+	WORD BPB_FSInfo;
+	WORD BPB_BkBootSec;
+	BYTE BPB_Reserved[12];
+	BYTE BS_DrvNum;
+	BYTE BS_Reserved1;
+	BYTE BS_BootSig;
+	DWORD BS_VolID;
+	BYTE BS_VolLab[11];
+	BYTE BS_FilSysType[8];
+} PACKED;
 
 struct FAT_BOOTSECTOR
 {
@@ -22,36 +65,13 @@ struct FAT_BOOTSECTOR
 	WORD heads;
 	DWORD hidden_sectors;
 	DWORD total_sectors_large;
-	BYTE boot_code[474];
+	union
+	{
+		struct FAT_BOOTSECTOR16 bs16;
+		struct FAT_BOOTSECTOR32 bs32;
+		BYTE boot_code[474];
+	};
 	WORD magic;
-} PACKED;  
-
-struct FAT_ENTRY
-{
-	BYTE name[8];               /* ALL-CAPS, pad right with spaces */
-	BYTE ext[3];                /* ALL-CAPS, pad right with spaces */
-	BYTE attrib;                /* attribute byte */
-	BYTE reserved;              /* =0 */
-	BYTE ctimems;               /* file creation time, 10ms units */
-	WORD ctime;              	/* file creation time, in DOS format */
-	WORD cdate;              	/* file creation date, in DOS format */
-	WORD adate;              	/* DOS date of last file access */
-	WORD startclustermsw;       /* high 16 bits of starting cluster (FAT32) */
-	WORD mtime;              	/* DOS time of last file modification */
-	WORD mdate;              	/* DOS date of last file modification */
-	WORD startcluster;          /* starting cluster */
-	DWORD file_size;          	/* in bytes */
-} PACKED; // 32 bytes
-
-struct FAT_ATTRIBUTE
-{
-	int readonly:1;
-	int hidden:1;
-	int system:1;
-	int volumelabel:1;
-	int directory:1;
-	int archive:1;
-	int reserved:2;
 } PACKED;
 
 struct FAT_DOSTIME
@@ -68,10 +88,37 @@ struct FAT_DOSDATE
 	unsigned int year:7;      /* high 7 bits: year - 1980 */
 } PACKED;  
 
+struct FAT_ATTRIBUTE
+{
+	int readonly:1;
+	int hidden:1;
+	int system:1;
+	int volumelabel:1;
+	int directory:1;
+	int archive:1;
+	int reserved:2;
+} PACKED;
+
+struct FAT_ENTRY
+{
+	BYTE name[8];
+	BYTE extention[3];
+	struct FAT_ATTRIBUTE attribute;
+	BYTE reserved[10];
+	struct FAT_DOSTIME time;
+	struct FAT_DOSDATE date;
+	WORD start_cluster;
+	DWORD file_size;
+} PACKED;
+
 struct FAT_MOUNTPOINT
 {
-	struct IO_HANDLE * device_handle;
+	struct IO_HANDLE * device;
 	struct FAT_BOOTSECTOR bootsector;
+	BYTE type;
+	BYTE * fat_data;
+	int fat_size;
+	int cluster_size;
 };
 
 int fat_mount( char * );

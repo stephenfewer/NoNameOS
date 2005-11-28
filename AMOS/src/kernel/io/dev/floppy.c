@@ -28,11 +28,11 @@ static volatile BYTE floppy_donewait = FALSE;
 
 struct FLOPPY_GEOMETRY floppy_geometrys[6] = {
 	{  0, 0,  0,   0 },	// no drive
-	{ 40, 2,  9, 512 },	// 360KB 5.25"
-	{ 80, 2, 15, 512 },	// 1.2MB 5.25"
-	{ 80, 2,  9, 512 },	// 720KB 3.5"
-	{ 80, 2, 18, 512 },	// 1.44MB 3.5"
-	{ 80, 2, 36, 512 }	// 2.88MB 3.5"
+	{  9, 2, 40, 512 },	// 360KB 5.25"
+	{ 15, 2, 80, 512 },	// 1.2MB 5.25"
+	{  9, 2, 80, 512 },	// 720KB 3.5"
+	{ 18, 2, 80, 512 },	// 1.44MB 3.5"
+	{ 36, 2, 80, 512 }	// 2.88MB 3.5"
 };
 
 // Send_Byte Routine as outlined in Figure 8.1 of the Intel 82077AA spec
@@ -121,7 +121,7 @@ DWORD floppy_handler( struct TASK_STACK * taskstack )
 	return (DWORD)NULL;
 }
 
-int floppy_wait( struct FLOPPY_DRIVE * floppy )
+int floppy_wait( struct FLOPPY_DRIVE * floppy, BYTE sence )
 {
 	// wait for interrupt to set the donewait flag
     while( TRUE )
@@ -132,12 +132,16 @@ int floppy_wait( struct FLOPPY_DRIVE * floppy )
     }
     // reset the donewait flag
     floppy_donewait = FALSE;
-    // issue a sence interrupt status command
-	floppy_sendbyte( floppy, FLOPPY_SIS );
-    // get the result
-    floppy->st0.data = floppy_getbyte( floppy );
-    // get the current cylinder
-    floppy->current_cylinder = floppy_getbyte( floppy );
+    
+    if( sence )
+    {
+	    // issue a sence interrupt status command
+		floppy_sendbyte( floppy, FLOPPY_SIS );
+	    // get the result
+	    floppy->st0.data = floppy_getbyte( floppy );
+	    // get the current cylinder
+	    floppy->current_cylinder = floppy_getbyte( floppy );
+    }
     return TRUE;
 }
 
@@ -150,7 +154,7 @@ int floppy_recalibrate( struct FLOPPY_DRIVE * floppy )
     // specify which drive
     floppy_sendbyte( floppy, ( floppy->base == FLOPPY_PRIMARY ? 0 : 1 ) );
     // wait
-    floppy_wait( floppy );
+    floppy_wait( floppy, TRUE );
     // turn off the motor
     floppy_off( floppy );
     return TRUE;
@@ -168,7 +172,7 @@ int floppy_seekcylinder( struct FLOPPY_DRIVE * floppy, BYTE cylinder )
 	// specify cylinder
 	floppy_sendbyte( floppy, cylinder );
 	// wait for the controller to send an interrupt back
-	floppy_wait( floppy );
+	floppy_wait( floppy, TRUE );
 	// test if the seek operation performed correctly
 	if( floppy->current_cylinder != cylinder )
 		return FALSE;
@@ -186,7 +190,7 @@ int floppy_reset( struct FLOPPY_DRIVE * floppy )
 	dor.bits.reset = TRUE;
 	outportb( floppy->base + FLOPPY_DOR, dor.data );
 	// wait for the controller to send an interrupt back
-	floppy_wait( floppy );
+	floppy_wait( floppy, TRUE );
 	// write 0x00 to the config controll register
 	outportb( floppy->base + FLOPPY_CCR, 0x00 );
 	// recalibrate the drive
@@ -214,12 +218,13 @@ int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer )
 	floppy_blockGeometry( floppy, block, &blockGeometry );
 	// we try this 3 times as laid out int the Intel documentation
     while( tries-- )
-    {		
+    {			
     	// turn on the floppy motor
     	floppy_on( floppy );
     	// seek to the correct location
     	if( !floppy_seekcylinder( floppy, blockGeometry.cylinders ) )
     	{
+    		kprintf("floppy: read seek failed, block %d\n", block );
     		// turn off the floppy motor
     		floppy_off( floppy );
     		return FALSE;	
@@ -238,10 +243,13 @@ int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer )
 		floppy_sendbyte( floppy, 0x1B );
 		floppy_sendbyte( floppy, 0xFF );
 		// wait for the floppy drive to send back an interrupt
-		if( !floppy_wait( floppy ) )
+		if( !floppy_wait( floppy, FALSE ) )
 		{
+			kprintf("floppy: read floppy_wait failed, block %d\n", block );
 			// if this fails reset the drive
 			floppy_reset( floppy );
+			// turn off the floppy motor
+    		floppy_off( floppy );
 			return FALSE;
 		}
 		// read in the result phase of the read command
@@ -262,10 +270,13 @@ int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer )
 			memcpy( buffer, dma_address, floppy->geometry->blocksize );
 			return TRUE;
 		}
-		// recalibrate the drive
+    	// recalibrate the drive
 		floppy_recalibrate( floppy );
     }
+    kprintf("floppy: read failed 3 times, block %d\n", block );
 	// we fail if we cant read in three tries
+	// turn off the floppy motor
+    floppy_off( floppy );
 	return FALSE;
 }
 

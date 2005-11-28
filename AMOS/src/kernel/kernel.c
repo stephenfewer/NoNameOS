@@ -103,13 +103,11 @@ extern void * mm_heapBottom;
 void kernel_main( struct MULTIBOOT_INFO * m )
 {
 //	void * p, * q;
-	
+
 	kernel_init( m );
 	
-	kprintf( "AMOS %d.%d.%d\n", AMOS_MAJOR_VERSION, AMOS_MINOR_VERSION, AMOS_PATCH_VERSION );
-	
 	fat_mount( "/device/floppy0" );
-	
+		
 /*
 	kprintf( "\nSystem Info:\n" );
 	kprintf( "\tPhysical Memory    = %d MB\n", (m->mem_upper/1024)+1 );
@@ -137,6 +135,6 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	kprintf( "\tEnabling scheduler.\n" );
 	scheduler_enable();
 */
-	while(TRUE);
+	while( TRUE );
 }
 
