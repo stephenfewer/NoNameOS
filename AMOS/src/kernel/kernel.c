@@ -106,16 +106,16 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 
 	kernel_init( m );
 	
-	fat_mount( "/device/floppy0" );
-		
-/*
-	kprintf( "\nSystem Info:\n" );
+	//fat_mount( "/device/floppy0" );
+
+	kprintf( "System Info:\n" );
 	kprintf( "\tPhysical Memory    = %d MB\n", (m->mem_upper/1024)+1 );
 	kprintf( "\tPage Directory     = %x\n", paging_getCurrentPageDir() );
 	kprintf( "\tKernel Start       = %x\n", &start );
 	kprintf( "\tKernel Heap Bottom = %x\n", mm_heapBottom );
 	kprintf( "\tKernel Heap Top    = %x\n", mm_heapTop );
-
+	
+/*
 	kprintf( "\nMalloc Test:\n" );
 	p = mm_malloc( 512 );
 	kprintf( "\tmalloc(512), p  = %x\n", p );

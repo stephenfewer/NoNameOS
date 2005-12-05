@@ -74,7 +74,7 @@ int keyboard_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 
 DWORD keyboard_handler( struct TASK_STACK * taskstack )
 {
-/*	BYTE scancode;
+	BYTE scancode;
 	
 	scancode = inportb( KEYBOARD_DATAREG );
 	
@@ -84,13 +84,25 @@ DWORD keyboard_handler( struct TASK_STACK * taskstack )
 	}
 	else
 	{
-		// key press, add it to a buffer
-		
-		// for testing just dump it out console...
-		//if( (scancode & 0x7F) < 128 )
-		//	console_putch( keymap[scancode] );
+		if( scancode == 0x3B ||scancode == 0x3C )
+		{
+			struct IO_HANDLE * console;
+			char * name;
+			
+			if( scancode == 0x3B )
+				name =  "/device/console0";
+			else if( scancode == 0x3C )
+				name =  "/device/console1";
+			
+			console = io_open( name );
+			if( console != NULL )
+			{
+				io_control( console, CONSOLE_SETACTIVE, 0L );
+				io_close( console );
+			}
+		}
 	}
-*/	
+	
 	return (DWORD)NULL;
 }
 
@@ -104,6 +116,7 @@ void keyboard_init()
 	calltable->read = keyboard_read;
 	calltable->write = NULL;
 	calltable->seek = NULL;
+	calltable->control = NULL;
 	
 	device_add( "/device/keyboard", calltable );
 	

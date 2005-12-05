@@ -16,27 +16,8 @@
 #include <kernel/io/dev/keyboard.h>
 #include <kernel/io/dev/floppy.h>
 #include <kernel/kernel.h>
-/*
- *  we should be able to do this:
- * 
- *  h = io_open( "/device/console" );
- *  io_write( h, "hello world", 12 );
- *  io_close( h );
- * 
- *  or this:
- * 
- *  h = io_open( "/device/keyboard" );
- *  io_read( h, (char *)&buffer, 1 );
- *  io_close( h );
- * 
- *  or this:
- *
- *  h = io_open( "/device/floppy0" );
- *  io_read( h, (char *)&buffer, 512 );
- *  io_write( h, (char *)&buffer, 512 );
- *  io_close( h );
- * 
- */
+
+struct IO_HANDLE * io_kout;
 
 struct IO_HANDLE * io_open( char * filename )
 {
@@ -93,6 +74,13 @@ int io_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin )
 	return -1;	
 }
 
+int io_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
+{
+	if( handle->device->calltable->control != NULL )
+		return handle->device->calltable->control( handle, request, arg );
+	return -1;	
+}
+
 void io_init()
 {
 	// we unlock here as the driver init routines may need to use interrupts to setup
@@ -107,6 +95,9 @@ void io_init()
 	// init the floppy driver
 	floppy_init();
 
+	// open the standard kernel output
+	io_kout = io_open( "/device/console0" );
+	
 	// lock again
 	kernel_lock();
 }

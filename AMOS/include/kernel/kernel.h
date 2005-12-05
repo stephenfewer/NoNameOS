@@ -3,9 +3,11 @@
 
 #include <sys/types.h>
 
-#define AMOS_MAJOR_VERSION 0
-#define AMOS_MINOR_VERSION 4
-#define AMOS_PATCH_VERSION 0
+#define AMOS_VERSION_MAJOR 0
+#define AMOS_VERSION_MINOR 4
+#define AMOS_VERSION_PATCH 0
+
+#define AMOS_VERSION_STRING	"AMOS 0.4.0 (Spaghetti)"
 
 #define sti() __asm__ __volatile__ ("sti")
 

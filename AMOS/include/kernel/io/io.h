@@ -15,6 +15,7 @@ struct IO_CALLTABLE
 	int (*read)(struct IO_HANDLE *, BYTE *, DWORD );
 	int (*write)(struct IO_HANDLE *, BYTE *, DWORD );
 	int (*seek)(struct IO_HANDLE *, DWORD, BYTE );
+	int (*control)(struct IO_HANDLE *, DWORD, DWORD );
 };
 
 struct IO_HANDLE
@@ -32,6 +33,8 @@ int io_read( struct IO_HANDLE *, BYTE *, DWORD );
 int io_write( struct IO_HANDLE *, BYTE *, DWORD );
 
 int io_seek( struct IO_HANDLE *, DWORD, BYTE );
+
+int io_control( struct IO_HANDLE *, DWORD, DWORD );
 
 void io_init();
 

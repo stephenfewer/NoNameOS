@@ -6,7 +6,7 @@
 
 struct FAT_MOUNTPOINT * mount0;
 
-int fat_getEntry( struct FAT_MOUNTPOINT * mount, int index )
+int fat_getFATEntry( struct FAT_MOUNTPOINT * mount, int index )
 {
 	int entry=-1;
 
@@ -108,9 +108,69 @@ void * fat_loadCluster( struct FAT_MOUNTPOINT * mount, int cluster )
 	return buffer;
 }
 
+int fat_compareName( struct FAT_ENTRY * entry, char * name )
+{
+	int i, x;
+	char c;
+	
+	if( entry->name[0] == 0x00 || entry->name[0] == 0xE5 )
+		return FALSE;
+		
+	if( entry->name[0] == 0x05 )
+		entry->name[0] = 0xE5;
+			
+	c = entry->name[7];
+	entry->name[7] = 0x00;
+	kprintf( "fat_compareName = %s  to  %s\n", name, entry->name );
+	entry->name[7] = c;
+
+	for( i=0 ; i<8 ; i++ )
+	{
+		if( entry->name[i] == 0x20 )
+			break;
+			
+		if( name[i] != entry->name[i] )
+			return FALSE;
+	}
+	i++;
+	if( name[i] == '.' )
+	{
+		i++;
+		for( x=0 ; x<3 ; x++ )
+		{
+			if( entry->extention[x] == 0x20 )
+				break;
+			
+			if( name[i+x] != entry->extention[x] )
+				return FALSE;
+		}
+	}
+	return TRUE;
+}
+
+int fat_getEntryIndex( struct FAT_ENTRY * dir, char * name )
+{
+	int i;
+	kprintf( "fat_getEntry = %s\n", name );
+	for( i=0 ; i<16 ; i++ )
+	{
+		if( dir[i].name[0] == 0x00 )
+			break;
+			
+		if( dir[i].start_cluster == 0x0000 )
+			continue;
+			
+		if( fat_compareName( &dir[i], name ) == TRUE )
+			return i;
+	}
+	return -1;
+}
+/*
 void fat_displayDir( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * dir )
 {
 	int x, next_cluster;
+	
+	kprintf("\n-------[dir start]-------");
 	
 	for(x=0;x<16;x++)
 	{
@@ -127,7 +187,7 @@ void fat_displayDir( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * dir )
 			
 		kprintf("%s (%d) - start cluster %x", dir[x].name, dir[x].file_size, dir[x].start_cluster );
 		
-		next_cluster = fat_getEntry( mount, dir[x].start_cluster );
+		next_cluster = fat_getFATEntry( mount, dir[x].start_cluster );
 		while( TRUE )
 		{
 			if( next_cluster == 0x0000 )
@@ -135,16 +195,94 @@ void fat_displayDir( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * dir )
 			
 			kprintf(" -> %x", next_cluster );
 			
-			next_cluster = fat_getEntry( mount, next_cluster );
+			next_cluster = fat_getFATEntry( mount, next_cluster );
 		}
 	}
+	
+	kprintf("\n-------[dir end]---------");
+}
+*/
+/*
+int fat_dir( struct IO_HANDLE * handle, char * filename ){}
+
+int fat_close( struct IO_HANDLE * handle ){}
+
+int fat_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size ){}
+
+int fat_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size ){}
+
+int fat_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin ){}
+
+int fat_control( struct IO_HANDLE * handle, DWORD request, DWORD arg ){}
+
+int fat_create( struct IO_HANDLE * handle, char * filename ){}
+
+int fat_delete( struct IO_HANDLE * handle ){}
+*/
+
+struct IO_HANDLE * fat_open( struct IO_HANDLE * handle, char * filename )
+{
+	int length, i, index;
+	char * curr_name;
+	struct FAT_ENTRY * currdir;
+	
+	kprintf( "\nfat_open( %s )\n", filename );
+	
+	if( filename[0] == '/' )
+		filename++;
+		
+	length = strlen( filename );
+	
+	if( filename[length] == '/' )
+		filename[length] = '\0';
+		
+	curr_name = filename;
+	
+	currdir = mount0->rootdir;
+	
+	for( i=0 ; i<=length ; i++ )
+	{
+		if( filename[i] == '/' || filename[i] == '\0' )
+		{
+			filename[i] = '\0';
+
+			index = fat_getEntryIndex( currdir, curr_name );
+			if( index == -1 )
+			{
+				kprintf( "index == -1\n" );
+				//return NULL;
+				break;
+			} else {
+				kprintf( "got index = %d\n", index );
+				currdir = (struct FAT_ENTRY *)fat_loadCluster( mount0, currdir[index].start_cluster );
+			}
+			
+			curr_name = &filename[i]+1;
+		}	
+	}
+	
+	if( currdir == NULL )
+		return NULL;
+	return NULL;
+}
+
+
+int fat_unmount()
+{
+	// close the device
+	io_close( mount0->device );
+	// free the rootdir structure
+	mm_free( mount0->rootdir );
+	// free the mount structure
+	mm_free( mount0 );
+	// return
+	return 0;
 }
 
 int fat_mount( char * device_filename )
 {
 	int i;
 	int root_dir_offset;
-	struct FAT_ENTRY * dir;
 	
 	mount0 = (struct FAT_MOUNTPOINT *)mm_malloc( sizeof(struct FAT_MOUNTPOINT) );
 	
@@ -180,25 +318,23 @@ int fat_mount( char * device_filename )
 		io_read( mount0->device, (void *)(mount0->fat_data+(mount0->bootsector.bytes_per_sector*i)), mount0->bootsector.bytes_per_sector );
 		
 	// read in root directory
-	dir = (struct FAT_ENTRY *)mm_malloc( mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
-	memset( dir, 0x00, mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
+	mount0->rootdir = (struct FAT_ENTRY *)mm_malloc( mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
+	memset( mount0->rootdir, 0x00, mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
 	
 	root_dir_offset = (mount0->bootsector.num_fats * mount0->fat_size) + sizeof(struct FAT_BOOTSECTOR) + 1;
 	
 	io_seek( mount0->device, root_dir_offset, SEEK_START );
-	
-	//((mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ))/512)-1
-	//for( i=0 ; i<1 ; i++ )
-		io_read( mount0->device, (void *)(dir), 512 );
+
+	io_read( mount0->device, (void *)(mount0->rootdir), mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
 
 	// display root dir
-	fat_displayDir( mount0, dir );
+	//fat_displayDir( mount0, mount0->rootdir );
 	
-	// get dir in data section and display it
-	// only works because first entry happens to be a dir
-	dir = (struct FAT_ENTRY *)fat_loadCluster( mount0, 2 );
-	fat_displayDir( mount0, dir );
-
+	fat_open( NULL, "/BOOT/MENU.CFG" );
+	/*
+	fat_open( NULL, "/TEST/does/NOT/exist.bin" );
 	
+	fat_open( NULL, "/NOWHERE/EXISTS/" );
+	*/
 	return TRUE;
 }

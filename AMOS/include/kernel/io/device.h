@@ -12,7 +12,7 @@ struct DEVICE_ENTRY
 
 struct DEVICE_ENTRY * device_add( char *, struct IO_CALLTABLE * );
 
-void device_remove( struct DEVICE_ENTRY * );
+//void device_remove( struct DEVICE_ENTRY * );
 
 struct DEVICE_ENTRY * device_find( char * );
 

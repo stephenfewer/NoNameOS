@@ -209,7 +209,7 @@ void floppy_blockGeometry( struct FLOPPY_DRIVE * floppy, int block, struct FLOPP
 }
 
 // based on Figure 8.5 (read/write) of the Intel 82077AA spec
-int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer )
+int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, int size )
 {
 	void * dma_address = (void *)0x00080000;
 	int tries = FLOPPY_RWTRIES;
@@ -266,8 +266,11 @@ int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer )
 		{
 			// turn off the floppy motor
     		floppy_off( floppy );
-			// copy block back to buffer
-			memcpy( buffer, dma_address, floppy->geometry->blocksize );
+    		// sanity check, we can only copy max a block
+    		if( size > floppy->geometry->blocksize )
+				size = floppy->geometry->blocksize;
+			// copy size bytes back to buffer
+			memcpy( buffer, dma_address, size );
 			return TRUE;
 		}
     	// recalibrate the drive
@@ -327,20 +330,36 @@ int floppy_close( struct IO_HANDLE * handle)
 
 int floppy_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
+	int bytes_to_read=0, bytes_read=0;
 	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data;
 	// make sure the buffer is big enough	
 	if( size < floppy->geometry->blocksize )
 		return -1;
-	// try to read in the next block into the buffer
-	if( floppy_readBlock( floppy, floppy->current_block, buffer ) )
+	// while we still have data to read, loop...
+	while( size > 0 )
 	{
-		// if we succeed increment the current block for the next read
+		// calculate the bytes to read which can be no more than the size of a block
+		if( size >= floppy->geometry->blocksize )
+			bytes_to_read = floppy->geometry->blocksize;
+		else
+			bytes_to_read = size;
+		// try to read in the next block into the buffer
+		if( !floppy_readBlock( floppy, floppy->current_block, buffer, bytes_to_read ) )
+		{
+			// return fail
+			return -1;
+		}
+		// update the buffer pointer
+		buffer += bytes_to_read;
+		// update the total amount of bytes read
+		bytes_read += bytes_to_read;
+		// increment the current block for the next read
 		floppy->current_block++;
-		// return th block size
-		return floppy->geometry->blocksize;
+		// decrement the amount to read by the disks block size
+		size -= floppy->geometry->blocksize;	
 	}
-	// return fail
-	return -1;
+	// return the total bytes read
+	return bytes_read;
 }
 
 int floppy_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
@@ -368,6 +387,7 @@ void floppy_init()
 	calltable->read = floppy_read;
 	calltable->write = floppy_write;
     calltable->seek = floppy_seek;
+    calltable->control = NULL;
     // setup the floppy handler
 	isr_setHandler( IRQ6, floppy_handler );
     // ask the CMOS if we have any floppy drives

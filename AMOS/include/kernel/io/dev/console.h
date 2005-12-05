@@ -2,7 +2,9 @@
 #define _KERNEL_IO_DEV_CONSOLE_H_
 
 #include <sys/types.h>
-#include <kernel/io/io.h>
+
+#define CONSOLE_SETACTIVE	1
+
 
 #define CONSOLE_ROWS		25
 #define CONSOLE_COLUMNS		80
@@ -32,23 +34,15 @@ enum {
 	BLINK		= 0x80
 };
 
-void console_putch( BYTE );
-
-BYTE console_getChar( int, int );
-
-void console_setAttrib( BYTE );
-
-BYTE console_getAttrib( int, int );
-
-void console_scrollup( void );
-
-void console_putChar( int, int, BYTE, BYTE );
-
-void console_setCursor( int, int );
-
-void console_cls( void );
-
-void console_beep( void );
+struct CONSOLE_DATA
+{
+	char * name;
+	int number;
+	BYTE active;
+	BYTE * mem;
+	int x;
+	int y;	
+};
 
 void console_init( void );
 

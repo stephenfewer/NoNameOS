@@ -115,6 +115,7 @@ struct FAT_MOUNTPOINT
 {
 	struct IO_HANDLE * device;
 	struct FAT_BOOTSECTOR bootsector;
+	struct FAT_ENTRY * rootdir;
 	BYTE type;
 	BYTE * fat_data;
 	int fat_size;

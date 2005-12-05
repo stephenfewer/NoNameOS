@@ -7,7 +7,7 @@ RM=del
 
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -finline-functions -nostdinc -I $(INCLUDE_DIR)
 
-OBJ=string.o
+OBJ=string.o printf.o
 	
 all: $(OBJ)
 
