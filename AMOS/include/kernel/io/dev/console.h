@@ -3,13 +3,16 @@
 
 #include <sys/types.h>
 
-#define CONSOLE_SETACTIVE	1
+#define CONSOLE_SETACTIVE		1
+#define CONSOLE_SENDCHAR		2
 
+#define CONSOLE_DATA_PTR		1
+#define CONSOLE_DATA_PTRPTR		2
 
-#define CONSOLE_ROWS		25
-#define CONSOLE_COLUMNS		80
-#define CONSOLE_TABS		4
-#define VIDEOMEM_BASE		0xB8000
+#define CONSOLE_ROWS			25
+#define CONSOLE_COLUMNS			80
+#define CONSOLE_TABS			4
+#define VIDEOMEM_BASE			0xB8000
 
 enum { 
 	BLACK		= 0x00,
@@ -44,7 +47,7 @@ struct CONSOLE_DATA
 	int y;	
 };
 
-void console_init( void );
+int console_init( void );
 
 #endif
 

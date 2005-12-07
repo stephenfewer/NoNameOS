@@ -13,15 +13,14 @@
 #include <kernel/io/io.h>
 #include <kernel/lib/printf.h>
 
+// the kernels standard output handle, see io.h
 extern struct IO_HANDLE * io_kout;
 
 void kprintf( char * text, ... )
 {
-	va_list args = 0;
-
+	va_list args;
+	// find the first argument
 	va_start( args, text );
-	
+	// pass printf the kernels std output handle the format text and the first argument
 	printf( io_kout, text, args );
-	
-	va_end( args );
 }

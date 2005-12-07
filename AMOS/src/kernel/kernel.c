@@ -21,7 +21,7 @@
 #include <kernel/io/io.h>
 #include <kernel/io/fs/fat.h>
 
-int kernel_lockCount = 0;
+volatile int kernel_lockCount = 0;
 
 void task1()
 {
@@ -102,11 +102,9 @@ extern void * mm_heapBottom;
 
 void kernel_main( struct MULTIBOOT_INFO * m )
 {
-//	void * p, * q;
-
 	kernel_init( m );
 	
-	//fat_mount( "/device/floppy0" );
+	//fat_mount( "/device/floppy1" );
 
 	kprintf( "System Info:\n" );
 	kprintf( "\tPhysical Memory    = %d MB\n", (m->mem_upper/1024)+1 );
@@ -115,26 +113,14 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	kprintf( "\tKernel Heap Bottom = %x\n", mm_heapBottom );
 	kprintf( "\tKernel Heap Top    = %x\n", mm_heapTop );
 	
-/*
-	kprintf( "\nMalloc Test:\n" );
-	p = mm_malloc( 512 );
-	kprintf( "\tmalloc(512), p  = %x\n", p );
-	q = mm_malloc( 4096 );
-	kprintf( "\tmalloc(4096), q = %x\n", q );
-	mm_free( p );
-	kprintf( "\tfree( q )\n" );
-	p = mm_malloc( 32 );
-	kprintf( "\tmalloc(32)      = %x\n", p );
-	kprintf( "\tKernel Heap Top = %x\n", mm_heapTop );
-
-	kprintf( "\nMultitasking Test:\n" );
+/*	kprintf( "\nMultitasking Test:\n" );
 	kprintf( "\tCreating task 1.\n" );
 	task_create( task1 );
 	kprintf( "\tCreating task 2.\n" );
 	task_create( task2 );
 	kprintf( "\tEnabling scheduler.\n" );
-	scheduler_enable();
-*/
+	scheduler_enable(); */
+	
 	while( TRUE );
 }
 

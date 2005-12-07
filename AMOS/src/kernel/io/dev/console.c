@@ -9,6 +9,8 @@
  *    License: GNU General Public License (GPL)
  */
 
+// This is the Video Graphics Array (VGA) console driver for 80x25 text mode
+
 #include <kernel/kernel.h>
 #include <kernel/mm/mm.h>
 #include <kernel/io/dev/console.h>
@@ -18,24 +20,31 @@
 #include <kernel/lib/string.h>
 #include <kernel/isr.h>
 
-struct CONSOLE_DATA * console0;
+// our currently active console will point to one of the four virtual consoles below
+struct CONSOLE_DATA ** console0 = NULL;
+// our four virtual consoles
 struct CONSOLE_DATA * console1;
-
-struct CONSOLE_DATA * console_active = NULL;
+struct CONSOLE_DATA * console2;
+struct CONSOLE_DATA * console3;
+struct CONSOLE_DATA * console4;
 
 void console_cls( struct CONSOLE_DATA * );
 
 void console_setCursor( struct CONSOLE_DATA * console, int x, int y )
 {
-    short index = (y * CONSOLE_COLUMNS) + x;
+    WORD index;
     
 	console->x = x;
     console->y = y;
-
-	outportb( 0x3D4, 14 );
-    outportb( 0x3D5, index >> 8 );
-    outportb( 0x3D4, 15 );
-    outportb( 0x3D5, index );
+	
+	if( console->active )
+	{
+		index = (y * CONSOLE_COLUMNS) + x;
+		outportb( 0x3D4, 14 );
+	    outportb( 0x3D5, index >> 8 );
+	    outportb( 0x3D4, 15 );
+	    outportb( 0x3D5, index );
+	}
 }
 
 void console_putChar( struct CONSOLE_DATA * console, int x, int y, BYTE c )
@@ -80,6 +89,8 @@ void console_putch( struct CONSOLE_DATA * console, BYTE c )
 {
 	switch( c )
 	{
+		case '\0':
+			break;
 		case '\n':
 			console_setCursor( console, 0, ++console->y );
 			break;
@@ -97,6 +108,10 @@ void console_putch( struct CONSOLE_DATA * console, BYTE c )
 			break;
 		case '\f':
 			console_cls( console );
+			break;
+		case '\b':
+			console_setCursor( console, --console->x, console->y );
+			//console_putch( console, ' ' );
 			break;
 		default:
 			console_putChar( console, console->x, console->y, c );
@@ -147,30 +162,27 @@ void console_cls( struct CONSOLE_DATA * console )
 	console_setCursor( console, 0, 2 );
 }
 
-/*
-BYTE console_getAttrib( struct CONSOLE_DATA * console, int x, int y )
+int console_activate(  struct CONSOLE_DATA * console )
 {
-    return console->mem[ ((x + (y*CONSOLE_COLUMNS)) * 2) + 1 ];
-}
-*/
-
-void console_setActive(  struct CONSOLE_DATA * console )
-{
-	BYTE * mem = (BYTE *)VIDEOMEM_BASE;
-	
-	if( console_active == console )
-		return;
-		
-	if( console_active != NULL )
-		console_active->active = FALSE;
-	
+	if( console0 != NULL )
+	{
+		// dont do anything if we are trying to set an allready active
+		// console active
+		if( (*console0)->number == console->number )
+			return IO_FAIL;
+		// set the current virtual console not active
+		(*console0)->active = FALSE;
+	}
+	// set the one we are changeing to as active
 	console->active = TRUE;
-	
-	memcpy( mem, console->mem, CONSOLE_COLUMNS*CONSOLE_ROWS*2 );
-	
+	// copy in the new contents
+	memcpy( (BYTE *)VIDEOMEM_BASE, console->mem, CONSOLE_COLUMNS*CONSOLE_ROWS*2 );
+	// update the cursor to the correct new position
 	console_setCursor( console, console->x, console->y );
-	
-	console_active = console;
+	// set the currenty active virtual console to the one we just changed to
+	*console0 = console;
+	// return success
+	return IO_SUCCESS;
 }
 
 struct CONSOLE_DATA * console_create( char * name, int number )
@@ -194,11 +206,19 @@ struct CONSOLE_DATA * console_create( char * name, int number )
 
 struct IO_HANDLE * console_open( struct IO_HANDLE * handle, char * filename )
 {
+	handle->data_arg = CONSOLE_DATA_PTR;
 	// associate the correct virtual console with the handle
-	if( strcmp( filename, console0->name ) == 0 )
-		handle->data = console0;
-	else if( strcmp( filename, console1->name ) == 0 )
-		handle->data = console1;
+	if( strcmp( filename, "/device/console0" ) == 0 ) {
+		handle->data_ptr = console0;
+		handle->data_arg = CONSOLE_DATA_PTRPTR;
+	} else if( strcmp( filename, console1->name ) == 0 )
+		handle->data_ptr = console1;
+	else if( strcmp( filename, console2->name ) == 0 )
+		handle->data_ptr = console2;
+	else if( strcmp( filename, console3->name ) == 0 )
+		handle->data_ptr = console3;
+	else if( strcmp( filename, console4->name ) == 0 )
+		handle->data_ptr = console4;
 	else
 		return NULL;
 	// return the virtual console handle
@@ -207,53 +227,84 @@ struct IO_HANDLE * console_open( struct IO_HANDLE * handle, char * filename )
 
 int console_close( struct IO_HANDLE * handle )
 {
-	return 0;
+	return IO_SUCCESS;
+}
+
+int console_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
+{
+	return IO_FAIL;
 }
 
 int console_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	int i=0;
+	struct CONSOLE_DATA * console;
+	// get the virtual console we are operating on
+	if( handle->data_arg == CONSOLE_DATA_PTRPTR )
+		console = *(struct CONSOLE_DATA **)handle->data_ptr;
+	else if( handle->data_arg == CONSOLE_DATA_PTR )
+		console = (struct CONSOLE_DATA *)handle->data_ptr;
+	else
+		return IO_FAIL;
+	// print all the charachters in the buffer to the virtual console
 	while( i < size )
-		console_putch( (struct CONSOLE_DATA *)handle->data, buffer[i++] );
+		console_putch( console, buffer[i++] );
+	// return the number of bytes written
 	return i;
 }
 
 int console_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 {
 	struct CONSOLE_DATA * console;
-	
-	console = (struct CONSOLE_DATA *)handle->data;
-	
+	// get the virtual console we are operating on
+	if( handle->data_arg == CONSOLE_DATA_PTRPTR )
+		console = *(struct CONSOLE_DATA **)handle->data_ptr;
+	else if( handle->data_arg == CONSOLE_DATA_PTR )
+		console = (struct CONSOLE_DATA *)handle->data_ptr;
+	else
+		return IO_FAIL;
+	// switch the request
 	switch( request )
 	{
+		// we want to set this virtual console as active
 		case CONSOLE_SETACTIVE:
-			console_setActive( console );
-			break;
+			return console_activate( console );
+		case CONSOLE_SENDCHAR:
+			console_putch( console, arg );
+			return IO_SUCCESS; 
 	}
-	return -1;
+	// return fail
+	return IO_FAIL;
 }
 
-void console_init( void )
+int console_init( void )
 {
     struct IO_CALLTABLE * calltable;
-
+	// setup the calltable for this driver
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open = console_open;
 	calltable->close = console_close;
-	calltable->read = NULL;
+	calltable->read = console_read;
 	calltable->write = console_write;
 	calltable->seek = NULL;
 	calltable->control = console_control;
 
 	// create the first virtual console
-	console0 = console_create( "/device/console0", 0 );
-	device_add( console0->name, calltable );
-
-	// create the second
 	console1 = console_create( "/device/console1", 1 );
 	device_add( console1->name, calltable );
-
+	// create the second
+	console2 = console_create( "/device/console2", 2 );
+	device_add( console2->name, calltable );
+	// create the third
+	console3 = console_create( "/device/console3", 3 );
+	device_add( console3->name, calltable );
+	// create the fourth
+	console4 = console_create( "/device/console4", 4 );
+	device_add( console4->name, calltable );	
 	// set the fist one active
-	console_setActive( console0 );
+	console_activate( console1 );
+	// add the currently active console
+	device_add( "/device/console0", calltable );
+	
+	return IO_SUCCESS;
 }
-

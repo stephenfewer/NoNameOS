@@ -7,7 +7,7 @@
 #define AMOS_VERSION_MINOR 4
 #define AMOS_VERSION_PATCH 0
 
-#define AMOS_VERSION_STRING	"AMOS 0.4.0 (Spaghetti)"
+#define AMOS_VERSION_STRING	"AMOS 0.4.0 (Pizza)"
 
 #define sti() __asm__ __volatile__ ("sti")
 

@@ -29,7 +29,7 @@ floppy_bootsig_check: disabled=0
 
 parport1: enabled=0
 
-vga_update_interval: 300000
+vga_update_interval: 3000
 
 keyboard_serial_delay: 250
 

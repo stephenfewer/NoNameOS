@@ -2,9 +2,12 @@
 Allocating common symbols
 Common symbol       size              file
 
-io_calltable        0x20              ./io/io.o
+console2            0x10              ./io/dev/console.o
+io_kout             0x10              ./io/io.o
 isr_handlers        0x400             isr.o
-console_mem         0x10              ./io/dev/console.o
+keyboard_output     0x10              ./io/dev/keyboard.o
+console1            0x10              ./io/dev/console.o
+console3            0x10              ./io/dev/console.o
 gdt_pointer         0x10              gdt.o
 idt_table           0x800             idt.o
 physical_bitmapSize
@@ -12,12 +15,11 @@ physical_bitmapSize
 gdt_table           0x20              gdt.o
 idt_pointer         0x10              idt.o
 physical_bitmap     0x10              ./mm/physical.o
-console_x           0x10              ./io/dev/console.o
+console4            0x10              ./io/dev/console.o
+mount0              0x10              ./io/fs/fat.o
 paging_kernelPageDir
                     0x10              ./mm/paging.o
-console_attrib      0x10              ./io/dev/console.o
 scheduler_queue     0x400             ./tasking/scheduler.o
-console_y           0x10              ./io/dev/console.o
 
 Memory Configuration
 
@@ -37,7 +39,7 @@ Linker script and memory map
                 0x00101000                . = ALIGN (0x1000)
  *fill*         0x00100070      0xf90 00
 
-.kernel         0xc0001000     0x3000 load address 0x00101000
+.kernel         0xc0001000     0x5000 load address 0x00101000
                 0xc0001000                kernel = .
  *(.kernel)
  .kernel        0xc0001000      0x215 loader.o
@@ -92,189 +94,272 @@ Linker script and memory map
                 0xc0001090                isr07
  *(.text)
  *fill*         0xc0001215        0xb 00
- .text          0xc0001220       0xb0 kernel.o
-                0xc00012a6                kernel_main
-                0xc000124e                kernel_init
-                0xc0001235                kernel_lock
-                0xc000122b                outportb
-                0xc000123d                kernel_unlock
-                0xc0001220                inportb
- .text          0xc00012d0      0x160 gdt.o
-                0xc00012d0                gdt_setEntry
-                0xc0001333                gdt_init
- .text          0xc0001430       0xd0 idt.o
-                0xc000146f                idt_init
-                0xc0001430                idt_setEntry
- .text          0xc0001500       0xd0 irq.o
-                0xc000158b                irq_init
-                0xc0001500                irq_remap
- .text          0xc00015d0      0x1f0 isr.o
-                0xc00017b0                isr_setHandler
-                0xc0001721                isr_dispatcher
- .text          0xc00017c0      0x480 debug.o
-                0xc0001957                debug_putch
-                0xc000188f                debug_putuint
-                0xc000197a                debug_kprintf
-                0xc0001808                debug_puthex
-                0xc00017c0                debug_putint
- .text          0xc0001c40      0x5f0 kprintf.o
-                0xc0001c5b                kprintf_putuint
-                0xc0001f13                kprintf_puthex
-                0xc0001d30                kprintf_putint
-                0xc0001fbd                kprintf
-                0xc0001c40                strlen
- .text          0xc0002230      0x2a0 ./mm/mm.o
-                0xc00022ec                mm_free
-                0xc0002230                mm_init
-                0xc0002379                mm_malloc
-                0xc0002263                mm_morecore
-                0xc0002245                mm_memset
- .text          0xc00024d0      0x540 ./mm/paging.o
-                0xc00024eb                paging_clearDirectory
-                0xc00024dc                paging_getPageDirectoryEntry
-                0xc00027a9                paging_destroyDirectory
-                0xc0002767                paging_createDirectory
-                0xc0002957                paging_init
-                0xc00024d4                paging_setCurrentPageDir
-                0xc0002627                paging_setPageTableEntry
-                0xc0002525                paging_setPageDirectoryEntry
-                0xc000285d                paging_mapKernel
-                0xc0002578                paging_getPageTableEntry
-                0xc00024d0                paging_getCurrentPageDir
-                0xc0002747                paging_pageFaultHandler
- .text          0xc0002a10      0x240 ./mm/physical.o
-                0xc0002a32                physical_pageAllocAddress
-                0xc0002b14                physical_pageFree
-                0xc0002b5c                physical_init
-                0xc0002a86                physical_pageAlloc
-                0xc0002a10                physical_isPageFree
-                0xc0002a80                physical_getBitmapSize
- .text          0xc0002c50      0x150 ./tasking/scheduler.o
-                0xc0002d4b                scheduler_init
-                0xc0002c6b                Thread2
-                0xc0002c50                Thread1
-                0xc0002d42                scheduler_ltr
-                0xc0002c86                scheduler_addTask
-                0xc0002ca6                scheduler_switch
-                0xc0002d48                getESP
-                0xc0002c94                scheduler_removeTask
- .text          0xc0002da0      0x130 ./tasking/task.o
-                0xc0002da0                task_destroy
-                0xc0002dcc                task_create
- .text          0xc0002ed0      0x100 ./io/io.o
-                0xc0002ed0                strcmp
-                0xc0002edc                io_open
-                0xc0002ed6                io_getDevice
-                0xc0002f86                io_init
-                0xc0002f26                io_read
-                0xc0002efe                io_close
-                0xc0002f56                io_write
- .text          0xc0002fd0      0x420 ./io/dev/console.o
-                0xc0003380                console_init
-                0xc00031cc                console_getAttrib
-                0xc0002fd0                console_open
-                0xc0002fff                console_write
-                0xc000327f                console_setCursor
-                0xc0002ff9                console_read
-                0xc0003177                console_putChar
-                0xc0002fe4                console_close
-                0xc000337f                console_beep
-                0xc0003035                console_putch
-                0xc00032e3                console_cls
-                0xc00031ea                console_scrollup
-                0xc00031c2                console_setAttrib
-                0xc00031a5                console_getChar
-                0xc0004000                . = ALIGN (0x1000)
- *fill*         0xc00033f0      0xc10 00
+ .text          0xc0001220      0x1e0 kernel.o
+                0xc0001374                kernel_main
+                0xc000128e                kernel_init
+                0xc0001220                task1
+                0xc000126b                kernel_lock
+                0xc0001261                outportb
+                0xc0001278                kernel_unlock
+                0xc0001256                inportb
+                0xc000123b                task2
+ .text          0xc0001400      0x160 gdt.o
+                0xc0001400                gdt_setEntry
+                0xc0001463                gdt_init
+ .text          0xc0001560       0xc0 idt.o
+                0xc000159f                idt_init
+                0xc0001560                idt_setEntry
+ .text          0xc0001620       0xd0 irq.o
+                0xc00016ab                irq_init
+                0xc0001620                irq_remap
+ .text          0xc00016f0      0x1f0 isr.o
+                0xc00018d0                isr_setHandler
+                0xc0001841                isr_dispatcher
+ .text          0xc00018e0       0x20 kprintf.o
+                0xc00018e0                kprintf
+ .text          0xc0001900      0x290 ./mm/mm.o
+                0xc00019a2                mm_free
+                0xc0001900                mm_init
+                0xc0001a2f                mm_malloc
+                0xc0001915                mm_morecore
+ .text          0xc0001b90      0x550 ./mm/paging.o
+                0xc0001bab                paging_clearDirectory
+                0xc0001b9c                paging_getPageDirectoryEntry
+                0xc0001e69                paging_destroyDirectory
+                0xc0001e27                paging_createDirectory
+                0xc0002017                paging_init
+                0xc0001b94                paging_setCurrentPageDir
+                0xc0001ce7                paging_setPageTableEntry
+                0xc0001be5                paging_setPageDirectoryEntry
+                0xc0001f1d                paging_mapKernel
+                0xc0001c38                paging_getPageTableEntry
+                0xc0001b90                paging_getCurrentPageDir
+                0xc0001e07                paging_pageFaultHandler
+ .text          0xc00020e0      0x240 ./mm/physical.o
+                0xc0002102                physical_pageAllocAddress
+                0xc00021e4                physical_pageFree
+                0xc000222c                physical_init
+                0xc0002156                physical_pageAlloc
+                0xc00020e0                physical_isPageFree
+                0xc0002150                physical_getBitmapSize
+ .text          0xc0002320      0x130 ./tasking/scheduler.o
+                0xc000242c                scheduler_init
+                0xc00023dc                scheduler_ltr
+                0xc0002320                scheduler_addTask
+                0xc0002340                scheduler_switch
+                0xc00023e2                getESP
+                0xc00023e5                scheduler_enable
+                0xc000232e                scheduler_removeTask
+                0xc000241c                scheduler_disable
+ .text          0xc0002450      0x140 ./tasking/task.o
+                0xc0002450                task_destroy
+                0xc0002489                task_create
+ .text          0xc0002590       0x80 ./io/device.o
+                0xc0002590                device_add
+                0xc00025db                device_find
+ .text          0xc0002610      0x170 ./io/dma.o
+                0xc000274a                dma_write
+                0xc0002721                dma_read
+                0xc0002610                dma_transfer
+ .text          0xc0002780      0x210 ./io/io.o
+                0xc0002780                io_open
+                0xc00028b2                io_control
+                0xc00028f0                io_init
+                0xc0002821                io_read
+                0xc000287b                io_seek
+                0xc00027ec                io_close
+                0xc000284e                io_write
+ .text          0xc0002990       0x70 ./io/dev/bitbucket.o
+                0xc000299b                bitbucket_write
+                0xc0002995                bitbucket_close
+                0xc00029b2                bitbucket_init
+                0xc0002990                bitbucket_open
+ .text          0xc0002a00      0xb90 ./io/dev/console.o
+                0xc00031dc                console_create
+                0xc000340a                console_init
+                0xc0003229                console_open
+                0xc0003300                console_write
+                0xc0002a00                console_setCursor
+                0xc00032fa                console_read
+                0xc0002a6f                console_putChar
+                0xc0003364                console_control
+                0xc00032f4                console_close
+                0xc0002aac                console_beep
+                0xc0002b6e                console_putch
+                0xc0003130                console_activate
+                0xc0002f52                console_cls
+                0xc0002acb                console_scrollup
+                0xc0002aad                console_getChar
+ .text          0xc0003590     0x1300 ./io/dev/floppy.o
+                0xc000469d                floppy_read
+                0xc00036e3                floppy_handler
+                0xc0004718                floppy_write
+                0xc0004515                floppy_open
+                0xc00036af                floppy_off
+                0xc000383c                floppy_recalibrate
+                0xc00035f9                floppy_getbyte
+                0xc0003b68                floppy_blockGeometry
+                0xc0004659                floppy_close
+                0xc0003991                floppy_seekcylinder
+                0xc000471e                floppy_seek
+                0xc0003b01                floppy_reset
+                0xc0003590                floppy_sendbyte
+                0xc0003666                floppy_on
+                0xc0003c43                floppy_readBlock
+                0xc00036f0                floppy_wait
+                0xc0004760                floppy_init
+ .text          0xc0004890      0x1a0 ./io/dev/keyboard.o
+                0xc0004890                keyboard_open
+                0xc00048e5                keyboard_handler
+                0xc00049b5                keyboard_init
+                0xc0004895                keyboard_close
+                0xc000489b                keyboard_read
+ .text          0xc0004a30      0xa10 ./io/fs/fat.o
+                0xc0004c30                fat_loadCluster
+                0xc000514f                fat_mount
+                0xc00050ca                fat_unmount
+                0xc0004ee7                fat_open
+                0xc0004ddb                fat_getEntryIndex
+                0xc0004baa                fat_clusterToBlock
+                0xc0004a30                fat_getFATEntry
+                0xc0004d2d                fat_compareName
+                0xc0004ad3                fat_determineType
+ .text          0xc0005440      0x3c0 ./lib/printf.o
+                0xc0005440                printf_putuint
+                0xc000555e                printf_puthex
+                0xc0005503                printf_putint
+                0xc0005601                printf
+ .text          0xc0005800       0xa0 ./lib/string.o
+                0xc000581b                strcmp
+                0xc000586d                memcpy
+                0xc0005847                memset
+                0xc0005800                strlen
+                0xc0006000                . = ALIGN (0x1000)
+ *fill*         0xc00058a0      0x760 00
 
-.data           0xc0004000     0x1000 load address 0x00104000
-                0xc0004000                data = .
+.data           0xc0006000     0x1000 load address 0x00106000
+                0xc0006000                data = .
  *(.data)
- .data          0xc0004000       0x80 idt.o
-                0xc0004000                isr_stubs
- .data          0xc0004080       0x40 irq.o
-                0xc0004080                irq_stubs
- .data          0xc00040c0       0x80 isr.o
-                0xc00040c0                isr_messages
-                0xc0005000                . = ALIGN (0x1000)
- *fill*         0xc0004140      0xec0 00
-
-.bss            0xc0005000     0x4000 load address 0x00105000
-                0xc0005000                bss = .
- *(.bss)
- .bss           0xc0005000     0x1000 loader.o
- .bss           0xc0006000        0x4 kernel.o
-                0xc0006000                kernel_lockCount
- .bss           0xc0006004        0x4 kprintf.o
-                0xc0006004                kprintf_consoleHandle
- .bss           0xc0006008        0x8 ./mm/mm.o
-                0xc0006008                mm_heapTop
-                0xc000600c                mm_heapBottom
- .bss           0xc0006010       0x14 ./tasking/scheduler.o
-                0xc0006020                scheduler_tss
-                0xc0006018                scheduler_ticks
-                0xc0006014                current_cr3
-                0xc000601c                scheduler_currentTask
-                0xc0006010                current_esp
- .bss           0xc0006024        0x4 ./tasking/task.o
-                0xc0006024                task_total
+ .data          0xc0006000       0x80 idt.o
+                0xc0006000                isr_stubs
+ .data          0xc0006080       0x40 irq.o
+                0xc0006080                irq_stubs
+ .data          0xc00060c0       0x80 isr.o
+                0xc00060c0                isr_messages
+ .data          0xc0006140       0x30 ./io/dma.o
+                0xc0006168                dma_countport
+                0xc0006140                dma_maskreg
+                0xc0006158                dma_pageport
+                0xc0006148                dma_modereg
+                0xc0006160                dma_addressport
+                0xc0006150                dma_clearreg
+ .data          0xc0006170       0x60 ./io/dev/floppy.o
+                0xc0006170                floppy_geometrys
+ .data          0xc00061d0       0x80 ./io/dev/keyboard.o
+                0xc00061d0                keymap
                 0xc0007000                . = ALIGN (0x1000)
- *fill*         0xc0006028      0xfd8 00
- *(COMMON)
- COMMON         0xc0007000       0x30 gdt.o
-                0xc0007000                gdt_pointer
-                0xc0007010                gdt_table
- COMMON         0xc0007030      0x810 idt.o
-                0xc0007030                idt_table
-                0xc0007830                idt_pointer
- COMMON         0xc0007840      0x400 isr.o
-                0xc0007840                isr_handlers
- COMMON         0xc0007c40       0x10 ./mm/paging.o
-                0xc0007c40                paging_kernelPageDir
- COMMON         0xc0007c50       0x20 ./mm/physical.o
-                0xc0007c50                physical_bitmapSize
-                0xc0007c60                physical_bitmap
- COMMON         0xc0007c70      0x400 ./tasking/scheduler.o
-                0xc0007c70                scheduler_queue
- COMMON         0xc0008070       0x20 ./io/io.o
-                0xc0008070                io_calltable
- COMMON         0xc0008090       0x40 ./io/dev/console.o
-                0xc0008090                console_mem
-                0xc00080a0                console_x
-                0xc00080b0                console_attrib
-                0xc00080c0                console_y
+ *fill*         0xc0006250      0xdb0 00
+
+.bss            0xc0007000     0x4000 load address 0x00107000
+                0xc0007000                bss = .
+ *(.bss)
+ .bss           0xc0007000     0x1000 loader.o
+ .bss           0xc0008000        0x4 kernel.o
+                0xc0008000                kernel_lockCount
+ .bss           0xc0008004        0x8 ./mm/mm.o
+                0xc0008004                mm_heapTop
+                0xc0008008                mm_heapBottom
+ .bss           0xc000800c       0x14 ./tasking/scheduler.o
+                0xc000801c                scheduler_tss
+                0xc0008014                scheduler_ticks
+                0xc0008010                current_cr3
+                0xc0008018                scheduler_currentTask
+                0xc000800c                current_esp
+ .bss           0xc0008020        0x4 ./tasking/task.o
+                0xc0008020                task_total
+ .bss           0xc0008024        0x8 ./io/device.o
+                0xc0008028                device_bottom
+                0xc0008024                device_top
+ .bss           0xc000802c        0x4 ./io/dev/console.o
+                0xc000802c                console0
+ .bss           0xc0008030       0x18 ./io/dev/floppy.o
+                0xc0008030                floppy1
+                0xc0008034                floppy2
                 0xc0009000                . = ALIGN (0x1000)
- *fill*         0xc00080d0      0xf30 00
-                0xc0009000                _end = .
+ *fill*         0xc0008048      0xfb8 00
+ *(COMMON)
+ COMMON         0xc0009000       0x30 gdt.o
+                0xc0009000                gdt_pointer
+                0xc0009010                gdt_table
+ COMMON         0xc0009030      0x810 idt.o
+                0xc0009030                idt_table
+                0xc0009830                idt_pointer
+ COMMON         0xc0009840      0x400 isr.o
+                0xc0009840                isr_handlers
+ COMMON         0xc0009c40       0x10 ./mm/paging.o
+                0xc0009c40                paging_kernelPageDir
+ COMMON         0xc0009c50       0x20 ./mm/physical.o
+                0xc0009c50                physical_bitmapSize
+                0xc0009c60                physical_bitmap
+ COMMON         0xc0009c70      0x400 ./tasking/scheduler.o
+                0xc0009c70                scheduler_queue
+ COMMON         0xc000a070       0x10 ./io/io.o
+                0xc000a070                io_kout
+ COMMON         0xc000a080       0x40 ./io/dev/console.o
+                0xc000a080                console2
+                0xc000a090                console1
+                0xc000a0a0                console3
+                0xc000a0b0                console4
+ COMMON         0xc000a0c0       0x10 ./io/dev/keyboard.o
+                0xc000a0c0                keyboard_output
+ COMMON         0xc000a0d0       0x10 ./io/fs/fat.o
+                0xc000a0d0                mount0
+                0xc000b000                . = ALIGN (0x1000)
+ *fill*         0xc000a0e0      0xf20 00
+                0xc000b000                _end = .
 LOAD loader.o
 LOAD kernel.o
 LOAD gdt.o
 LOAD idt.o
 LOAD irq.o
 LOAD isr.o
-LOAD debug.o
 LOAD kprintf.o
 LOAD ./mm/mm.o
 LOAD ./mm/paging.o
 LOAD ./mm/physical.o
 LOAD ./tasking/scheduler.o
 LOAD ./tasking/task.o
+LOAD ./io/device.o
+LOAD ./io/dma.o
 LOAD ./io/io.o
+LOAD ./io/dev/bitbucket.o
 LOAD ./io/dev/console.o
+LOAD ./io/dev/floppy.o
+LOAD ./io/dev/keyboard.o
+LOAD ./io/fs/fat.o
+LOAD ./lib/printf.o
+LOAD ./lib/string.o
 OUTPUT(../../bin/kernel.coff coff-go32)
 
-.comment        0xc0009000      0x118
- .comment       0xc0009000       0x14 kernel.o
- .comment       0xc0009014       0x14 gdt.o
- .comment       0xc0009028       0x14 idt.o
- .comment       0xc000903c       0x14 irq.o
- .comment       0xc0009050       0x14 isr.o
- .comment       0xc0009064       0x14 debug.o
- .comment       0xc0009078       0x14 kprintf.o
- .comment       0xc000908c       0x14 ./mm/mm.o
- .comment       0xc00090a0       0x14 ./mm/paging.o
- .comment       0xc00090b4       0x14 ./mm/physical.o
- .comment       0xc00090c8       0x14 ./tasking/scheduler.o
- .comment       0xc00090dc       0x14 ./tasking/task.o
- .comment       0xc00090f0       0x14 ./io/io.o
- .comment       0xc0009104       0x14 ./io/dev/console.o
+.comment        0xc000b000      0x1a4
+ .comment       0xc000b000       0x14 kernel.o
+ .comment       0xc000b014       0x14 gdt.o
+ .comment       0xc000b028       0x14 idt.o
+ .comment       0xc000b03c       0x14 irq.o
+ .comment       0xc000b050       0x14 isr.o
+ .comment       0xc000b064       0x14 kprintf.o
+ .comment       0xc000b078       0x14 ./mm/mm.o
+ .comment       0xc000b08c       0x14 ./mm/paging.o
+ .comment       0xc000b0a0       0x14 ./mm/physical.o
+ .comment       0xc000b0b4       0x14 ./tasking/scheduler.o
+ .comment       0xc000b0c8       0x14 ./tasking/task.o
+ .comment       0xc000b0dc       0x14 ./io/device.o
+ .comment       0xc000b0f0       0x14 ./io/dma.o
+ .comment       0xc000b104       0x14 ./io/io.o
+ .comment       0xc000b118       0x14 ./io/dev/bitbucket.o
+ .comment       0xc000b12c       0x14 ./io/dev/console.o
+ .comment       0xc000b140       0x14 ./io/dev/floppy.o
+ .comment       0xc000b154       0x14 ./io/dev/keyboard.o
+ .comment       0xc000b168       0x14 ./io/fs/fat.o
+ .comment       0xc000b17c       0x14 ./lib/printf.o
+ .comment       0xc000b190       0x14 ./lib/string.o

@@ -15,8 +15,10 @@
 #include <kernel/io/dev/console.h>
 #include <kernel/io/dev/keyboard.h>
 #include <kernel/io/dev/floppy.h>
+#include <kernel/io/dev/bitbucket.h>
 #include <kernel/kernel.h>
 
+// the global handle for the kernels standard output
 struct IO_HANDLE * io_kout;
 
 struct IO_HANDLE * io_open( char * filename )
@@ -32,7 +34,8 @@ struct IO_HANDLE * io_open( char * filename )
 		struct IO_HANDLE * handle;
 		handle = (struct IO_HANDLE *)mm_malloc( sizeof(struct IO_HANDLE) );
 		handle->device = device;
-		handle->data = NULL;
+		handle->data_ptr = NULL;
+		handle->data_arg = (DWORD)NULL;
 		if( handle->device->calltable->open( handle, filename ) == NULL )
 			mm_free( handle );
 		else
@@ -50,35 +53,35 @@ int io_close( struct IO_HANDLE * handle )
 		mm_free( handle );
 		return ret;
 	}
-	return -1;
+	return IO_FAIL;
 }
 
 int io_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	if( handle->device->calltable->read != NULL )
 		return handle->device->calltable->read( handle, buffer, size  );
-	return -1;
+	return IO_FAIL;
 }
 
 int io_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size )
 {
 	if( handle->device->calltable->write != NULL )
 		return handle->device->calltable->write( handle, buffer, size );
-	return -1;
+	return IO_FAIL;
 }
 
 int io_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin )
 {
 	if( handle->device->calltable->seek != NULL )
 		return handle->device->calltable->seek( handle, offset, origin );
-	return -1;	
+	return IO_FAIL;	
 }
 
 int io_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 {
 	if( handle->device->calltable->control != NULL )
 		return handle->device->calltable->control( handle, request, arg );
-	return -1;	
+	return IO_FAIL;	
 }
 
 void io_init()
@@ -95,8 +98,11 @@ void io_init()
 	// init the floppy driver
 	floppy_init();
 
+	// init the bit bucket driver
+	bitbucket_init();
+	
 	// open the standard kernel output
-	io_kout = io_open( "/device/console0" );
+	io_kout = io_open( "/device/console1" );
 	
 	// lock again
 	kernel_lock();

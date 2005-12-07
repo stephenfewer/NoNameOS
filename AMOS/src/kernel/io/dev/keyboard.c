@@ -15,22 +15,25 @@
 #include <kernel/mm/mm.h>
 #include <kernel/io/device.h>
 #include <kernel/io/dev/console.h>
+#include <kernel/io/io.h>
+
+struct IO_HANDLE * keyboard_output;
 
 unsigned char keymap[128] =
 {
     0,  27, '1', '2', '3', '4', '5', '6', '7', '8',	/* 9 */
-  '9', '0', '-', '=', '\b',	/* Backspace */
-  '\t',			/* Tab */
-  'q', 'w', 'e', 'r',	/* 19 */
-  't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',	/* Enter key */
-    0,			/* 29   - Control */
-  'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',	/* 39 */
- '\'', '`',   0,		/* Left shift */
- '\\', 'z', 'x', 'c', 'v', 'b', 'n',			/* 49 */
-  'm', ',', '.', '/',   0,				/* Right shift */
-  '*',
-    0,	/* Alt */
-  ' ',	/* Space bar */
+	'9', '0', '-', '=', '\b',	/* Backspace */
+	'\t',			/* Tab */
+	'q', 'w', 'e', 'r',	/* 19 */
+	't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',	/* Enter key */
+	0,			/* 29   - Control */
+	'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',	/* 39 */
+	'\'', '`',   0,		/* Left shift */
+	'\\', 'z', 'x', 'c', 'v', 'b', 'n',			/* 49 */
+	'm', ',', '.', '/',   0,				/* Right shift */
+	'*',
+	0,	/* Alt */
+	' ',	/* Space bar */
     0,	/* Caps lock */
     0,	/* 59 - F1 key ... > */
     0,   0,   0,   0,   0,   0,   0,   0,
@@ -40,11 +43,11 @@ unsigned char keymap[128] =
     0,	/* Home key */
     0,	/* Up Arrow */
     0,	/* Page Up */
-  '-',
+	'-',
     0,	/* Left Arrow */
     0,
     0,	/* Right Arrow */
-  '+',
+	'+',
     0,	/* 79 - End key*/
     0,	/* Down Arrow */
     0,	/* Page Down */
@@ -63,13 +66,12 @@ struct IO_HANDLE * keyboard_open( struct IO_HANDLE * handle, char * filename )
 
 int keyboard_close( struct IO_HANDLE * handle )
 {
-	return 0;
+	return IO_SUCCESS;
 }
 
 int keyboard_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
-	// read some bytes off the buffer
-	return -1;
+	return IO_FAIL;
 }
 
 DWORD keyboard_handler( struct TASK_STACK * taskstack )
@@ -84,29 +86,39 @@ DWORD keyboard_handler( struct TASK_STACK * taskstack )
 	}
 	else
 	{
-		if( scancode == 0x3B ||scancode == 0x3C )
+		if( scancode >= 0x3B && scancode <= 0x3E )
 		{
 			struct IO_HANDLE * console;
-			char * name;
+			char * name = NULL;
 			
 			if( scancode == 0x3B )
-				name =  "/device/console0";
-			else if( scancode == 0x3C )
 				name =  "/device/console1";
-			
+			else if( scancode == 0x3C )
+				name =  "/device/console2";
+			else if( scancode == 0x3D )
+				name =  "/device/console3";
+			else if( scancode == 0x3E )
+				name =  "/device/console4";
+				
 			console = io_open( name );
 			if( console != NULL )
 			{
 				io_control( console, CONSOLE_SETACTIVE, 0L );
 				io_close( console );
 			}
+		} else {
+
+			if( keyboard_output != NULL )
+				io_control( keyboard_output, CONSOLE_SENDCHAR, keymap[scancode] );
+		
 		}
+
 	}
 	
 	return (DWORD)NULL;
 }
 
-void keyboard_init()
+int keyboard_init()
 {
 	struct IO_CALLTABLE * calltable;
 	
@@ -118,8 +130,14 @@ void keyboard_init()
 	calltable->seek = NULL;
 	calltable->control = NULL;
 	
-	device_add( "/device/keyboard", calltable );
+	keyboard_output = io_open( "/device/console0" );
+	if( keyboard_output == NULL )
+		return IO_FAIL;
+	
+	device_add( "/device/keyboard1", calltable );
 	
 	// setup the keyboard handler
 	isr_setHandler( IRQ1, keyboard_handler );
+	
+	return IO_SUCCESS;
 }

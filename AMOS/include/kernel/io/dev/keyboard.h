@@ -7,6 +7,6 @@
 #define KEYBOARD_DATAREG		0x60
 #define KEYBOARD_CONTROLREG		0x64
 
-void keyboard_init();
+int keyboard_init();
 
 #endif

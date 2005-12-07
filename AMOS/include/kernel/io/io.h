@@ -3,6 +3,9 @@
 
 #include <sys/types.h>
 
+#define IO_SUCCESS		-1
+#define IO_FAIL			-1
+
 // the origin defines for io_seek()
 #define SEEK_START		0
 #define SEEK_CURRENT	1
@@ -21,7 +24,8 @@ struct IO_CALLTABLE
 struct IO_HANDLE
 {
 	struct DEVICE_ENTRY * device;
-	void * data;
+	DWORD data_arg;
+	void * data_ptr;
 };
 
 struct IO_HANDLE * io_open( char * );
