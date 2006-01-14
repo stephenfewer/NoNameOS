@@ -1,4 +1,5 @@
-#include <kernel/io/fs/fat.h>
+#include <kernel/fs/fat.h>
+#include <kernel/fs/vfs.h>
 #include <kernel/io/io.h>
 #include <kernel/mm/mm.h>
 #include <kernel/kprintf.h>
@@ -93,12 +94,12 @@ void * fat_loadCluster( struct FAT_MOUNTPOINT * mount, int cluster )
 	// allocate our buffer
 	buffer = mm_malloc( mount->cluster_size );
 	// seek to the correct offset
-	io_seek( mount->device, (block*mount->bootsector.bytes_per_sector)+1, SEEK_START );
+	vfs_seek( mount->device, (block*mount->bootsector.bytes_per_sector)+1, SEEK_START );
 	// load in the blocks
 	for( i=0 ; i<mount->bootsector.sectors_per_cluster ; i++ )
 	{
 		buffer += mount->bootsector.bytes_per_sector * i;
-		if( io_read( mount->device, (void *)(buffer+(mount->bootsector.bytes_per_sector*i)), mount->bootsector.bytes_per_sector ) == -1 )
+		if( vfs_read( mount->device, (void *)(buffer+(mount->bootsector.bytes_per_sector*i)), mount->bootsector.bytes_per_sector ) == -1 )
 		{
 			kprintf("FAT: fat_loadCluster failed to read buffer\n" );
 			mm_free( buffer );
@@ -202,30 +203,98 @@ void fat_displayDir( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * dir )
 	kprintf("\n-------[dir end]---------");
 }
 */
-/*
-int fat_dir( struct IO_HANDLE * handle, char * filename ){}
 
-int fat_close( struct IO_HANDLE * handle ){}
-
-int fat_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size ){}
-
-int fat_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size ){}
-
-int fat_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin ){}
-
-int fat_control( struct IO_HANDLE * handle, DWORD request, DWORD arg ){}
-
-int fat_create( struct IO_HANDLE * handle, char * filename ){}
-
-int fat_delete( struct IO_HANDLE * handle ){}
-*/
-
-struct IO_HANDLE * fat_open( struct IO_HANDLE * handle, char * filename )
+int fat_mount( char * device, char * mountpoint, int fstype )
 {
-	int length, i, index;
+	int i;
+	int root_dir_offset;
+	//struct IO_CALLTABLE * calltable;
+	
+	mount0 = (struct FAT_MOUNTPOINT *)mm_malloc( sizeof(struct FAT_MOUNTPOINT) );
+	
+	//open the device we wish to mount
+	mount0->device = vfs_open( device );
+	if( mount0->device == NULL )
+		return VFS_FAIL;
+	kprintf("FAT: device %s open\n", device );
+	
+	// read in the bootsector
+	vfs_read( mount0->device, (void *)&mount0->bootsector, sizeof(struct FAT_BOOTSECTOR) );
+	kprintf("FAT: boot oem %s\n", mount0->bootsector.oem_id );
+	// make sure we have a valid bootsector
+	if( mount0->bootsector.magic != FAT_MAGIC )
+	{
+		kprintf("FAT: magic not found\n" );
+		vfs_close( mount0->device );
+		mm_free( mount0 );
+		return VFS_FAIL;
+	}
+	
+	// determine if we have a FAT 12, 16 or 32 filesystem
+	fat_determineType( mount0 );
+	
+	// calculate clster size
+	mount0->cluster_size = mount0->bootsector.bytes_per_sector * mount0->bootsector.sectors_per_cluster;
+
+	mount0->fat_size = mount0->bootsector.sectors_per_fat * mount0->bootsector.bytes_per_sector;
+	mount0->fat_data = (BYTE *)mm_malloc( mount0->fat_size );
+	memset( mount0->fat_data, 0x00, mount0->fat_size );
+	// read in the FAT
+	for( i=0 ; i<mount0->bootsector.sectors_per_fat ; i++ )
+		vfs_read( mount0->device, (void *)(mount0->fat_data+(mount0->bootsector.bytes_per_sector*i)), mount0->bootsector.bytes_per_sector );
+		
+	// read in root directory
+	mount0->rootdir = (struct FAT_ENTRY *)mm_malloc( mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
+	memset( mount0->rootdir, 0x00, mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
+	
+	root_dir_offset = (mount0->bootsector.num_fats * mount0->fat_size) + sizeof(struct FAT_BOOTSECTOR) + 1;
+	
+	vfs_seek( mount0->device, root_dir_offset, SEEK_START );
+
+	vfs_read( mount0->device, (void *)(mount0->rootdir), mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
+
+	// display root dir
+	//fat_displayDir( mount0, mount0->rootdir );
+	
+	//fat_open( NULL, "/BOOT/MENU.CFG" );
+	
+	//fat_open( NULL, "/TEST/does/NOT/exist.bin" );
+	/*
+	fat_open( NULL, "/NOWHERE/EXISTS/" );
+	*/
+	/*
+
+	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
+	calltable->open = fat_open;
+	calltable->close = NULL;
+	calltable->read = NULL;
+	calltable->write = NULL;
+	calltable->seek = NULL;
+	calltable->control = NULL;
+
+	device_add( "/mount/floppy/BOOT/MENU.CFG", calltable );
+	*/
+	return VFS_SUCCESS;
+}
+
+int fat_unmount( char * mountpoint )
+{
+	// close the device
+	vfs_close( mount0->device );
+	// free the rootdir structure
+	mm_free( mount0->rootdir );
+	// free the mount structure
+	mm_free( mount0 );
+	// return
+	return VFS_SUCCESS;	
+}
+
+struct VFS_HANDLE * fat_open( struct VFS_HANDLE * handle, char * filename )
+{
+/*	int length, i, index = -1;
 	char * curr_name;
 	struct FAT_ENTRY * currdir;
-	
+
 	kprintf( "\nfat_open( %s )\n", filename );
 	
 	if( filename[0] == '/' )
@@ -249,11 +318,10 @@ struct IO_HANDLE * fat_open( struct IO_HANDLE * handle, char * filename )
 			index = fat_getEntryIndex( currdir, curr_name );
 			if( index == -1 )
 			{
-				kprintf( "index == -1\n" );
-				//return NULL;
+				//kprintf( "index == -1\n" );
 				break;
 			} else {
-				kprintf( "got index = %d\n", index );
+				//kprintf( "got index = %d\n", index );
 				currdir = (struct FAT_ENTRY *)fat_loadCluster( mount0, currdir[index].start_cluster );
 			}
 			
@@ -263,78 +331,87 @@ struct IO_HANDLE * fat_open( struct IO_HANDLE * handle, char * filename )
 	
 	if( currdir == NULL )
 		return NULL;
-	return NULL;
-}
-
-
-int fat_unmount()
-{
-	// close the device
-	io_close( mount0->device );
-	// free the rootdir structure
-	mm_free( mount0->rootdir );
-	// free the mount structure
-	mm_free( mount0 );
-	// return
-	return 0;
-}
-
-int fat_mount( char * device_filename )
-{
-	int i;
-	int root_dir_offset;
-	
-	mount0 = (struct FAT_MOUNTPOINT *)mm_malloc( sizeof(struct FAT_MOUNTPOINT) );
-	
-	//open the device we wish to mount
-	mount0->device = io_open( device_filename );
-	if( mount0->device == NULL )
-		return FALSE;
-	kprintf("FAT: device %s open\n", device_filename );
-	
-	// read in the bootsector
-	io_read( mount0->device, (void *)&mount0->bootsector, sizeof(struct FAT_BOOTSECTOR) );
-	kprintf("FAT: boot oem %s\n", mount0->bootsector.oem_id );
-	// make sure we have a valid bootsector
-	if( mount0->bootsector.magic != FAT_MAGIC )
-	{
-		kprintf("FAT: magic not found\n" );
-		io_close( mount0->device );
-		mm_free( mount0 );
-		return FALSE;
-	}
-	
-	// determine if we have a FAT 12, 16 or 32 filesystem
-	fat_determineType( mount0 );
-	
-	// calculate clster size
-	mount0->cluster_size = mount0->bootsector.bytes_per_sector * mount0->bootsector.sectors_per_cluster;
-	
-	mount0->fat_size = mount0->bootsector.sectors_per_fat * mount0->bootsector.bytes_per_sector;
-	mount0->fat_data = (BYTE *)mm_malloc( mount0->fat_size );
-	memset( mount0->fat_data, 0x00, mount0->fat_size );
-	// read in the FAT
-	for( i=0 ; i<mount0->bootsector.sectors_per_fat ; i++ )
-		io_read( mount0->device, (void *)(mount0->fat_data+(mount0->bootsector.bytes_per_sector*i)), mount0->bootsector.bytes_per_sector );
 		
-	// read in root directory
-	mount0->rootdir = (struct FAT_ENTRY *)mm_malloc( mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
-	memset( mount0->rootdir, 0x00, mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
-	
-	root_dir_offset = (mount0->bootsector.num_fats * mount0->fat_size) + sizeof(struct FAT_BOOTSECTOR) + 1;
-	
-	io_seek( mount0->device, root_dir_offset, SEEK_START );
-
-	io_read( mount0->device, (void *)(mount0->rootdir), mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
-
-	// display root dir
-	//fat_displayDir( mount0, mount0->rootdir );
-	
-	fat_open( NULL, "/BOOT/MENU.CFG" );
-	/*
-	fat_open( NULL, "/TEST/does/NOT/exist.bin" );
-	
-	fat_open( NULL, "/NOWHERE/EXISTS/" );
+	if( index != -1 )
+	{
+		handle->data_arg = (DWORD)index;
+		return handle;
+	}
 	*/
-	return TRUE;
+	return NULL;	
+}
+
+int fat_close( struct VFS_HANDLE * handle )
+{
+	return VFS_FAIL;
+}
+
+int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
+{
+	return VFS_FAIL;	
+}
+
+int fat_write( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size )
+{
+	return VFS_FAIL;	
+}
+
+int fat_seek( struct VFS_HANDLE * handle, DWORD offset, BYTE origin )
+{
+	return VFS_FAIL;	
+}
+
+int fat_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
+{
+	return VFS_FAIL;		
+}
+
+int fat_create( char * filename, int flags )
+{
+	return VFS_FAIL;	
+}
+
+int fat_delete( char * filename )
+{
+	return VFS_FAIL;	
+}
+
+int fat_rename( char * fromfilename, char * tofilename )
+{
+	return VFS_FAIL;
+}
+
+int fat_copy( char * fromfilename, char * tofilename )
+{
+	return VFS_FAIL;	
+}
+
+int fat_list( char * directoryname )
+{
+	return VFS_FAIL;
+}
+
+int fat_init()
+{
+	struct VFS_FILESYSTEM * fs;
+	// create the file system structure
+	fs = (struct VFS_FILESYSTEM *)mm_malloc( sizeof(struct VFS_FILESYSTEM) );
+	// set the file system type
+	fs->fstype = FAT_TYPE;
+	// setup the file system calltable
+	fs->calltable.open    = fat_open;
+	fs->calltable.close   = fat_close;
+	fs->calltable.read    = fat_read;
+	fs->calltable.write   = fat_write;
+	fs->calltable.seek    = fat_seek;
+	fs->calltable.control = fat_control;
+	fs->calltable.create  = fat_create;
+	fs->calltable.delete  = fat_delete;
+	fs->calltable.rename  = fat_rename;
+	fs->calltable.copy    = fat_copy;
+	fs->calltable.list    = fat_list;
+	fs->calltable.mount   = fat_mount;
+	fs->calltable.unmount = fat_unmount;
+	// register the file system with the VFS
+	return vfs_register( fs );
 }

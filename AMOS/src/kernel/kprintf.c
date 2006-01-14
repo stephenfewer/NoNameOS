@@ -10,11 +10,11 @@
  */
 
 #include <kernel/kprintf.h>
-#include <kernel/io/io.h>
+#include <kernel/fs/vfs.h>
 #include <kernel/lib/printf.h>
 
-// the kernels standard output handle, see io.h
-extern struct IO_HANDLE * io_kout;
+// the kernels standard output handle
+extern struct VFS_HANDLE * kernel_kout;
 
 void kprintf( char * text, ... )
 {
@@ -22,5 +22,5 @@ void kprintf( char * text, ... )
 	// find the first argument
 	va_start( args, text );
 	// pass printf the kernels std output handle the format text and the first argument
-	printf( io_kout, text, args );
+	printf( kernel_kout, text, args );
 }

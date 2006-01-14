@@ -12,9 +12,8 @@
 #include <kernel/io/dev/floppy.h>
 #include <kernel/kernel.h>
 #include <kernel/mm/mm.h>
-#include <kernel/io/device.h>
 #include <kernel/io/io.h>
-#include <kernel/io/dma.h>
+#include <kernel/mm/dma.h>
 #include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
 #include <kernel/isr.h>
@@ -400,15 +399,15 @@ int floppy_init()
 	{
 		floppy1 = (struct FLOPPY_DRIVE *)mm_malloc( sizeof(struct FLOPPY_DRIVE) );
 		// set the device name
-		floppy1->name = "/device/floppy1";
+		floppy1->name = "floppy1";
 		// set the floppy command base address
 		floppy1->base = FLOPPY_PRIMARY;
 		// set the correct floppy geometry
 		floppy1->geometry = &floppy_geometrys[floppy_type];
 		// unlock the drive
 		floppy1->locked = FALSE;
-		// add it to the device manager
-		device_add( floppy1->name, calltable );
+		// add it to the DFS via the IO sub system
+		io_add( floppy1->name, calltable );
 	}
 	// detect the second floppy drive
     floppy_type = i & 0x0F;
@@ -416,15 +415,15 @@ int floppy_init()
 	{
 		floppy2 = (struct FLOPPY_DRIVE *)mm_malloc( sizeof(struct FLOPPY_DRIVE) );
 		// set the device name
-		floppy2->name = "/device/floppy2";
+		floppy2->name = "floppy2";
 		// set the floppy command base address
 		floppy2->base = FLOPPY_SECONDARY;
 		// set the correct floppy geometry
 		floppy2->geometry = &floppy_geometrys[floppy_type];
 		// unlock the drive
 		floppy2->locked = FALSE;
-		// add it to the device manager
-		device_add( floppy2->name, calltable );
+		// add it to the DFS via the IO sub system
+		io_add( floppy2->name, calltable );
 	}
 	return IO_SUCCESS;
 }

@@ -1,5 +1,5 @@
-#ifndef _KERNEL_IO_DMA_H_
-#define _KERNEL_IO_DMA_H_
+#ifndef _KERNEL_MM_DMA_H_
+#define _KERNEL_MM_DMA_H_
 
 #include <sys/types.h>
 

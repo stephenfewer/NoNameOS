@@ -10,7 +10,8 @@
  */
 
 #include <kernel/io/io.h>
-#include <kernel/io/device.h>
+#include <kernel/fs/dfs.h>
+#include <kernel/fs/vfs.h>
 #include <kernel/mm/mm.h>
 #include <kernel/io/dev/console.h>
 #include <kernel/io/dev/keyboard.h>
@@ -18,17 +19,20 @@
 #include <kernel/io/dev/bitbucket.h>
 #include <kernel/kernel.h>
 
-// the global handle for the kernels standard output
-struct IO_HANDLE * io_kout;
-
-struct IO_HANDLE * io_open( char * filename )
+int io_add( char * name, struct IO_CALLTABLE * calltable )
 {
-	struct DEVICE_ENTRY * device;
+	if( dfs_add( name, calltable ) == NULL )
+		return -1;
+	return 0;
+}
 
-	device = device_find( filename );
-	if( device == NULL )
-		return NULL;
-		
+int io_remove( char * name )
+{
+	return dfs_remove( name );
+}
+
+struct IO_HANDLE * io_open( struct DFS_ENTRY * device )
+{
 	if( device->calltable->open != NULL )
 	{
 		struct IO_HANDLE * handle;
@@ -36,7 +40,7 @@ struct IO_HANDLE * io_open( char * filename )
 		handle->device = device;
 		handle->data_ptr = NULL;
 		handle->data_arg = (DWORD)NULL;
-		if( handle->device->calltable->open( handle, filename ) == NULL )
+		if( handle->device->calltable->open( handle, device->name ) == NULL )
 			mm_free( handle );
 		else
 			return handle;
@@ -100,9 +104,6 @@ void io_init()
 
 	// init the bit bucket driver
 	bitbucket_init();
-	
-	// open the standard kernel output
-	io_kout = io_open( "/device/console1" );
 	
 	// lock again
 	kernel_lock();

@@ -2,6 +2,7 @@
 #define _KERNEL_IO_IO_H_
 
 #include <sys/types.h>
+#include <kernel/fs/dfs.h>
 
 #define IO_SUCCESS		-1
 #define IO_FAIL			-1
@@ -23,12 +24,16 @@ struct IO_CALLTABLE
 
 struct IO_HANDLE
 {
-	struct DEVICE_ENTRY * device;
+	struct DFS_ENTRY * device;
 	DWORD data_arg;
 	void * data_ptr;
 };
 
-struct IO_HANDLE * io_open( char * );
+int io_add( char *, struct IO_CALLTABLE * );
+
+int io_remove( char * );
+
+struct IO_HANDLE * io_open( struct DFS_ENTRY * );
 
 int io_close( struct IO_HANDLE * );
 

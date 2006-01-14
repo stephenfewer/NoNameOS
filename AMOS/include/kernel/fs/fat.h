@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <kernel/io/io.h>
 
+#define FAT_TYPE			1
+
 #define FAT_CLUSTER12(c)	( c & 0x00000FFF )	// 12 bits
 #define FAT_CLUSTER16(c)	( c & 0x0000FFFF )	// 16 bits
 #define FAT_CLUSTER31(c)	( c & 0x0FFFFFFF )	// 28 bits
@@ -14,11 +16,11 @@
 #define FAT_EOC16			0xFFF8
 #define FAT_EOC32			0xFFFFFFF8
 
-#define FAT_12		12
-#define FAT_16		16
-#define FAT_32		32
+#define FAT_12				12
+#define FAT_16				16
+#define FAT_32				32
 
-#define FAT_MAGIC	0xAA55
+#define FAT_MAGIC			0xAA55
 
 // for FAT 12 and 16
 struct FAT_BOOTSECTOR16
@@ -113,7 +115,7 @@ struct FAT_ENTRY
 
 struct FAT_MOUNTPOINT
 {
-	struct IO_HANDLE * device;
+	struct VFS_HANDLE * device;
 	struct FAT_BOOTSECTOR bootsector;
 	struct FAT_ENTRY * rootdir;
 	BYTE type;
@@ -122,6 +124,6 @@ struct FAT_MOUNTPOINT
 	int cluster_size;
 };
 
-int fat_mount( char * );
+int fat_init();
 
 #endif

@@ -14,7 +14,6 @@
 #include <kernel/kernel.h>
 #include <kernel/mm/mm.h>
 #include <kernel/io/dev/console.h>
-#include <kernel/io/device.h>
 #include <kernel/io/io.h>
 #include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
@@ -198,6 +197,12 @@ struct CONSOLE_DATA * console_create( char * name, int number )
 	console->mem = (BYTE *)mm_malloc( (CONSOLE_COLUMNS*CONSOLE_ROWS)*2 );
 	// default to not being an active virtual console
 	console->active = FALSE;
+	// default to not echoing input to screen
+	console->echo = FALSE;
+	// set the break flag to false;
+	console->in_break = FALSE;
+	// set no break byte
+	console->in_breakByte = 0x00;
 	// clear the new virtual console
 	console_cls( console );
 	// return it to caller
@@ -208,7 +213,7 @@ struct IO_HANDLE * console_open( struct IO_HANDLE * handle, char * filename )
 {
 	handle->data_arg = CONSOLE_DATA_PTR;
 	// associate the correct virtual console with the handle
-	if( strcmp( filename, "/device/console0" ) == 0 ) {
+	if( strcmp( filename, "console0" ) == 0 ) {
 		handle->data_ptr = console0;
 		handle->data_arg = CONSOLE_DATA_PTRPTR;
 	} else if( strcmp( filename, console1->name ) == 0 )
@@ -232,6 +237,37 @@ int console_close( struct IO_HANDLE * handle )
 
 int console_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
+	struct CONSOLE_DATA * console;
+	// get the virtual console we are operating on
+	if( handle->data_arg == CONSOLE_DATA_PTRPTR )
+		console = *(struct CONSOLE_DATA **)handle->data_ptr;
+	else if( handle->data_arg == CONSOLE_DATA_PTR )
+		console = (struct CONSOLE_DATA *)handle->data_ptr;
+	else
+		return IO_FAIL;
+	
+	if(	console->in_buff == NULL )
+	{
+		console->in_buffIndex = 0;
+		console->in_buffSize = size;
+		console->in_buff = buffer;
+		
+		while( console->in_buffIndex < console->in_buffSize  )
+		{
+			if( console->in_break == TRUE )
+				break;
+			// delay
+			inportb( 0x80 );
+		}
+		
+		console->in_buff = NULL;
+		console->in_break = FALSE;
+		if( console->in_breakByte != 0x00 )
+			console->in_breakByte = 0x00;
+		
+		return console->in_buffIndex;
+	}
+	
 	return IO_FAIL;
 }
 
@@ -266,12 +302,37 @@ int console_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 	// switch the request
 	switch( request )
 	{
+		case CONSOLE_SETECHO:
+			if( (BYTE)arg == TRUE )
+				console->echo = TRUE;
+			else
+				console->echo = FALSE;
+			return IO_SUCCESS;
+			break;
 		// we want to set this virtual console as active
 		case CONSOLE_SETACTIVE:
 			return console_activate( console );
 		case CONSOLE_SENDCHAR:
-			console_putch( console, arg );
-			return IO_SUCCESS; 
+			if( console->echo )
+				console_putch( console, arg );
+			if( console->in_buff != NULL )
+			{
+				if( console->in_breakByte != 0x00 )
+				{
+					if( console->in_breakByte == (BYTE)arg )
+					{
+						console->in_break = TRUE;
+						break;
+					}
+				}
+				if( console->in_buffIndex < console->in_buffSize )
+					console->in_buff[ console->in_buffIndex++ ] = (BYTE)arg;	
+			}
+			return IO_SUCCESS;
+		case CONSOLE_SETBREAK:
+			console->in_breakByte = (BYTE)arg;
+			return IO_SUCCESS;
+			break;
 	}
 	// return fail
 	return IO_FAIL;
@@ -290,21 +351,21 @@ int console_init( void )
 	calltable->control = console_control;
 
 	// create the first virtual console
-	console1 = console_create( "/device/console1", 1 );
-	device_add( console1->name, calltable );
+	console1 = console_create( "console1", 1 );
+	io_add( console1->name, calltable );
 	// create the second
-	console2 = console_create( "/device/console2", 2 );
-	device_add( console2->name, calltable );
+	console2 = console_create( "console2", 2 );
+	io_add( console2->name, calltable );
 	// create the third
-	console3 = console_create( "/device/console3", 3 );
-	device_add( console3->name, calltable );
+	console3 = console_create( "console3", 3 );
+	io_add( console3->name, calltable );
 	// create the fourth
-	console4 = console_create( "/device/console4", 4 );
-	device_add( console4->name, calltable );	
+	console4 = console_create( "console4", 4 );
+	io_add( console4->name, calltable );	
 	// set the fist one active
 	console_activate( console1 );
 	// add the currently active console
-	device_add( "/device/console0", calltable );
+	io_add( "console0", calltable );
 	
 	return IO_SUCCESS;
 }

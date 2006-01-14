@@ -13,11 +13,11 @@
 #include <kernel/isr.h>
 #include <kernel/kernel.h>
 #include <kernel/mm/mm.h>
-#include <kernel/io/device.h>
 #include <kernel/io/dev/console.h>
 #include <kernel/io/io.h>
+#include <kernel/fs/vfs.h>
 
-struct IO_HANDLE * keyboard_output;
+struct VFS_HANDLE * keyboard_output;
 
 unsigned char keymap[128] =
 {
@@ -88,7 +88,7 @@ DWORD keyboard_handler( struct TASK_STACK * taskstack )
 	{
 		if( scancode >= 0x3B && scancode <= 0x3E )
 		{
-			struct IO_HANDLE * console;
+			struct VFS_HANDLE * console;
 			char * name = NULL;
 			
 			if( scancode == 0x3B )
@@ -100,16 +100,16 @@ DWORD keyboard_handler( struct TASK_STACK * taskstack )
 			else if( scancode == 0x3E )
 				name =  "/device/console4";
 				
-			console = io_open( name );
+			console = vfs_open( name );
 			if( console != NULL )
 			{
-				io_control( console, CONSOLE_SETACTIVE, 0L );
-				io_close( console );
+				vfs_control( console, CONSOLE_SETACTIVE, 0L );
+				vfs_close( console );
 			}
 		} else {
 
 			if( keyboard_output != NULL )
-				io_control( keyboard_output, CONSOLE_SENDCHAR, keymap[scancode] );
+				vfs_control( keyboard_output, CONSOLE_SENDCHAR, keymap[scancode] );
 		
 		}
 
@@ -130,11 +130,11 @@ int keyboard_init()
 	calltable->seek = NULL;
 	calltable->control = NULL;
 	
-	keyboard_output = io_open( "/device/console0" );
+	keyboard_output = vfs_open( "/device/console0" );
 	if( keyboard_output == NULL )
 		return IO_FAIL;
-	
-	device_add( "/device/keyboard1", calltable );
+	// add the keyboard device
+	io_add( "keyboard1", calltable );
 	
 	// setup the keyboard handler
 	isr_setHandler( IRQ1, keyboard_handler );

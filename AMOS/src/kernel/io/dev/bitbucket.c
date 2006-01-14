@@ -12,7 +12,6 @@
 // DOS has NUL:, Amiga OS has NIL:, Unix has /dev/null, we have /device/bitbucket
 
 #include <kernel/io/dev/bitbucket.h>
-#include <kernel/io/device.h>
 #include <kernel/io/io.h>
 #include <kernel/mm/mm.h>
 
@@ -46,6 +45,6 @@ int bitbucket_init()
 	calltable->seek = NULL;
 	calltable->control = NULL;
 	// add the bitbucket device
-	device_add( "/device/bitbucket", calltable );
+	io_add( "bitbucket", calltable );
 	return IO_SUCCESS;
 }

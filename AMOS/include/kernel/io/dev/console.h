@@ -5,6 +5,8 @@
 
 #define CONSOLE_SETACTIVE		1
 #define CONSOLE_SENDCHAR		2
+#define CONSOLE_SETBREAK		3
+#define CONSOLE_SETECHO			4
 
 #define CONSOLE_DATA_PTR		1
 #define CONSOLE_DATA_PTRPTR		2
@@ -44,7 +46,13 @@ struct CONSOLE_DATA
 	BYTE active;
 	BYTE * mem;
 	int x;
-	int y;	
+	int y;
+	BYTE echo;
+	volatile BYTE * in_buff;
+	volatile int in_buffIndex;
+	volatile int in_buffSize;
+	volatile BYTE in_breakByte;
+	volatile BYTE in_break;
 };
 
 int console_init( void );

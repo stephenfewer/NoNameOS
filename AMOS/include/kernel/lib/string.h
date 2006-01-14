@@ -7,8 +7,16 @@ int strlen( char * );
 
 int strcmp( char *, char * );
 
+int strncmp( char *, char *, int );
+
+char * strcpy( char *, char * );
+
+char *strstr( char *, char * );
+
 void * memset( void *, BYTE, int );
 
 void memcpy( void *, void *, int );
+
+int memcmp( void *, void *, int );
 
 #endif

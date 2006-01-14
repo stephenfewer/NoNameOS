@@ -9,7 +9,7 @@
  *    License: GNU General Public License (GPL)
  */
 
-#include <kernel/io/dma.h>
+#include <kernel/mm/dma.h>
 #include <kernel/kernel.h>
 
 BYTE dma_maskreg[8]     = { 0x0A, 0x0A, 0x0A, 0x0A, 0xD4, 0xD4, 0xD4, 0xD4 };

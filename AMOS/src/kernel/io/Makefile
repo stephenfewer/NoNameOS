@@ -3,18 +3,16 @@ MAKEFILE=Makefile
 INCLUDE_DIR=../../../include/
 
 DEV=dev
-FS=fs
 
 CC=gcc
 RM=del
 
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -finline-functions -nostdinc -I $(INCLUDE_DIR)
 
-OBJ=io.o device.o dma.o
+OBJ=io.o
 
 all: $(OBJ)
 	$(MAKE) -C $(DEV)
-	$(MAKE) -C $(FS)
 	
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<
@@ -22,4 +20,3 @@ all: $(OBJ)
 clean:
 	$(RM) *.o
 	$(MAKE) -C $(DEV) clean
-	$(MAKE) -C $(FS) clean

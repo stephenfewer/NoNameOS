@@ -45,7 +45,8 @@ struct TASK_INFO
 	int state;
 	DWORD current_esp;
 	void * stack;
-	struct PAGE_DIRECTORY * page_dir;	
+	struct PAGE_DIRECTORY * page_dir;
+	//struct MM_HEAP heap;	
 };
 
 void task_destroy( struct TASK_INFO * );

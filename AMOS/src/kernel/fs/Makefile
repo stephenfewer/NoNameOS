@@ -1,13 +1,13 @@
 MAKEFILE=Makefile
 
-INCLUDE_DIR=../../../../include/
+INCLUDE_DIR=../../../include/
 
 CC=gcc
 RM=del
 
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -finline-functions -nostdinc -I $(INCLUDE_DIR)
 
-OBJ=fat.o
+OBJ=vfs.o fat.o dfs.o
 
 all: $(OBJ)
 

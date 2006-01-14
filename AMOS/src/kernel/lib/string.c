@@ -9,6 +9,8 @@
  *    License: GNU General Public License (GPL)
  */
 
+// these functions are from diet libc and the linux-2.0.40 kernel libc
+ 
 #include <kernel/lib/string.h>
 
 int strlen( char * src )
@@ -21,12 +23,54 @@ int strlen( char * src )
 
 int strcmp( char * src, char * dest )
 {
-    while( *src && *src == *dest )
-    {
-        src++;
-        dest++;
-    }
-    return( *src - *dest );
+	register signed char res;
+
+	while( TRUE )
+	{
+		if( (res = *src - *dest++) != 0 || !*src++ )
+			break;
+	}
+	return res;
+}
+
+int strncmp( char * src, char * dest, int count )
+{
+	register signed char res = 0;
+
+	while( count )
+	{
+		if( (res = *src - *dest++) != 0 || !*src++ )
+			break;
+		count--;
+	}
+
+	return res;
+}
+
+char * strcpy( char * dest, char * src )
+{
+	char *tmp = dest;
+
+	while ((*dest++ = *src++) != '\0');
+
+	return tmp;
+}
+ 
+char * strstr( char *s1, char *s2 )
+{
+	int l1, l2;
+	l2 = strlen( s2 );
+	if( !l2 )
+		return (char *)s1;
+	l1 = strlen( s1 );
+	while( l1 >= l2 )
+	{
+		l1--;
+		if( !memcmp( s1, s2, l2 ) )
+			return (char *)s1;
+		s1++;
+	}
+	return NULL;
 }
 
 void * memset( void * dest, BYTE val, int count )
@@ -43,4 +87,15 @@ void memcpy( void * dest, void * src, int count )
 	register char * s = (char *)src;
 	while( count-- )
 		*d++ = *s++;
+}
+
+int memcmp( void *cs, void *ct, int count )
+{
+	const unsigned char *su1, *su2;
+	signed char res = 0;
+
+	for (su1 = cs, su2 = ct; 0 < count; ++su1, ++su2, count--)
+		if ((res = *su1 - *su2) != 0)
+			break;
+	return res;
 }

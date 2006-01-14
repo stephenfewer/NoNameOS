@@ -19,9 +19,30 @@
 #include <kernel/tasking/scheduler.h>
 #include <kernel/tasking/task.h>
 #include <kernel/io/io.h>
-#include <kernel/io/fs/fat.h>
+#include <kernel/fs/vfs.h>
+#include <kernel/lib/printf.h>
+
+// the global handle for the kernels standard output
+struct VFS_HANDLE * kernel_kout;
 
 volatile int kernel_lockCount = 0;
+
+void kernel_shell( struct VFS_HANDLE * c )
+{
+	struct VFS_HANDLE * console;
+	char buffer[128];
+	
+	console = c;
+	
+	while( TRUE )
+	{
+		print( console, "[AMOS]>" );
+		
+		get( console, (char *)&buffer, 128 );
+
+		print( console, "got: %s\n", (char *)&buffer );
+	}	
+}
 
 void task1()
 {
@@ -76,6 +97,7 @@ inline void kernel_unlock()
 		sti();
 }
 
+// initilize the kernel and bring up all the subsystems
 void kernel_init( struct MULTIBOOT_INFO * m )
 {
 	// lock protected code
@@ -88,6 +110,8 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 	irq_init();
 	// setup our memory manager
 	mm_init( m->mem_upper );
+	// setup the virtual file system
+	vfs_init();
 	// setup the io subsystem
 	io_init();
 	// setup scheduling
@@ -96,23 +120,28 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 	kernel_unlock();
 }
 
-extern void start;
-extern void * mm_heapTop;
-extern void * mm_heapBottom;
+void kernel_panik( void )
+{
+	while( TRUE );	
+}
 
 void kernel_main( struct MULTIBOOT_INFO * m )
 {
+	// initilize the kernel
 	kernel_init( m );
-	
-	//fat_mount( "/device/floppy1" );
 
-	kprintf( "System Info:\n" );
-	kprintf( "\tPhysical Memory    = %d MB\n", (m->mem_upper/1024)+1 );
-	kprintf( "\tPage Directory     = %x\n", paging_getCurrentPageDir() );
-	kprintf( "\tKernel Start       = %x\n", &start );
-	kprintf( "\tKernel Heap Bottom = %x\n", mm_heapBottom );
-	kprintf( "\tKernel Heap Top    = %x\n", mm_heapTop );
-	
+	// open the standard kernel output
+	kernel_kout = vfs_open( "/device/console1" );
+	if( kernel_kout == NULL )
+		kernel_panik();
+		
+	kprintf( "Welcome!\n" );
+
+	struct VFS_HANDLE * console;
+	console = vfs_open( "/device/console2" );
+	if( console != NULL )
+		kernel_shell( console );
+
 /*	kprintf( "\nMultitasking Test:\n" );
 	kprintf( "\tCreating task 1.\n" );
 	task_create( task1 );
@@ -121,6 +150,7 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	kprintf( "\tEnabling scheduler.\n" );
 	scheduler_enable(); */
 	
-	while( TRUE );
+	// after scheduling is enabled we should never reach here
+	kernel_panik();
 }
 
