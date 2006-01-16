@@ -6,6 +6,8 @@
  *    A   A  M   M   OOO   SSSS 
  *
  *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
  *    License: GNU General Public License (GPL)
  */
 
@@ -134,7 +136,7 @@ int keyboard_init()
 	if( keyboard_output == NULL )
 		return IO_FAIL;
 	// add the keyboard device
-	io_add( "keyboard1", calltable );
+	io_add( "keyboard1", calltable, IO_CHAR );
 	
 	// setup the keyboard handler
 	isr_setHandler( IRQ1, keyboard_handler );

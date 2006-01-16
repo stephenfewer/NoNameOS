@@ -6,6 +6,8 @@
  *    A   A  M   M   OOO   SSSS 
  *
  *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
  *    License: GNU General Public License (GPL)
  */
 
@@ -352,20 +354,20 @@ int console_init( void )
 
 	// create the first virtual console
 	console1 = console_create( "console1", 1 );
-	io_add( console1->name, calltable );
+	io_add( console1->name, calltable, IO_CHAR );
 	// create the second
 	console2 = console_create( "console2", 2 );
-	io_add( console2->name, calltable );
+	io_add( console2->name, calltable, IO_CHAR );
 	// create the third
 	console3 = console_create( "console3", 3 );
-	io_add( console3->name, calltable );
+	io_add( console3->name, calltable, IO_CHAR );
 	// create the fourth
 	console4 = console_create( "console4", 4 );
-	io_add( console4->name, calltable );	
+	io_add( console4->name, calltable, IO_CHAR );	
 	// set the fist one active
 	console_activate( console1 );
 	// add the currently active console
-	io_add( "console0", calltable );
+	io_add( "console0", calltable, IO_CHAR );
 	
 	return IO_SUCCESS;
 }

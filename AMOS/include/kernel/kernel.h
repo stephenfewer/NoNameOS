@@ -57,5 +57,7 @@ void kernel_lock();
 
 void kernel_unlock();
 
+void kernel_panic( void );
+
 #endif
 

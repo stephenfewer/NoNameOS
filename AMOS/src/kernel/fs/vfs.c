@@ -6,6 +6,8 @@
  *    A   A  M   M   OOO   SSSS 
  *
  *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
  *    License: GNU General Public License (GPL)
  */
 
@@ -14,25 +16,25 @@
 #include <kernel/mm/mm.h>
 #include <kernel/lib/string.h>
 
-struct VFS_FILESYSTEM * fs_top = NULL;
-struct VFS_FILESYSTEM * fs_bottom = NULL;
+struct VFS_FILESYSTEM * vfs_fsTop = NULL;
+struct VFS_FILESYSTEM * vfs_fsBottom = NULL;
 
-struct VFS_MOUNTPOINT * mount_top = NULL;
-struct VFS_MOUNTPOINT * mount_bottom = NULL;
+struct VFS_MOUNTPOINT * vfs_mountTop = NULL;
+struct VFS_MOUNTPOINT * vfs_mountBottom = NULL;
 
 // register a new file system with the VFS
 int vfs_register( struct VFS_FILESYSTEM * fs )
 {
 	// add the new file system to a linked list of file system
 	// drivers present in the system
-	if( fs_bottom == NULL )
+	if( vfs_fsBottom == NULL )
 	{
-		fs_bottom = fs_top = fs;
+		vfs_fsBottom = vfs_fsTop = fs;
 	}
 	else
 	{
-		fs_top->next = fs;
-		fs_top = fs;
+		vfs_fsTop->next = fs;
+		vfs_fsTop = fs;
 	}
 	// we can now mount volumes of this file system type
 	return VFS_SUCCESS;
@@ -49,7 +51,7 @@ struct VFS_FILESYSTEM * vfs_find( int fstype )
 {
 	struct VFS_FILESYSTEM * fs;
 	// search through the linked list of file system drivers
-	for( fs=fs_bottom ; fs!=NULL ; fs=fs->next )
+	for( fs=vfs_fsBottom ; fs!=NULL ; fs=fs->next )
 	{
 		// if we have a match we break from the search
 		if( fs->fstype == fstype )
@@ -77,14 +79,14 @@ int vfs_mount( char * device, char * mountpoint, int fstype )
 	mount->device = (char *)mm_malloc( strlen(device)+1 );
 	strcpy( mount->device, device );	
 	// add the fs and the mountpoint to a linked list
-	if( mount_bottom == NULL )
+	if( vfs_mountBottom == NULL )
 	{
-		mount_bottom = mount_top = mount;
+		vfs_mountBottom = vfs_mountTop = mount;
 	}
 	else
 	{
-		mount_top->next = mount;
-		mount_top = mount;
+		vfs_mountTop->next = mount;
+		vfs_mountTop = mount;
 	}
 	
 	// call the file system driver to mount
@@ -97,13 +99,11 @@ int vfs_unmount( char * mountpoint )
 {
 	struct VFS_MOUNTPOINT * mount, * m;
 	// find the mountpoint
-	for( mount=mount_bottom ; mount!=NULL ; mount=mount->next )
+	for( mount=vfs_mountBottom ; mount!=NULL ; mount=mount->next )
 	{
 		// if we have a match we break from the search
 		if( strcmp( mount->mountpoint, mountpoint ) == 0 )
-		{
 			break;
-		}
 	}
 	// fail if we cant find it
 	if( mount == NULL )
@@ -113,14 +113,14 @@ int vfs_unmount( char * mountpoint )
 		return VFS_FAIL;
 	mount->fs->calltable.unmount( mountpoint );
 	// remove the mount point from the VFS
-	if( mount == mount_bottom )
+	if( mount == vfs_mountBottom )
 	{
-		mount_bottom = mount->next;
+		vfs_mountBottom = mount->next;
 	}
 	else
 	{
 		// search through the linked list of file system drivers
-		for( m=mount_bottom ; m!=NULL ; m=m->next )
+		for( m=vfs_mountBottom ; m!=NULL ; m=m->next )
 		{
 			// if we have a match we break from the search
 			if( m->next == mount )
@@ -142,7 +142,7 @@ struct VFS_MOUNTPOINT * vfs_file2mountpoint( char * filename )
 {
 	struct VFS_MOUNTPOINT * mount;
 	// find the mountpoint
-	for( mount=mount_bottom ; mount!=NULL ; mount=mount->next )
+	for( mount=vfs_mountBottom ; mount!=NULL ; mount=mount->next )
 	{
 		// if we have a match we break from the search. we use strncmp instead of
 		// strcmp to avoid comparing the null char at the end of the mountpoint
@@ -224,6 +224,8 @@ int vfs_create( char * filename, int flags )
 	mount = vfs_file2mountpoint( filename );
 	if( mount == NULL )
 		return VFS_FAIL;
+	// advance the filname past the mount point
+	filename = (char *)( filename + strlen(mount->mountpoint) );
 	// try to create the file on the mounted file system
 	if( mount->fs->calltable.create != NULL )
 		return mount->fs->calltable.create( filename, flags );
@@ -238,6 +240,8 @@ int vfs_delete( char * filename )
 	mount = vfs_file2mountpoint( filename );
 	if( mount == NULL )
 		return VFS_FAIL;
+	// advance the filname past the mount point
+	filename = (char *)( filename + strlen(mount->mountpoint) );
 	// try to delete the file on the mounted file system
 	if( mount->fs->calltable.delete != NULL )
 		return mount->fs->calltable.delete( filename );
@@ -252,6 +256,9 @@ int vfs_rename( char * src, char * dest )
 	mount = vfs_file2mountpoint( src );
 	if( mount == NULL )
 		return VFS_FAIL;
+	// advance the filnames past the mount point, we should sanity check this better
+	src = (char *)( src + strlen(mount->mountpoint) );
+	dest = (char *)( dest + strlen(mount->mountpoint) );
 	// try to rename the file on the mounted file system
 	if( mount->fs->calltable.rename != NULL )
 		return mount->fs->calltable.rename( src, dest );
@@ -266,6 +273,10 @@ int vfs_copy( char * src, char * dest )
 	mount = vfs_file2mountpoint( src );
 	if( mount == NULL )
 		return VFS_FAIL;
+	// advance the filnames past the mount point, we should sanity check this better
+	// also dest may be on another mountpoint
+	src = (char *)( src + strlen(mount->mountpoint) );
+	dest = (char *)( dest + strlen(mount->mountpoint) );
 	// try to copy the file on the mounted file system
 	if( mount->fs->calltable.copy != NULL )
 		return mount->fs->calltable.copy( src, dest );
@@ -276,13 +287,42 @@ int vfs_copy( char * src, char * dest )
 struct VFS_DIRLIST_ENTRY * vfs_list( char * dir )
 {
 	struct VFS_MOUNTPOINT * mount;
+	// sanity check that this is a dir and not a file
+	if( dir[ strlen(dir)-1 ] != '/' )
+		return NULL;
 	// find the correct mountpoint for this dir
 	mount = vfs_file2mountpoint( dir );
 	if( mount == NULL )
 		return NULL;
+	// advance the dir name past the mount point
+	dir = (char *)( dir + strlen(mount->mountpoint) );
 	// try to list the dir on the mounted file system
 	if( mount->fs->calltable.list != NULL )
-		return mount->fs->calltable.list( dir );
+	{
+		struct VFS_DIRLIST_ENTRY * entry;
+		entry = mount->fs->calltable.list( dir );
+		// add any virtual mount points
+		// add in a ".." 
+		struct VFS_MOUNTPOINT * mount;
+		// find the mountpoint
+		for( mount=vfs_mountBottom ; mount!=NULL ; mount=mount->next )
+		{
+			if( strncmp( mount->mountpoint, dir, strlen(mount->mountpoint) ) == 0 )
+			{
+				int i,c;
+				for(  i=0, c=0;i<strlen(dir);i++)
+				{
+					if( dir[i] == '/' )
+						c++;
+				}
+				if( c <= 2 )
+					kprintf("vfs: mountpoint %s\n", mount->mountpoint );
+			}
+		}		
+		
+		// sort...
+		return entry;
+	}
 	// return fail
 	return NULL;
 }
@@ -291,13 +331,11 @@ int vfs_init()
 {
 	// initilize Device File System driver
 	dfs_init();
-	// initilize FAT File System driver
-	//fat_init();
-	
-	// mount the device fils system
+	// mount the DFS
 	vfs_mount( NULL, "/device/", DFS_TYPE );
-	// mount the root file system
-	//vfs_mount( "/device/floppy1", "/", FAT_TYPE );
-	
+
+	// initilize FAT File System driver
+	fat_init();
+
 	return VFS_SUCCESS;
 }

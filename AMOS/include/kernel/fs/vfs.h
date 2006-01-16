@@ -3,8 +3,12 @@
 
 #include <sys/types.h>
 
-#define VFS_SUCCESS		-1
+#define VFS_SUCCESS		0
 #define VFS_FAIL		-1
+
+#define VFS_FILE		0
+#define VFS_DIRECTORY	1
+#define VFS_DEVICE		2
 
 struct VFS_HANDLE
 {
@@ -46,7 +50,9 @@ struct VFS_MOUNTPOINT
 
 struct VFS_DIRLIST_ENTRY
 {
-	char name[32];	
+	char name[32];
+	int attributes;
+	int size;
 };
 
 int vfs_init();

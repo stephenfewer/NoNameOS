@@ -6,19 +6,20 @@
  *    A   A  M   M   OOO   SSSS 
  *
  *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
  *    License: GNU General Public License (GPL)
  */
 
-// these functions are from diet libc and the linux-2.0.40 kernel libc
+// these functions are from the linux-2.0.40 kernel libc (GNU GPL).
  
 #include <kernel/lib/string.h>
 
-int strlen( char * src )
+int strlen( char * srs )
 {
-	int i=0;
-	while( src[i] )
-		i++;
-	return i;
+	char * s;
+	for( s =srs ; *s!='\0' ; ++s );
+	return s-srs;
 }
 
 int strcmp( char * src, char * dest )

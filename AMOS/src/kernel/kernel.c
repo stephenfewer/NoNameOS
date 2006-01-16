@@ -6,6 +6,8 @@
  *    A   A  M   M   OOO   SSSS 
  *
  *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
  *    License: GNU General Public License (GPL)
  */
 
@@ -19,10 +21,11 @@
 #include <kernel/tasking/task.h>
 #include <kernel/io/io.h>
 #include <kernel/fs/vfs.h>
+#include <kernel/fs/fat.h>
 #include <kernel/lib/printf.h>
 
 // the global handle for the kernels standard output
-struct VFS_HANDLE * kernel_kout;
+struct VFS_HANDLE * kernel_kout = NULL;
 
 volatile int kernel_lockCount = 0;
 
@@ -117,29 +120,52 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 	kernel_unlock();
 }
 
-void kernel_panik( void )
+void kernel_panic( void )
 {
+	// attempt to display a message
+	kprintf( "kernel panic!\n" );
 	// hang the system
 	while( TRUE );	
+}
+
+void printdir( char * dir )
+{
+	struct VFS_DIRLIST_ENTRY * entry;
+	kprintf( "vfs_list( \"%s\" )\n", dir );
+	entry = vfs_list( dir );
+	while( entry != NULL  )
+	{
+		if( entry->name[0] == '\0' )
+			break;
+		kprintf( "\t%d\t%s\t\t%d\n",  entry->attributes, entry->name, entry->size );
+		entry++;
+	}	
 }
 
 void kernel_main( struct MULTIBOOT_INFO * m )
 {
 	// initilize the kernel
 	kernel_init( m );
-
+	
 	// open the standard kernel output
 	kernel_kout = vfs_open( "/device/console1" );
 	if( kernel_kout == NULL )
-		kernel_panik();
-		
+		kernel_panic();
 	kprintf( "Welcome!\n" );
-
+	
+	// mount the root file system
+	vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
+	
+	printdir( "/" );
+	printdir( "/device/" );
+	printdir( "/fat/" );
+	printdir( "/fat/BOOT/" );
+	
 	struct VFS_HANDLE * console;
 	console = vfs_open( "/device/console2" );
 	if( console != NULL )
 		kernel_shell( console );
-
+	
 /*	kprintf( "\nMultitasking Test:\n" );
 	kprintf( "\tCreating task 1.\n" );
 	task_create( task1 );
@@ -149,6 +175,6 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	scheduler_enable(); */
 	
 	// after scheduling is enabled we should never reach here
-	kernel_panik();
+	kernel_panic();
 }
 

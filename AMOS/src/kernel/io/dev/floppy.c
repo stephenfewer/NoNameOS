@@ -6,6 +6,8 @@
  *    A   A  M   M   OOO   SSSS 
  *
  *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
  *    License: GNU General Public License (GPL)
  */
 
@@ -407,7 +409,7 @@ int floppy_init()
 		// unlock the drive
 		floppy1->locked = FALSE;
 		// add it to the DFS via the IO sub system
-		io_add( floppy1->name, calltable );
+		io_add( floppy1->name, calltable, IO_BLOCK );
 	}
 	// detect the second floppy drive
     floppy_type = i & 0x0F;
@@ -423,7 +425,7 @@ int floppy_init()
 		// unlock the drive
 		floppy2->locked = FALSE;
 		// add it to the DFS via the IO sub system
-		io_add( floppy2->name, calltable );
+		io_add( floppy2->name, calltable, IO_BLOCK );
 	}
 	return IO_SUCCESS;
 }

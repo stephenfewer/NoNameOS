@@ -1,3 +1,16 @@
+/*
+ *     AAA    M M    OOO    SSSS
+ *    A   A  M M M  O   O  S 
+ *    AAAAA  M M M  O   O   SSS
+ *    A   A  M   M  O   O      S
+ *    A   A  M   M   OOO   SSSS 
+ *
+ *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
+ *    License: GNU General Public License (GPL)
+ */
+
 #include <kernel/fs/fat.h>
 #include <kernel/fs/vfs.h>
 #include <kernel/io/io.h>
@@ -122,7 +135,7 @@ int fat_compareName( struct FAT_ENTRY * entry, char * name )
 			
 	c = entry->name[7];
 	entry->name[7] = 0x00;
-	kprintf( "fat_compareName = %s  to  %s\n", name, entry->name );
+	//kprintf( "fat_compareName = %s  to  %s\n", name, entry->name );
 	entry->name[7] = c;
 
 	for( i=0 ; i<8 ; i++ )
@@ -152,8 +165,8 @@ int fat_compareName( struct FAT_ENTRY * entry, char * name )
 int fat_getEntryIndex( struct FAT_ENTRY * dir, char * name )
 {
 	int i;
-	kprintf( "fat_getEntry = %s\n", name );
-	for( i=0 ; i<16 ; i++ )
+	//kprintf( "fat_getEntry = %s\n", name );
+	for( i=0 ; i<32 ; i++ )
 	{
 		if( dir[i].name[0] == 0x00 )
 			break;
@@ -255,25 +268,7 @@ int fat_mount( char * device, char * mountpoint, int fstype )
 
 	// display root dir
 	//fat_displayDir( mount0, mount0->rootdir );
-	
-	//fat_open( NULL, "/BOOT/MENU.CFG" );
-	
-	//fat_open( NULL, "/TEST/does/NOT/exist.bin" );
-	/*
-	fat_open( NULL, "/NOWHERE/EXISTS/" );
-	*/
-	/*
 
-	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
-	calltable->open = fat_open;
-	calltable->close = NULL;
-	calltable->read = NULL;
-	calltable->write = NULL;
-	calltable->seek = NULL;
-	calltable->control = NULL;
-
-	device_add( "/mount/floppy/BOOT/MENU.CFG", calltable );
-	*/
 	return VFS_SUCCESS;
 }
 
@@ -386,9 +381,87 @@ int fat_copy( char * src, char * dest )
 	return VFS_FAIL;	
 }
 
-struct VFS_DIRLIST_ENTRY * fat_list( char * dir )
+struct FAT_ENTRY * fat_file2fatentry( char * filename )
 {
-	return NULL;
+	int length, i, index = -1;
+	char * curr_name;
+	struct FAT_ENTRY * currdir;
+
+	if( filename[0] == '/' )
+		filename++;
+		
+	length = strlen( filename );
+	
+	if( filename[length] == '/' )
+		filename[length] = '\0';
+	if( filename[length-1] == '/' )
+		filename[length-1] = '\0';	
+		
+	curr_name = filename;
+	
+	currdir = mount0->rootdir;
+	
+	for( i=0 ; i<=length ; i++ )
+	{
+		if( filename[i] == '/' || filename[i] == '\0' )
+		{
+			filename[i] = '\0';
+			index = fat_getEntryIndex( currdir, curr_name );
+			if( index == -1 )
+				break;
+			else
+				currdir = (struct FAT_ENTRY *)fat_loadCluster( mount0, currdir[index].start_cluster );
+			curr_name = &filename[i]+1;
+		}	
+	}
+	return currdir;
+}
+
+struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )
+{
+	int dirIndex, entryIndex, nameIndex;
+	struct FAT_ENTRY * dir;
+	struct VFS_DIRLIST_ENTRY * entry;
+	
+	dir = fat_file2fatentry( dirname );
+	if( dir == NULL )
+		return NULL;
+
+	entry = (struct VFS_DIRLIST_ENTRY *)mm_malloc( sizeof(struct VFS_DIRLIST_ENTRY)*17 );
+
+	for(dirIndex=0,entryIndex=0;dirIndex<16;dirIndex++)
+	{
+		if( dir[dirIndex].start_cluster == 0x0000 )
+			continue;
+		// fill in the name
+		memset( entry[entryIndex].name, 0x00, 32 );
+		for( nameIndex=0 ; nameIndex<8 ; nameIndex++ )
+		{
+			if( dir[dirIndex].name[nameIndex] == 0x20 )
+				break;
+			entry[entryIndex].name[nameIndex] = dir[dirIndex].name[nameIndex];
+		}
+		// and the extension if their is one
+		if( dir[dirIndex].extention[0] != 0x20 )
+		{
+			entry[entryIndex].name[nameIndex] = '.';
+			entry[entryIndex].name[nameIndex+1] = ( dir[dirIndex].extention[0] == 0x20 ? 0x00 : dir[dirIndex].extention[0] );
+			entry[entryIndex].name[nameIndex+2] = ( dir[dirIndex].extention[1] == 0x20 ? 0x00 : dir[dirIndex].extention[1] );
+			entry[entryIndex].name[nameIndex+3] = ( dir[dirIndex].extention[2] == 0x20 ? 0x00 : dir[dirIndex].extention[2] );
+		}
+		// fill in the attributes
+		if( dir[dirIndex].attribute.directory )
+			entry[entryIndex].attributes = VFS_DIRECTORY;
+		else
+			entry[entryIndex].attributes = VFS_FILE;
+		// fill in the size
+		entry[entryIndex].size = dir[dirIndex].file_size;
+		entryIndex++;
+	}
+	// fill in terminating entry
+	entry[entryIndex].name[0] = '\0';
+	// return to caller. caller *must* free this structure
+	return entry;
 }
 
 int fat_init()

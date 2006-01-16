@@ -6,6 +6,8 @@
  *    A   A  M   M   OOO   SSSS 
  *
  *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
  *    License: GNU General Public License (GPL)
  */
 
@@ -45,6 +47,6 @@ int bitbucket_init()
 	calltable->seek = NULL;
 	calltable->control = NULL;
 	// add the bitbucket device
-	io_add( "bitbucket", calltable );
+	io_add( "bitbucket", calltable, IO_CHAR );
 	return IO_SUCCESS;
 }

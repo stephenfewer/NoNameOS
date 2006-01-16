@@ -6,6 +6,8 @@
  *    A   A  M   M   OOO   SSSS 
  *
  *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
  *    License: GNU General Public License (GPL)
  */
 
@@ -77,6 +79,10 @@ void printf( struct VFS_HANDLE * h, char * text, va_list args )
 {
 	int i=0;
 	BYTE * string;
+
+	// sanity check
+	if( h == NULL )
+		return;
 
 	while( text[i] )
 	{

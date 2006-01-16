@@ -6,6 +6,8 @@
  *    A   A  M   M   OOO   SSSS 
  *
  *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
  *    License: GNU General Public License (GPL)
  */
 
@@ -15,23 +17,23 @@
 #include <kernel/io/io.h>
 #include <kernel/lib/string.h>
 
-struct DFS_ENTRY * device_top = NULL;
-struct DFS_ENTRY * device_bottom = NULL;
+struct DFS_ENTRY * dfs_deviceTop = NULL;
+struct DFS_ENTRY * dfs_deviceBottom = NULL;
 
-struct DFS_ENTRY * dfs_add( char * name, struct IO_CALLTABLE * calltable )
+struct DFS_ENTRY * dfs_add( char * name, struct IO_CALLTABLE * calltable, int type )
 {
 	struct DFS_ENTRY * device;
 	
 	device = (struct DFS_ENTRY *)mm_malloc( sizeof(struct DFS_ENTRY) );
 	
-	if( device_bottom == NULL )
+	if( dfs_deviceBottom == NULL )
 	{
-		device_bottom = device_top = device ;
+		dfs_deviceBottom = dfs_deviceTop = device ;
 	}
 	else
 	{
-		device_top->next = device;
-		device_top = device;
+		dfs_deviceTop->next = device;
+		dfs_deviceTop = device;
 	}
 	
 	device->next = NULL;
@@ -40,6 +42,8 @@ struct DFS_ENTRY * dfs_add( char * name, struct IO_CALLTABLE * calltable )
 	
 	device->name = name;
 	
+	device->type = type;
+	
 	return device;
 }
 
@@ -47,7 +51,7 @@ struct DFS_ENTRY * dfs_find( char * name )
 {
 	struct DFS_ENTRY * device;
 	
-	for( device=device_bottom ; device!=NULL ; device=device->next )
+	for( device=dfs_deviceBottom ; device!=NULL ; device=device->next )
 	{
 		if( strcmp( device->name, name ) == 0 )
 			break;
@@ -63,6 +67,8 @@ int dfs_remove( char * name  )
 	device = dfs_find( name );
 	if( device == NULL )
 		return VFS_FAIL;
+	// To Do: test for any open file handles of the requested device
+	
 	// remove from linked list
 	
 	// free all memory allocated
@@ -149,7 +155,7 @@ int dfs_copy( char * src, char * dest )
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
 	memcpy( calltable, device->calltable, sizeof(struct IO_CALLTABLE) );
 	// add a new device with the source devices calltable
-	dfs_add( dest, calltable );
+	dfs_add( dest, calltable, device->type );
 	return VFS_SUCCESS;	
 }
 
@@ -166,15 +172,22 @@ struct VFS_DIRLIST_ENTRY * dfs_list( char * dir )
 	struct VFS_DIRLIST_ENTRY * entry;
 	int i=0;
 	// count how many devices we have
-	for( device=device_bottom ; device!=NULL ; device=device->next )
+	for( device=dfs_deviceBottom ; device!=NULL ; device=device->next )
 		i++;
 	// return NULL if we dont have any
 	if( i == 0 )
 		return NULL;
 	// create the array of entry structures
 	entry = (struct VFS_DIRLIST_ENTRY *)mm_malloc( (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1 );
-	for( device=device_bottom,i=0 ; device!=NULL ; device=device->next,i++ )
+	for( device=dfs_deviceBottom,i=0 ; device!=NULL ; device=device->next,i++ )
+	{
+		// fill in the name
 		strncpy( entry[i].name, device->name, 32 );
+		// fill in the attributes
+		entry[i].attributes = VFS_DEVICE;
+		// fill in the size
+		entry[i].size = 0;
+	}
 	// fill in terminating entry
 	entry[i+1].name[0] = '\0';
 	// return to caller. caller *must* free this structure

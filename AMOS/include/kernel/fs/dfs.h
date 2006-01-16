@@ -11,9 +11,10 @@ struct DFS_ENTRY
 	struct DFS_ENTRY	* next;
 	struct IO_CALLTABLE * calltable;
 	char * name;
+	int type;
 };
 
-struct DFS_ENTRY * dfs_add( char *, struct IO_CALLTABLE * );
+struct DFS_ENTRY * dfs_add( char *, struct IO_CALLTABLE *, int );
 
 int dfs_remove( char * );
 

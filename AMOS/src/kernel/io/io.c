@@ -6,6 +6,8 @@
  *    A   A  M   M   OOO   SSSS 
  *
  *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
  *    License: GNU General Public License (GPL)
  */
 
@@ -19,11 +21,11 @@
 #include <kernel/io/dev/bitbucket.h>
 #include <kernel/kernel.h>
 
-int io_add( char * name, struct IO_CALLTABLE * calltable )
+int io_add( char * name, struct IO_CALLTABLE * calltable, int type )
 {
-	if( dfs_add( name, calltable ) == NULL )
-		return -1;
-	return 0;
+	if( dfs_add( name, calltable, type ) == NULL )
+		return IO_FAIL;
+	return IO_SUCCESS;
 }
 
 int io_remove( char * name )

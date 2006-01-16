@@ -4,8 +4,11 @@
 #include <sys/types.h>
 #include <kernel/fs/dfs.h>
 
-#define IO_SUCCESS		-1
-#define IO_FAIL			-1
+#define IO_BLOCK		0x01
+#define IO_CHAR			0x02
+
+#define IO_SUCCESS		VFS_SUCCESS
+#define IO_FAIL			VFS_FAIL
 
 // the origin defines for io_seek()
 #define SEEK_START		0
@@ -29,7 +32,7 @@ struct IO_HANDLE
 	void * data_ptr;
 };
 
-int io_add( char *, struct IO_CALLTABLE * );
+int io_add( char *, struct IO_CALLTABLE *, int );
 
 int io_remove( char * );
 
