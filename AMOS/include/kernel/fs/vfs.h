@@ -24,7 +24,7 @@ struct VFS_FILESYSTEM_CALLTABLE
 	int (*delete)( char * );
 	int (*rename)( char *, char * );
 	int (*copy)( char *, char * );
-	int (*list)( char * );
+	struct VFS_DIRLIST_ENTRY * (*list)( char * );
 	int (*mount)( char *, char *, int );
 	int (*unmount)( char * );
 };
@@ -42,6 +42,11 @@ struct VFS_MOUNTPOINT
 	char * mountpoint;
 	char * device;
 	struct VFS_MOUNTPOINT * next;
+};
+
+struct VFS_DIRLIST_ENTRY
+{
+	char name[32];	
 };
 
 int vfs_init();
@@ -77,6 +82,6 @@ int vfs_rename( char *, char * );
 
 int vfs_copy( char *, char * );
 
-int vfs_list( char * );
+struct VFS_DIRLIST_ENTRY * vfs_list( char * );
 
 #endif

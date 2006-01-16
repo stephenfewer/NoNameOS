@@ -10,7 +10,6 @@
  */
 
 #include <kernel/kernel.h>
-#include <kernel/gdt.h>
 #include <kernel/idt.h>
 #include <kernel/irq.h>
 #include <kernel/mm/mm.h>
@@ -102,8 +101,6 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 {
 	// lock protected code
 	kernel_lock();
-	// setup the global descriptor table
-	gdt_init();
 	// setup the interrupt descriptor table
 	idt_init();
 	// setup interrupts
@@ -122,6 +119,7 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 
 void kernel_panik( void )
 {
+	// hang the system
 	while( TRUE );	
 }
 

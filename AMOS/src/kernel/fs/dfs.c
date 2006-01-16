@@ -75,6 +75,8 @@ int dfs_remove( char * name  )
 
 int dfs_mount( char * device, char * mountpoint, int fstype )
 {
+	if( fstype == DFS_TYPE )
+		return VFS_SUCCESS;
 	return VFS_FAIL;
 }
 
@@ -145,7 +147,7 @@ int dfs_copy( char * src, char * dest )
 		return VFS_FAIL;
 	// copy the calltable
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
-	memcpy( calltable, device->calltable );
+	memcpy( calltable, device->calltable, sizeof(struct IO_CALLTABLE) );
 	// add a new device with the source devices calltable
 	dfs_add( dest, calltable );
 	return VFS_SUCCESS;	
@@ -158,9 +160,25 @@ int dfs_rename( char * src, char * dest )
 	return dfs_delete( src );
 }
 
-int dfs_list( char * directoryname )
+struct VFS_DIRLIST_ENTRY * dfs_list( char * dir )
 {
-	return VFS_FAIL;
+	struct DFS_ENTRY * device;
+	struct VFS_DIRLIST_ENTRY * entry;
+	int i=0;
+	// count how many devices we have
+	for( device=device_bottom ; device!=NULL ; device=device->next )
+		i++;
+	// return NULL if we dont have any
+	if( i == 0 )
+		return NULL;
+	// create the array of entry structures
+	entry = (struct VFS_DIRLIST_ENTRY *)mm_malloc( (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1 );
+	for( device=device_bottom,i=0 ; device!=NULL ; device=device->next,i++ )
+		strncpy( entry[i].name, device->name, 32 );
+	// fill in terminating entry
+	entry[i+1].name[0] = '\0';
+	// return to caller. caller *must* free this structure
+	return entry;
 }
 
 int dfs_init()

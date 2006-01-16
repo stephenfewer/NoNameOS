@@ -13,7 +13,7 @@
 #include <kernel/fs/fat.h>
 #include <kernel/mm/mm.h>
 #include <kernel/lib/string.h>
-#include <kernel/debug.h>
+
 struct VFS_FILESYSTEM * fs_top = NULL;
 struct VFS_FILESYSTEM * fs_bottom = NULL;
 
@@ -138,38 +138,42 @@ int vfs_unmount( char * mountpoint )
 	return VFS_SUCCESS;	
 }
 
-struct VFS_HANDLE * vfs_open( char * filename )
+struct VFS_MOUNTPOINT * vfs_file2mountpoint( char * filename )
 {
 	struct VFS_MOUNTPOINT * mount;
-	struct VFS_HANDLE * handle;
-	int mplen;
 	// find the mountpoint
 	for( mount=mount_bottom ; mount!=NULL ; mount=mount->next )
 	{
-		mplen = strlen(mount->mountpoint);
 		// if we have a match we break from the search. we use strncmp instead of
 		// strcmp to avoid comparing the null char at the end of the mountpoint
-		if( strncmp( mount->mountpoint, filename, mplen ) == 0 )
+		if( strncmp( mount->mountpoint, filename, strlen(mount->mountpoint) ) == 0 )
 			break;
 	}
-	// fail if we cant find it
+	// return the mountpoint
+	return mount;
+}
+
+struct VFS_HANDLE * vfs_open( char * filename )
+{
+	struct VFS_HANDLE * handle;
+	struct VFS_MOUNTPOINT * mount;
+	// find the correct mountpoint for this file
+	mount = vfs_file2mountpoint( filename );
 	if( mount == NULL )
 		return NULL;
-		
 	// advance the filname past the mount point
-	filename = (char *)( filename + mplen );
-
+	filename = (char *)( filename + strlen(mount->mountpoint) );
 	// call the file system driver to open
 	if( mount->fs->calltable.open == NULL )
 		return NULL;
-		
+	// create the new virtual file handle	
 	handle = (struct VFS_HANDLE *)mm_malloc( sizeof(struct VFS_HANDLE) );
 	handle->mount = mount;
-	if( mount->fs->calltable.open( handle, filename ) == NULL )
-		mm_free( handle );
-	else
+	// try to open the file on the mounted file system
+	if( mount->fs->calltable.open( handle, filename ) != NULL )
 		return handle;
-
+	// if we fail, free the handle and return NULL
+	mm_free( handle );
 	return NULL;
 }
 
@@ -215,27 +219,72 @@ int vfs_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 
 int vfs_create( char * filename, int flags )
 {
+	struct VFS_MOUNTPOINT * mount;
+	// find the correct mountpoint for this file
+	mount = vfs_file2mountpoint( filename );
+	if( mount == NULL )
+		return VFS_FAIL;
+	// try to create the file on the mounted file system
+	if( mount->fs->calltable.create != NULL )
+		return mount->fs->calltable.create( filename, flags );
+	// return fail
 	return VFS_FAIL;	
 }
 
 int vfs_delete( char * filename )
 {
-	return VFS_FAIL;	
+	struct VFS_MOUNTPOINT * mount;
+	// find the correct mountpoint for this file
+	mount = vfs_file2mountpoint( filename );
+	if( mount == NULL )
+		return VFS_FAIL;
+	// try to delete the file on the mounted file system
+	if( mount->fs->calltable.delete != NULL )
+		return mount->fs->calltable.delete( filename );
+	// return fail
+	return VFS_FAIL;		
 }
 
-int vfs_rename( char * fromfilename, char * tofilename )
+int vfs_rename( char * src, char * dest )
 {
+	struct VFS_MOUNTPOINT * mount;
+	// find the correct mountpoint for this file
+	mount = vfs_file2mountpoint( src );
+	if( mount == NULL )
+		return VFS_FAIL;
+	// try to rename the file on the mounted file system
+	if( mount->fs->calltable.rename != NULL )
+		return mount->fs->calltable.rename( src, dest );
+	// return fail
 	return VFS_FAIL;
 }
 
-int vfs_copy( char * fromfilename, char * tofilename )
+int vfs_copy( char * src, char * dest )
 {
+	struct VFS_MOUNTPOINT * mount;
+	// find the correct mountpoint for this file
+	mount = vfs_file2mountpoint( src );
+	if( mount == NULL )
+		return VFS_FAIL;
+	// try to copy the file on the mounted file system
+	if( mount->fs->calltable.copy != NULL )
+		return mount->fs->calltable.copy( src, dest );
+	// return fail
 	return VFS_FAIL;	
 }
 
-int vfs_list( char * directoryname )
+struct VFS_DIRLIST_ENTRY * vfs_list( char * dir )
 {
-	return VFS_FAIL;
+	struct VFS_MOUNTPOINT * mount;
+	// find the correct mountpoint for this dir
+	mount = vfs_file2mountpoint( dir );
+	if( mount == NULL )
+		return NULL;
+	// try to list the dir on the mounted file system
+	if( mount->fs->calltable.list != NULL )
+		return mount->fs->calltable.list( dir );
+	// return fail
+	return NULL;
 }
 
 int vfs_init()

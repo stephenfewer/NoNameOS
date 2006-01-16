@@ -376,19 +376,19 @@ int fat_delete( char * filename )
 	return VFS_FAIL;	
 }
 
-int fat_rename( char * fromfilename, char * tofilename )
+int fat_rename( char * src, char * dest )
 {
 	return VFS_FAIL;
 }
 
-int fat_copy( char * fromfilename, char * tofilename )
+int fat_copy( char * src, char * dest )
 {
 	return VFS_FAIL;	
 }
 
-int fat_list( char * directoryname )
+struct VFS_DIRLIST_ENTRY * fat_list( char * dir )
 {
-	return VFS_FAIL;
+	return NULL;
 }
 
 int fat_init()

@@ -11,6 +11,7 @@
 
 #include <kernel/mm/mm.h>
 #include <kernel/mm/physical.h>
+#include <kernel/mm/segmentation.h>
 #include <kernel/mm/paging.h>
 #include <kernel/kprintf.h>
 #include <kernel/kernel.h>
@@ -24,7 +25,10 @@ void mm_init( DWORD memUpper )
 {	
 	// setup the physical memory manager, after this we can use physical_pageAlloc()
 	physical_init( memUpper );
-
+	
+	// setup and initilise segmentation
+	segmentation_init();
+	
 	// setup and initilise paging
 	paging_init();
 	

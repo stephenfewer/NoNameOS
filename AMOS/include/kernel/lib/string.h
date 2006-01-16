@@ -11,6 +11,8 @@ int strncmp( char *, char *, int );
 
 char * strcpy( char *, char * );
 
+char * strncpy( char *, char *, int );
+
 char *strstr( char *, char * );
 
 void * memset( void *, BYTE, int );

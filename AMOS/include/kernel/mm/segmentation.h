@@ -1,5 +1,5 @@
-#ifndef _KERNEL_GDT_H_
-#define _KERNEL_GDT_H_
+#ifndef _KERNEL_MM_SEGMENTATION_H_
+#define _KERNEL_MM_SEGMENTATION_H_
 
 #include <sys/types.h>
 
@@ -28,9 +28,9 @@ struct GDT_POINTER
     unsigned int   base;
 } PACKED;
 
-void gdt_setEntry( int, DWORD, DWORD, BYTE, BYTE );
+void segmentation_setEntry( int, DWORD, DWORD, BYTE, BYTE );
 
-void gdt_init();
+void segmentation_init();
 
 #endif
 

@@ -26,7 +26,7 @@ LDFLAGS=-T kernel.ld -Map $(TARGET_DIR)kernel.map -nostdlib
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -finline-functions -nostdinc -I $(INCLUDE_DIR)
 OBJCOPY_FLAGS=-I coff-i386 -O elf32-i386
 
-OBJ=loader.o kernel.o gdt.o idt.o irq.o isr.o kprintf.o debug.o
+OBJ=loader.o kernel.o idt.o irq.o isr.o kprintf.o
 	
 all: $(TARGET_ELF)
 

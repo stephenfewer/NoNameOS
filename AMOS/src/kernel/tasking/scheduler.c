@@ -16,7 +16,6 @@
 #include <kernel/kprintf.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/mm.h>
-#include <kernel/gdt.h>
 #include <kernel/lib/string.h>
 
 DWORD current_esp = 0x00000000;

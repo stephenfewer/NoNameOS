@@ -51,11 +51,21 @@ char * strcpy( char * dest, char * src )
 {
 	char *tmp = dest;
 
-	while ((*dest++ = *src++) != '\0');
+	while( (*dest++ = *src++) != '\0' );
 
 	return tmp;
 }
- 
+
+char * strncpy( char * dest, char * src, int count )
+{
+	char *tmp = dest;
+
+	while( count && (*dest++ = *src++) != '\0' )
+		count--;
+
+	return tmp;
+}
+
 char * strstr( char *s1, char *s2 )
 {
 	int l1, l2;
