@@ -15,7 +15,7 @@
 #include <kernel/idt.h>
 #include <kernel/kprintf.h>
 #include <kernel/kernel.h>
-#include <kernel/tasking/task.h>
+#include <kernel/pm/process.h>
 
 ISR_HANDLER	isr_handlers[IDT_ENTRYS];
 
@@ -55,7 +55,7 @@ char * isr_messages[] =
     "Reserved"
 };
 
-DWORD isr_dispatcher( struct TASK_STACK * taskstack )
+DWORD isr_dispatcher( struct PROCESS_STACK * taskstack )
 {
 	kernel_lock();
 	

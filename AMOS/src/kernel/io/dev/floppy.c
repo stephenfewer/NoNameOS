@@ -115,7 +115,7 @@ int floppy_off( struct FLOPPY_DRIVE * floppy )
 	return TRUE;
 }
 
-DWORD floppy_handler( struct TASK_STACK * taskstack )
+DWORD floppy_handler( struct PROCESS_STACK * taskstack )
 {
 	// set the donewait flag to signal a floppy_wait() to finish
 	floppy_donewait = TRUE;

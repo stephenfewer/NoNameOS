@@ -76,7 +76,7 @@ int keyboard_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 	return IO_FAIL;
 }
 
-DWORD keyboard_handler( struct TASK_STACK * taskstack )
+DWORD keyboard_handler( struct PROCESS_STACK * taskstack )
 {
 	BYTE scancode;
 	

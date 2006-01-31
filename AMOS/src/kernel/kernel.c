@@ -17,15 +17,15 @@
 #include <kernel/mm/mm.h>
 #include <kernel/mm/paging.h>
 #include <kernel/kprintf.h>
-#include <kernel/tasking/scheduler.h>
-#include <kernel/tasking/task.h>
+#include <kernel/pm/scheduler.h>
+#include <kernel/pm/process.h>
 #include <kernel/io/io.h>
 #include <kernel/fs/vfs.h>
 #include <kernel/fs/fat.h>
 #include <kernel/lib/printf.h>
 
-// the global handle for the kernels standard output
-struct VFS_HANDLE * kernel_kout = NULL;
+// the global handle for the kernels console
+struct VFS_HANDLE * kernel_console = NULL;
 
 volatile int kernel_lockCount = 0;
 
@@ -139,7 +139,8 @@ void printdir( char * dir )
 			break;
 		kprintf( "\t%d\t%s\t\t%d\n",  entry->attributes, entry->name, entry->size );
 		entry++;
-	}	
+	}
+	kprintf( "\n" );
 }
 
 void kernel_main( struct MULTIBOOT_INFO * m )
@@ -147,20 +148,36 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	// initilize the kernel
 	kernel_init( m );
 	
-	// open the standard kernel output
-	kernel_kout = vfs_open( "/device/console1" );
-	if( kernel_kout == NULL )
+	// open the kernels console
+	kernel_console = vfs_open( "/device/console1" );
+	if( kernel_console == NULL )
 		kernel_panic();
-	kprintf( "Welcome!\n" );
+	kprintf( "Welcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
 	
 	// mount the root file system
+	kprintf( "mounting device /device/floppy1 to /fat/ as a FAT file system.\n" );
 	vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
 	
-	printdir( "/" );
-	printdir( "/device/" );
-	printdir( "/fat/" );
+	//printdir( "/" );
+	//printdir( "/device/" );
 	printdir( "/fat/BOOT/" );
-	
+
+	struct VFS_HANDLE * h;
+	h = vfs_open( "/fat/BOOT/MENU.CFG" );
+	if( h == NULL )
+	{
+		kprintf( "failed to open test file.\n" );
+	} else {
+		char buff[64];
+		kprintf( "successfully opened test file.\n");
+		
+		if( vfs_read( h, (BYTE *)&buff, 64 ) != VFS_FAIL )
+		{
+			kprintf( "read success\n");
+			kprintf( "%s\n", buff );
+		}
+	}
+
 	struct VFS_HANDLE * console;
 	console = vfs_open( "/device/console2" );
 	if( console != NULL )

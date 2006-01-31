@@ -12,7 +12,7 @@
  */
 
 //#include <kernel/tasking/task.h>
-#include <kernel/tasking/scheduler.h>
+#include <kernel/pm/scheduler.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/physical.h>
 #include <kernel/mm/mm.h>
@@ -21,12 +21,12 @@
 #include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
 
-int task_total = 0;
+int process_total = 0;
 
 /*
 extern DWORD scheduler_ticks;
 
-void task_sleep( int ticks )
+void process_sleep( int ticks )
 {
     unsigned long tickend;
 
@@ -35,53 +35,53 @@ void task_sleep( int ticks )
     while( scheduler_ticks < tickend );
 }
 */
-void task_destroy( struct TASK_INFO * task )
+void process_destroy( struct PROCESS_INFO * task )
 {
 	kernel_lock();
 	// remove the task from the scheduler so it cant be switched back in
-	scheduler_removeTask( task );
+	scheduler_removeProcesss( task );
 	// destroy the tasks page directory, inturn destroying the stack
 	paging_destroyDirectory( task->page_dir );
 	// destroy the task info structure
 	mm_free( task );
 	
-	task_total--;
+	process_total--;
 	kernel_unlock();
 }
 
 extern struct PAGE_DIRECTORY * paging_kernelPageDir;
 
-struct TASK_INFO * task_create( void (*entrypoint)() )
+struct PROCESS_INFO * process_create( void (*entrypoint)() )
 {
-	struct TASK_STACK * stack;
-	struct TASK_INFO * task;
+	struct PROCESS_STACK * stack;
+	struct PROCESS_INFO * process;
 	void * physicalAddress;
 	
 	kernel_lock();
-	// create a new task info structure
-	task = mm_malloc( sizeof( struct TASK_INFO ) );
-	// assign a task id
-	task->id = task_total++;
+	// create a new process info structure
+	process = mm_malloc( sizeof( struct PROCESS_INFO ) );
+	// assign a process id
+	process->id = process_total++;
 	// give it an initial tick slice
-	task->tick_slice = 1;
-	// set the initial task state
-	task->state = READY;
-	// create the new tasks page directory
-	task->page_dir = paging_createDirectory();
+	process->tick_slice = 1;
+	// set the initial process state
+	process->state = READY;
+	// create the new process's page directory
+	process->page_dir = paging_createDirectory();
 	// map in the kernel including its heap and bottom 4 megs
-	paging_mapKernel( task->page_dir );
+	paging_mapKernel( process->page_dir );
 	// allocate a page for the stack
 	physicalAddress = physical_pageAlloc();
 	//  map in the stack to the kernels address space so we can write to it
-	paging_setPageTableEntry( paging_kernelPageDir, TASK_STACKADDRESS, physicalAddress, TRUE );
-	//  map in the stack to the tasks address space
-	paging_setPageTableEntry( task->page_dir, TASK_STACKADDRESS, physicalAddress, TRUE );
+	paging_setPageTableEntry( paging_kernelPageDir, PROCESS_STACKADDRESS, physicalAddress, TRUE );
+	//  map in the stack to the process's address space
+	paging_setPageTableEntry( process->page_dir, PROCESS_STACKADDRESS, physicalAddress, TRUE );
 	// save the physical stack address
-	task->stack = physicalAddress;
-	// create the initial stack fo we can perform a task switch
-	stack = (struct TASK_STACK *)( TASK_STACKADDRESS + TASK_STACKSIZE - sizeof(struct TASK_STACK) );
+	process->stack = physicalAddress;
+	// create the initial stack fo we can perform a context switch
+	stack = (struct PROCESS_STACK *)( PROCESS_STACKADDRESS + PROCESS_STACKSIZE - sizeof(struct PROCESS_STACK) );
 	// clear the stack
-	memset( (void *)stack, 0x00, sizeof(struct TASK_STACK) );
+	memset( (void *)stack, 0x00, sizeof(struct PROCESS_STACK) );
 	// set the code segment
 	stack->cs = 0x08;
 	// set the data segments
@@ -96,13 +96,13 @@ struct TASK_INFO * task_create( void (*entrypoint)() )
 	// set the interrupt number we will return from
 	stack->intnumber = IRQ0;
 	// set the tasks current esp to the stack
-	task->current_esp = (DWORD)stack;
+	process->current_esp = (DWORD)stack;
 	// unmap the stack from the kernels address space
-	paging_setPageTableEntry( paging_kernelPageDir, TASK_STACKADDRESS, NULL, FALSE );
-	// add the task to the scheduler
-	scheduler_addTask( task );
+	paging_setPageTableEntry( paging_kernelPageDir, PROCESS_STACKADDRESS, NULL, FALSE );
+	// add the process to the scheduler
+	scheduler_addProcess( process );
 	
 	kernel_unlock();
-	// return with new task info
-	return task;
+	// return with new process info
+	return process;
 }

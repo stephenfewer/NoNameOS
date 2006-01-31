@@ -1,8 +1,8 @@
-#ifndef _KERNEL_TASKING_SCHEDULER_H_
-#define _KERNEL_TASKING_SCHEDULER_H_
+#ifndef _KERNEL_PM_SCHEDULER_H_
+#define _KERNEL_PM_SCHEDULER_H_
 
 #include <sys/types.h>
-#include <kernel/tasking/task.h>
+#include <kernel/pm/process.h>
 
 #define MAX_TASKS	255
 
@@ -26,9 +26,9 @@ struct TSS
        WORD reserved11, io_map_base;
 };
 
-void scheduler_addTask( struct TASK_INFO * );
+void scheduler_addProcess( struct PROCESS_INFO * );
 
-void scheduler_removeTask( struct TASK_INFO * );
+void scheduler_removeProcesss( struct PROCESS_INFO * );
 
 void scheduler_enable();
 

@@ -47,7 +47,14 @@ struct VFS_MOUNTPOINT
 	char * device;
 	struct VFS_MOUNTPOINT * next;
 };
-
+/*
+struct VFS_DIRLIST
+{
+	int entrys;
+	struct VFS_DIRLIST * next;
+	struct VFS_DIRLIST_ENTRY entry[];
+};
+*/
 struct VFS_DIRLIST_ENTRY
 {
 	char name[32];

@@ -8,7 +8,7 @@ TARGET_DIR=../../bin/
 INCLUDE_DIR=../../include/
 
 MM=mm
-MT=tasking
+PM=pm
 IO=io
 FS=fs
 LIB=lib
@@ -32,11 +32,11 @@ all: $(TARGET_ELF)
 
 $(TARGET_ELF): $(OBJ)
 	$(MAKE) -C $(MM)
-	$(MAKE) -C $(MT)
+	$(MAKE) -C $(PM)
 	$(MAKE) -C $(IO)
 	$(MAKE) -C $(LIB)
 	$(MAKE) -C $(FS)
-	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_COFF) $(OBJ) ./$(MM)/*.o ./$(MT)/*.o ./$(IO)/*.o ./$(IO)/$(DEV)/*.o ./$(FS)/*.o ./$(LIB)/*.o
+	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_COFF) $(OBJ) ./$(MM)/*.o ./$(PM)/*.o ./$(IO)/*.o ./$(IO)/$(DEV)/*.o ./$(FS)/*.o ./$(LIB)/*.o
 	$(OBJCOPY) $(OBJCOPY_FLAGS) $(TARGET_DIR)$(TARGET_COFF) $(TARGET_DIR)$(TARGET_ELF)
 	
 %.o: %.c
@@ -48,7 +48,7 @@ $(TARGET_ELF): $(OBJ)
 clean:
 	$(RM) *.o
 	$(MAKE) -C $(MM) clean
-	$(MAKE) -C $(MT) clean
+	$(MAKE) -C $(PM) clean
 	$(MAKE) -C $(IO) clean
 	$(MAKE) -C $(FS) clean
 	$(MAKE) -C $(LIB) clean

@@ -1,14 +1,14 @@
-#ifndef _KERNEL_TASKING_TASK_H_
-#define _KERNEL_TASKING_TASK_H_
+#ifndef _KERNEL_PM_PROCESS_H_
+#define _KERNEL_PM_PROCESS_H_
 
 #include <sys/types.h>
 //#include <kernel/mm/paging.h>
 
-#define TASK_CODEADDRESS	(void *)0x10000000
-#define TASK_STACKADDRESS	(void *)0x20000000
-#define TASK_STACKSIZE		SIZE_4KB
+#define PROCESS_CODEADDRESS		(void *)0x10000000
+#define PROCESS_STACKADDRESS	(void *)0x20000000
+#define PROCESS_STACKSIZE		SIZE_4KB
 
-struct TASK_STACK
+struct PROCESS_STACK
 {
 	DWORD ds;
 	DWORD es;
@@ -38,7 +38,7 @@ enum
 	BLOCKED,
 };
 
-struct TASK_INFO
+struct PROCESS_INFO
 {
 	int id;
 	int tick_slice;
@@ -49,8 +49,8 @@ struct TASK_INFO
 	//struct MM_HEAP heap;	
 };
 
-void task_destroy( struct TASK_INFO * );
+void process_destroy( struct PROCESS_INFO * );
 
-struct TASK_INFO * task_create( void (*thread)() );
+struct PROCESS_INFO * process_create( void (*thread)() );
 
 #endif 

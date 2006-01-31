@@ -2,7 +2,7 @@
 #define _KERNEL_MM_PAGING_H_
 
 #include <sys/types.h>
-#include <kernel/tasking/task.h>
+#include <kernel/pm/process.h>
 
 #define PAGE_ENTRYS		1024
 

@@ -17,7 +17,7 @@
 #include <kernel/kernel.h>
 #include <kernel/kprintf.h>
 #include <kernel/isr.h>
-#include <kernel/tasking/task.h>
+#include <kernel/pm/process.h>
 #include <kernel/lib/string.h>
 
 extern void start;
@@ -115,7 +115,7 @@ void paging_setPageTableEntry( struct PAGE_DIRECTORY * pd, void * linearAddress,
 }
 
 // See page 5-43
-DWORD paging_pageFaultHandler( struct TASK_STACK * taskstack )
+DWORD paging_pageFaultHandler( struct PROCESS_STACK * taskstack )
 {
 	void * linearAddress;
 	ASM( "movl %%cr2, %0" : "=r" (linearAddress) );

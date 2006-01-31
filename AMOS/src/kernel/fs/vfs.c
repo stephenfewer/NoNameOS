@@ -15,12 +15,13 @@
 #include <kernel/fs/fat.h>
 #include <kernel/mm/mm.h>
 #include <kernel/lib/string.h>
+#include <kernel/kprintf.h>
 
 struct VFS_FILESYSTEM * vfs_fsTop = NULL;
 struct VFS_FILESYSTEM * vfs_fsBottom = NULL;
 
-struct VFS_MOUNTPOINT * vfs_mountTop = NULL;
-struct VFS_MOUNTPOINT * vfs_mountBottom = NULL;
+struct VFS_MOUNTPOINT * vfs_mpTop = NULL;
+struct VFS_MOUNTPOINT * vfs_mpBottom = NULL;
 
 // register a new file system with the VFS
 int vfs_register( struct VFS_FILESYSTEM * fs )
@@ -28,14 +29,10 @@ int vfs_register( struct VFS_FILESYSTEM * fs )
 	// add the new file system to a linked list of file system
 	// drivers present in the system
 	if( vfs_fsBottom == NULL )
-	{
-		vfs_fsBottom = vfs_fsTop = fs;
-	}
+		vfs_fsBottom = fs;
 	else
-	{
 		vfs_fsTop->next = fs;
-		vfs_fsTop = fs;
-	}
+	vfs_fsTop = fs;
 	// we can now mount volumes of this file system type
 	return VFS_SUCCESS;
 }
@@ -79,16 +76,11 @@ int vfs_mount( char * device, char * mountpoint, int fstype )
 	mount->device = (char *)mm_malloc( strlen(device)+1 );
 	strcpy( mount->device, device );	
 	// add the fs and the mountpoint to a linked list
-	if( vfs_mountBottom == NULL )
-	{
-		vfs_mountBottom = vfs_mountTop = mount;
-	}
+	if( vfs_mpBottom == NULL )
+		vfs_mpBottom = mount;
 	else
-	{
-		vfs_mountTop->next = mount;
-		vfs_mountTop = mount;
-	}
-	
+		vfs_mpTop->next = mount;
+	vfs_mpTop = mount;
 	// call the file system driver to mount
 	if( mount->fs->calltable.mount == NULL )
 		return VFS_FAIL;
@@ -99,7 +91,7 @@ int vfs_unmount( char * mountpoint )
 {
 	struct VFS_MOUNTPOINT * mount, * m;
 	// find the mountpoint
-	for( mount=vfs_mountBottom ; mount!=NULL ; mount=mount->next )
+	for( mount=vfs_mpBottom ; mount!=NULL ; mount=mount->next )
 	{
 		// if we have a match we break from the search
 		if( strcmp( mount->mountpoint, mountpoint ) == 0 )
@@ -113,14 +105,14 @@ int vfs_unmount( char * mountpoint )
 		return VFS_FAIL;
 	mount->fs->calltable.unmount( mountpoint );
 	// remove the mount point from the VFS
-	if( mount == vfs_mountBottom )
+	if( mount == vfs_mpBottom )
 	{
-		vfs_mountBottom = mount->next;
+		vfs_mpBottom = mount->next;
 	}
 	else
 	{
 		// search through the linked list of file system drivers
-		for( m=vfs_mountBottom ; m!=NULL ; m=m->next )
+		for( m=vfs_mpBottom ; m!=NULL ; m=m->next )
 		{
 			// if we have a match we break from the search
 			if( m->next == mount )
@@ -142,7 +134,7 @@ struct VFS_MOUNTPOINT * vfs_file2mountpoint( char * filename )
 {
 	struct VFS_MOUNTPOINT * mount;
 	// find the mountpoint
-	for( mount=vfs_mountBottom ; mount!=NULL ; mount=mount->next )
+	for( mount=vfs_mpBottom ; mount!=NULL ; mount=mount->next )
 	{
 		// if we have a match we break from the search. we use strncmp instead of
 		// strcmp to avoid comparing the null char at the end of the mountpoint
@@ -305,7 +297,7 @@ struct VFS_DIRLIST_ENTRY * vfs_list( char * dir )
 		// add in a ".." 
 		struct VFS_MOUNTPOINT * mount;
 		// find the mountpoint
-		for( mount=vfs_mountBottom ; mount!=NULL ; mount=mount->next )
+		for( mount=vfs_mpBottom ; mount!=NULL ; mount=mount->next )
 		{
 			if( strncmp( mount->mountpoint, dir, strlen(mount->mountpoint) ) == 0 )
 			{

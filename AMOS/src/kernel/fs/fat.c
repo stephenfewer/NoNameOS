@@ -83,13 +83,11 @@ int fat_determineType( struct FAT_MOUNTPOINT * mount )
 		mount->type = FAT_16;
 	else
 		mount->type = FAT_32;
-	
-	kprintf("FAT: FAT type %d\n", mount->type );
-	
+
 	return mount->type;
 }
 
-int fat_clusterToBlock( struct FAT_MOUNTPOINT * mount, int cluster )
+int fat_cluster2block( struct FAT_MOUNTPOINT * mount, int cluster )
 {
   return cluster * mount->bootsector.sectors_per_cluster
     + mount->bootsector.hidden_sectors 
@@ -97,35 +95,31 @@ int fat_clusterToBlock( struct FAT_MOUNTPOINT * mount, int cluster )
     + mount->bootsector.num_root_dir_ents /(mount->bootsector.bytes_per_sector / sizeof (struct FAT_ENTRY))-1;
 }
 
-void * fat_loadCluster( struct FAT_MOUNTPOINT * mount, int cluster )
+int fat_loadCluster( struct FAT_MOUNTPOINT * mount, int cluster, BYTE * clusterBuffer )
 {
 	int i;
 	int block;
-	void * buffer;
 	// convert cluster to a logical block number
-	block = fat_clusterToBlock( mount, cluster );
-	// allocate our buffer
-	buffer = mm_malloc( mount->cluster_size );
+	block = fat_cluster2block( mount, cluster );
 	// seek to the correct offset
 	vfs_seek( mount->device, (block*mount->bootsector.bytes_per_sector)+1, SEEK_START );
 	// load in the blocks
 	for( i=0 ; i<mount->bootsector.sectors_per_cluster ; i++ )
 	{
-		buffer += mount->bootsector.bytes_per_sector * i;
-		if( vfs_read( mount->device, (void *)(buffer+(mount->bootsector.bytes_per_sector*i)), mount->bootsector.bytes_per_sector ) == -1 )
+		clusterBuffer += mount->bootsector.bytes_per_sector * i;
+		if( vfs_read( mount->device, (void *)(clusterBuffer+(mount->bootsector.bytes_per_sector*i)), mount->bootsector.bytes_per_sector ) == -1 )
 		{
 			kprintf("FAT: fat_loadCluster failed to read buffer\n" );
-			mm_free( buffer );
-			return NULL;	
+			return -1;	
 		}
 	}
-	return buffer;
+	return 0;
 }
 
 int fat_compareName( struct FAT_ENTRY * entry, char * name )
 {
 	int i, x;
-	char c;
+	//char c;
 	
 	if( entry->name[0] == 0x00 || entry->name[0] == 0xE5 )
 		return FALSE;
@@ -133,11 +127,12 @@ int fat_compareName( struct FAT_ENTRY * entry, char * name )
 	if( entry->name[0] == 0x05 )
 		entry->name[0] = 0xE5;
 			
-	c = entry->name[7];
-	entry->name[7] = 0x00;
+	//c = entry->name[7];
+	//entry->name[7] = 0x00;
 	//kprintf( "fat_compareName = %s  to  %s\n", name, entry->name );
-	entry->name[7] = c;
-
+	//entry->name[7] = c;
+	
+	//to do: check past the end of the extension
 	for( i=0 ; i<8 ; i++ )
 	{
 		if( entry->name[i] == 0x20 )
@@ -162,10 +157,9 @@ int fat_compareName( struct FAT_ENTRY * entry, char * name )
 	return TRUE;
 }
 
-int fat_getEntryIndex( struct FAT_ENTRY * dir, char * name )
+int fat_getIndex( struct FAT_ENTRY * dir, char * name )
 {
 	int i;
-	//kprintf( "fat_getEntry = %s\n", name );
 	for( i=0 ; i<32 ; i++ )
 	{
 		if( dir[i].name[0] == 0x00 )
@@ -179,6 +173,75 @@ int fat_getEntryIndex( struct FAT_ENTRY * dir, char * name )
 	}
 	return -1;
 }
+
+int fat_file2entry( struct FAT_MOUNTPOINT * mount, char * filename, struct FAT_ENTRY * entry )
+{
+	int i, index = -1, length;
+	char * curr_name;
+	struct FAT_ENTRY * curr_dir, prevEntry;
+	BYTE * clusterBuffer;
+	// to-do: convert to uppercase
+	// advance past the fisrt forward slash
+	if( filename[0] == '/' )
+		filename++;
+	// get the total length of the filename string
+	length = strlen( filename );
+	// allocate a buffer of memory the same size as a cluster
+	clusterBuffer = (BYTE *)mm_malloc( mount0->cluster_size );
+	// point the curr_name pointer to the filename
+	curr_name = filename;
+	// point the curr_dir the the root directory where we begin the search
+	curr_dir = mount->rootdir;
+	// loop through the filename to find the file/directory
+	// we search by decomposing the filename into its component parts of
+	// directorys and optional ending file
+	for( i=0 ; i<=length ; i++ )
+	{
+		if( filename[i] == '/' || filename[i] == '\0' )
+		{
+			// set the forward slash to a null charachter
+			filename[i] = '\0';
+			// get the index in the entry to the next part of the file name
+			if( (index = fat_getIndex( curr_dir, curr_name )) == -1 )
+			{
+				// break out of the loop
+				break;
+			}
+			else 
+			{
+				// copy the current entry into the previous entry buffer
+				memcpy( &prevEntry, (struct FAT_ENTRY *)&curr_dir[index], sizeof(struct FAT_ENTRY) );
+				// load the next cluster to check
+				if( fat_loadCluster( mount, curr_dir[index].start_cluster, clusterBuffer ) < 0 )
+				{
+					// free our cluster buffer
+					mm_free( clusterBuffer );
+					// return fail
+					return -1;
+				}
+				// associate the current directry with the newly loaded cluster
+				curr_dir = (struct FAT_ENTRY *)clusterBuffer;
+			}
+			// advance to the next part of the file name
+			curr_name = &filename[i]+1;		
+		}	
+	}
+	// test if we didnt find the file/directory
+	if( index == -1 && strlen( curr_name ) != 0 )
+	{
+		// free our cluster buffer
+		mm_free( clusterBuffer );
+		// return fail
+		return -1;
+	}
+	// copy the file entry into the entry truct to return to the caller
+	memcpy( entry, &prevEntry, sizeof(struct FAT_ENTRY) );
+	// free our cluster buffer
+	mm_free( clusterBuffer );
+	// return success
+	return 0;
+}
+
 /*
 void fat_displayDir( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * dir )
 {
@@ -221,31 +284,22 @@ int fat_mount( char * device, char * mountpoint, int fstype )
 {
 	int i;
 	int root_dir_offset;
-	//struct IO_CALLTABLE * calltable;
-	
 	mount0 = (struct FAT_MOUNTPOINT *)mm_malloc( sizeof(struct FAT_MOUNTPOINT) );
-	
 	//open the device we wish to mount
 	mount0->device = vfs_open( device );
 	if( mount0->device == NULL )
 		return VFS_FAIL;
-	kprintf("FAT: device %s open\n", device );
-	
 	// read in the bootsector
 	vfs_read( mount0->device, (void *)&mount0->bootsector, sizeof(struct FAT_BOOTSECTOR) );
-	kprintf("FAT: boot oem %s\n", mount0->bootsector.oem_id );
 	// make sure we have a valid bootsector
 	if( mount0->bootsector.magic != FAT_MAGIC )
 	{
-		kprintf("FAT: magic not found\n" );
 		vfs_close( mount0->device );
 		mm_free( mount0 );
 		return VFS_FAIL;
 	}
-	
 	// determine if we have a FAT 12, 16 or 32 filesystem
 	fat_determineType( mount0 );
-	
 	// calculate clster size
 	mount0->cluster_size = mount0->bootsector.bytes_per_sector * mount0->bootsector.sectors_per_cluster;
 
@@ -255,20 +309,14 @@ int fat_mount( char * device, char * mountpoint, int fstype )
 	// read in the FAT
 	for( i=0 ; i<mount0->bootsector.sectors_per_fat ; i++ )
 		vfs_read( mount0->device, (void *)(mount0->fat_data+(mount0->bootsector.bytes_per_sector*i)), mount0->bootsector.bytes_per_sector );
-		
 	// read in root directory
 	mount0->rootdir = (struct FAT_ENTRY *)mm_malloc( mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
 	memset( mount0->rootdir, 0x00, mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
-	
+	// find and read in the root directory	
 	root_dir_offset = (mount0->bootsector.num_fats * mount0->fat_size) + sizeof(struct FAT_BOOTSECTOR) + 1;
-	
 	vfs_seek( mount0->device, root_dir_offset, SEEK_START );
-
 	vfs_read( mount0->device, (void *)(mount0->rootdir), mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
-
-	// display root dir
-	//fat_displayDir( mount0, mount0->rootdir );
-
+	// return success
 	return VFS_SUCCESS;
 }
 
@@ -286,64 +334,102 @@ int fat_unmount( char * mountpoint )
 
 struct VFS_HANDLE * fat_open( struct VFS_HANDLE * handle, char * filename )
 {
-/*	int length, i, index = -1;
-	char * curr_name;
-	struct FAT_ENTRY * currdir;
-
-	kprintf( "\nfat_open( %s )\n", filename );
-	
-	if( filename[0] == '/' )
-		filename++;
-		
-	length = strlen( filename );
-	
-	if( filename[length] == '/' )
-		filename[length] = '\0';
-		
-	curr_name = filename;
-	
-	currdir = mount0->rootdir;
-	
-	for( i=0 ; i<=length ; i++ )
+	struct FAT_FILE * file;
+	file = (struct FAT_FILE *)mm_malloc( sizeof(struct FAT_FILE) );
+	// try to find the file
+	if( fat_file2entry( mount0, filename, &file->entry ) < 0 )
 	{
-		if( filename[i] == '/' || filename[i] == '\0' )
-		{
-			filename[i] = '\0';
-
-			index = fat_getEntryIndex( currdir, curr_name );
-			if( index == -1 )
-			{
-				//kprintf( "index == -1\n" );
-				break;
-			} else {
-				//kprintf( "got index = %d\n", index );
-				currdir = (struct FAT_ENTRY *)fat_loadCluster( mount0, currdir[index].start_cluster );
-			}
-			
-			curr_name = &filename[i]+1;
-		}	
-	}
-	
-	if( currdir == NULL )
+		// if we fail free the file entry structure
+		mm_free( file );
+		// return null
 		return NULL;
-		
-	if( index != -1 )
-	{
-		handle->data_arg = (DWORD)index;
-		return handle;
 	}
-	*/
-	return NULL;	
+	// set the mountpoint this file is on
+	file->mount = mount0;
+	// set the current file position to zero
+	file->current_pos = 0;
+	// associate the handle with the file entry
+	handle->data_ptr = file;
+	// return success
+	return handle;	
 }
 
 int fat_close( struct VFS_HANDLE * handle )
 {
-	return VFS_FAIL;
+	// check we have a fat entry associated with this handle
+	if( handle->data_ptr == NULL )
+		return VFS_FAIL;
+	// to do: flush any buffers to disk
+	// free the files fat entry
+	mm_free( handle->data_ptr );
+	// return success
+	return VFS_SUCCESS;
 }
 
 int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
-	return VFS_FAIL;	
+	int bytes_to_read=0, bytes_read=0, cluster, cluster_offset;
+	struct FAT_FILE * file;
+	BYTE * clusterBuffer;
+	// retrieve the file structure
+	file = (struct FAT_FILE *)handle->data_ptr;
+	// allocate a buffer to read data into
+	clusterBuffer = (BYTE *)mm_malloc( mount0->cluster_size );
+	// initially set the cluster number to the first cluster as specified in the file entry
+	cluster = file->entry.start_cluster;
+	// get the correct cluster to begin reading from
+	int i = file->current_pos / file->mount->cluster_size;
+	while( i-->0 )
+		cluster = fat_getFATEntry( file->mount, cluster );
+	// fail if we have gone beyond the files cluster chain
+	if( cluster == 0x0000 )
+	{
+		// free the buffer
+		mm_free( clusterBuffer );
+		// return fail
+		return VFS_FAIL;		
+	}
+	// handle reads that begin from some point inside a cluster
+	cluster_offset = file->current_pos % file->mount->cluster_size;
+	// read in the data
+	while( TRUE )
+	{
+		// to-do: handle the difference with cluster_offset if it applies
+		if( size >= file->mount->cluster_size )
+			bytes_to_read = file->mount->cluster_size;
+		else
+			bytes_to_read = size;
+		// read in the next cluster of data
+		if( fat_loadCluster( file->mount, cluster, clusterBuffer ) < 0 )
+		{
+			// free the buffer
+			mm_free( clusterBuffer );
+			// return fail
+			return VFS_FAIL;
+		}
+		// copy it over to the users buffer
+		memcpy( buffer, (clusterBuffer+cluster_offset), bytes_to_read );
+		// advance the buffer pointer
+		buffer += bytes_to_read;
+		// increase the bytes read
+		bytes_read += bytes_to_read;
+		// reduce the size
+		size -= bytes_to_read;
+		// if size has gone negative we have read enough
+		if( size < 0 )
+			break;
+		// get the next cluster to read from
+		cluster = fat_getFATEntry( file->mount, cluster );
+		// if the cluster = 0x0000 we have reached the end of the cluster chain
+		if( cluster == 0x0000 )
+			break;
+		// we can now set the cluster offset to 0 if we are reading from more then 1 cluster
+		cluster_offset = 0;
+	}
+	// free the buffer
+	mm_free( clusterBuffer );
+	// return the total bytes read
+	return bytes_read;	
 }
 
 int fat_write( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size )
@@ -353,7 +439,19 @@ int fat_write( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size )
 
 int fat_seek( struct VFS_HANDLE * handle, DWORD offset, BYTE origin )
 {
-	return VFS_FAIL;	
+	struct FAT_FILE * file;
+	
+	file = (struct FAT_FILE *)handle->data_ptr;
+
+	// to do: bounds checking!
+
+	if( origin == SEEK_START )
+		file->current_pos = offset;
+	else if( origin == SEEK_CURRENT )
+		file->current_pos += offset;
+	else
+		return VFS_FAIL;
+	return VFS_SUCCESS;	
 }
 
 int fat_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
@@ -381,52 +479,22 @@ int fat_copy( char * src, char * dest )
 	return VFS_FAIL;	
 }
 
-struct FAT_ENTRY * fat_file2fatentry( char * filename )
-{
-	int length, i, index = -1;
-	char * curr_name;
-	struct FAT_ENTRY * currdir;
-
-	if( filename[0] == '/' )
-		filename++;
-		
-	length = strlen( filename );
-	
-	if( filename[length] == '/' )
-		filename[length] = '\0';
-	if( filename[length-1] == '/' )
-		filename[length-1] = '\0';	
-		
-	curr_name = filename;
-	
-	currdir = mount0->rootdir;
-	
-	for( i=0 ; i<=length ; i++ )
-	{
-		if( filename[i] == '/' || filename[i] == '\0' )
-		{
-			filename[i] = '\0';
-			index = fat_getEntryIndex( currdir, curr_name );
-			if( index == -1 )
-				break;
-			else
-				currdir = (struct FAT_ENTRY *)fat_loadCluster( mount0, currdir[index].start_cluster );
-			curr_name = &filename[i]+1;
-		}	
-	}
-	return currdir;
-}
-
 struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )
 {
 	int dirIndex, entryIndex, nameIndex;
 	struct FAT_ENTRY * dir;
 	struct VFS_DIRLIST_ENTRY * entry;
 	
-	dir = fat_file2fatentry( dirname );
-	if( dir == NULL )
+	dir = (struct FAT_ENTRY *)mm_malloc( mount0->cluster_size );
+	
+	if( fat_file2entry( mount0, dirname, dir ) < 0 )
+	{
+		mm_free( dir );
 		return NULL;
-
+	}
+	
+	fat_loadCluster( mount0, dir->start_cluster, (BYTE *)dir );
+	 
 	entry = (struct VFS_DIRLIST_ENTRY *)mm_malloc( sizeof(struct VFS_DIRLIST_ENTRY)*17 );
 
 	for(dirIndex=0,entryIndex=0;dirIndex<16;dirIndex++)
@@ -460,6 +528,8 @@ struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )
 	}
 	// fill in terminating entry
 	entry[entryIndex].name[0] = '\0';
+	// free
+	mm_free( dir );
 	// return to caller. caller *must* free this structure
 	return entry;
 }

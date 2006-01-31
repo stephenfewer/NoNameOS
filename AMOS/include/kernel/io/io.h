@@ -2,6 +2,7 @@
 #define _KERNEL_IO_IO_H_
 
 #include <sys/types.h>
+#include <kernel/fs/vfs.h>
 #include <kernel/fs/dfs.h>
 
 #define IO_BLOCK		0x01

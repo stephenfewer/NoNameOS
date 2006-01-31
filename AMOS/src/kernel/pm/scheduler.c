@@ -11,8 +11,8 @@
  *    License: GNU General Public License (GPL)
  */
 
-#include <kernel/tasking/scheduler.h>
-#include <kernel/tasking/task.h>
+#include <kernel/pm/scheduler.h>
+#include <kernel/pm/process.h>
 #include <kernel/isr.h>
 #include <kernel/kernel.h>
 #include <kernel/kprintf.h>
@@ -25,26 +25,26 @@ DWORD current_cr3 = 0x00000000;
 
 DWORD scheduler_ticks = 0;
 
-struct TASK_INFO * scheduler_currentTask = NULL;
+struct PROCESS_INFO * scheduler_currentProcess = NULL;
 
 // this really really should be a dynamic linked list
-struct TASK_INFO * scheduler_queue[MAX_TASKS];
+struct PROCESS_INFO * scheduler_queue[MAX_TASKS];
 
 struct TSS * scheduler_tss = NULL;
 
-void scheduler_addTask( struct TASK_INFO * task )
+void scheduler_addProcess( struct PROCESS_INFO * process )
 {
-	scheduler_queue[ task->id ] = task;	
+	scheduler_queue[ process->id ] = process;	
 }
 
-void scheduler_removeTask( struct TASK_INFO * task )
+void scheduler_removeProcesss( struct PROCESS_INFO * process )
 {
-	scheduler_queue[ task->id ] = NULL;	
+	scheduler_queue[ process->id ] = NULL;	
 }
 
 extern struct PAGE_DIRECTORY * paging_kernelPageDir;
 
-DWORD scheduler_switch( struct TASK_STACK * taskstack )
+DWORD scheduler_switch( struct PROCESS_STACK * process_stack )
 {
 	// go into the kernels address space
 	//paging_setCurrentPageDir( paging_kernelPageDir );
@@ -56,27 +56,27 @@ if(scheduler_ticks>128)
 	while(TRUE);
 }
 */
-	if( scheduler_currentTask == NULL )
+	if( scheduler_currentProcess == NULL )
 	{
-		// To-Do: create a kernel task 0 with current_esp
-		scheduler_currentTask = scheduler_queue[ 0 ];
-		// if we dont have any tasks yet we perform no task switch
-		if( scheduler_currentTask == NULL )
+		// To-Do: create a kernel process 0 with current_esp
+		scheduler_currentProcess = scheduler_queue[ 0 ];
+		// if we dont have any process yet we perform no task switch
+		if( scheduler_currentProcess == NULL )
 			return (DWORD)NULL;
 		// set the current_esp to our new stack
-		current_esp = scheduler_currentTask->current_esp;
-		// set the task state to running as we are switching into this task
-		scheduler_currentTask->state = RUNNING;
+		current_esp = scheduler_currentProcess->current_esp;
+		// set the process state to running as we are switching into this process
+		scheduler_currentProcess->state = RUNNING;
 	}
 	
-	scheduler_currentTask->current_esp = current_esp;
+	scheduler_currentProcess->current_esp = current_esp;
 	
-	// if the current task has reached the end of its tick slice
-	// we must switch to a new task
-	if( scheduler_currentTask->tick_slice <= 0 )
+	// if the current process has reached the end of its tick slice
+	// we must switch to a new process
+	if( scheduler_currentProcess->tick_slice <= 0 )
 	{/*
 		int i=scheduler_currentTask->id + 1;
-		// get the next task to switch to in a round robin fashine
+		// get the next process to switch to in a round robin fashine
 		while( TRUE )
 		{
 			if( scheduler_queue[ i ] == NULL || i>=MAX_TASKS )
@@ -84,41 +84,41 @@ if(scheduler_ticks>128)
 	
 			if( (scheduler_queue[ i ])->state == READY )
 			{
-				// set the current task's state to ready
-				scheduler_currentTask->state = READY;
-				// select the new task we will switch into
-				scheduler_currentTask = scheduler_queue[ i ];
+				// set the current process's state to ready
+				scheduler_currentProcess->state = READY;
+				// select the new process we will switch into
+				scheduler_currentProcess = scheduler_queue[ i ];
 				break;
 			}
 			i++;
 		}*/
 		
-		if( scheduler_queue[ scheduler_currentTask->id + 1 ] != NULL )
-			scheduler_currentTask = scheduler_queue[ scheduler_currentTask->id + 1 ];
+		if( scheduler_queue[ scheduler_currentProcess->id + 1 ] != NULL )
+			scheduler_currentProcess = scheduler_queue[ scheduler_currentProcess->id + 1 ];
 		else
-			scheduler_currentTask = scheduler_queue[ 0 ];
+			scheduler_currentProcess = scheduler_queue[ 0 ];
 
 		// we could set this higher/lower depending on its priority: LOW, NORMAL, HIGH
-		scheduler_currentTask->tick_slice = 1;
+		scheduler_currentProcess->tick_slice = 1;
 		
-		// set the task state to running as we are switching into this task
-		scheduler_currentTask->state = RUNNING;
+		// set the process's state to running as we are switching into this process
+		scheduler_currentProcess->state = RUNNING;
 	}	
 	else
 	{
-		scheduler_currentTask->tick_slice--;
+		scheduler_currentProcess->tick_slice--;
 	}
 		
 	//kprintf("Timer: [%d] ticks = %d  current_esp = %x\n", scheduler_currentTask->id, scheduler_ticks, current_esp );
 	
 	// set the current page directory
-	current_cr3 = (DWORD)scheduler_currentTask->page_dir;
+	current_cr3 = (DWORD)scheduler_currentProcess->page_dir;
 	
 	// fixup the tss
 	//scheduler_tss->cr3 = scheduler_currentTask->page_dir;
 	//scheduler_tss->esp0 = scheduler_currentTask->current_esp;
 		
-	return scheduler_currentTask->current_esp;
+	return scheduler_currentProcess->current_esp;
 }
 
 void scheduler_ltr( WORD selector )

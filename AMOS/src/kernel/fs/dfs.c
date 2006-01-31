@@ -27,14 +27,10 @@ struct DFS_ENTRY * dfs_add( char * name, struct IO_CALLTABLE * calltable, int ty
 	device = (struct DFS_ENTRY *)mm_malloc( sizeof(struct DFS_ENTRY) );
 	
 	if( dfs_deviceBottom == NULL )
-	{
-		dfs_deviceBottom = dfs_deviceTop = device ;
-	}
+		dfs_deviceBottom = device;
 	else
-	{
 		dfs_deviceTop->next = device;
-		dfs_deviceTop = device;
-	}
+	dfs_deviceTop = device;
 	
 	device->next = NULL;
 	

@@ -16,7 +16,7 @@
 #include <kernel/lib/printf.h>
 
 // the kernels standard output handle
-extern struct VFS_HANDLE * kernel_kout;
+extern struct VFS_HANDLE * kernel_console;
 
 void kprintf( char * text, ... )
 {
@@ -24,5 +24,5 @@ void kprintf( char * text, ... )
 	// find the first argument
 	va_start( args, text );
 	// pass printf the kernels std output handle the format text and the first argument
-	printf( kernel_kout, text, args );
+	printf( kernel_console, text, args );
 }

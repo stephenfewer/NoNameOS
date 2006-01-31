@@ -124,6 +124,13 @@ struct FAT_MOUNTPOINT
 	int cluster_size;
 };
 
+struct FAT_FILE
+{
+	struct FAT_MOUNTPOINT * mount;
+	struct FAT_ENTRY entry;
+	int current_pos;
+};
+
 int fat_init();
 
 #endif

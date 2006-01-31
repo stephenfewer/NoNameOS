@@ -2,7 +2,7 @@
 #define _KERNEL_ISR_H_
 
 #include <sys/types.h>
-#include <kernel/tasking/task.h>
+#include <kernel/pm/process.h>
 
 #define PIC_1				0x20
 #define PIC_2				0xA0
@@ -79,9 +79,9 @@ struct REGISTERS
     unsigned int eip, cs, eflags, useresp, ss;
 } PACKED;
 */
-typedef DWORD (* ISR_HANDLER)( struct TASK_STACK * );
+typedef DWORD (* ISR_HANDLER)( struct PROCESS_STACK * );
 
-DWORD isr_dispatcher( struct TASK_STACK * );
+DWORD isr_dispatcher( struct PROCESS_STACK * );
 
 void isr_setHandler( int, ISR_HANDLER );
 

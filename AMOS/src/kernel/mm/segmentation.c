@@ -55,7 +55,7 @@ void segmentation_init()
 	// data segment
     segmentation_setEntry( KERNEL_DATA_SEL, 0L, 0xFFFFFFFF, 0x92, 0xCF );
     
-    // empty descriptor, we fill it in with a TSS descriptor later in tasking_init()
+    // empty descriptor, we fill it in with a TSS descriptor later in scheduler_init()
     segmentation_setEntry( KERNEL_TSS_SEL, 0L, 0L, 0x00, 0x00 );
     
 	// Enable flat segmentation...
