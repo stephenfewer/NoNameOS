@@ -21,6 +21,7 @@ all: $(TARGET)
 $(TARGET):
 	$(COPY) .\$(IMAGE) .\$(TARGET)
 	$(MCOPY) -o .\$(IMAGE_MENU) $(IMAGE_DIR)
+	$(MCOPY) -o .\test.txt $(IMAGE_DIR)
 	
 clean:
 	$(RM) $(TARGET)

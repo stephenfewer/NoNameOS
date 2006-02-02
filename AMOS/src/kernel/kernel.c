@@ -160,22 +160,33 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	
 	//printdir( "/" );
 	//printdir( "/device/" );
-	printdir( "/fat/BOOT/" );
+	//printdir( "/fat/BOOT/" );
 
 	struct VFS_HANDLE * h;
-	h = vfs_open( "/fat/BOOT/MENU.CFG" );
+	h = vfs_open( "/fat/BOOT/TEST.TXT" );
 	if( h == NULL )
 	{
-		kprintf( "failed to open test file.\n" );
+		kprintf( "Failed to open test file.\n" );
 	} else {
-		char buff[64];
-		kprintf( "successfully opened test file.\n");
+		char buff[100];
+		int offset=0;
+		int i=0;
+		int read=0;
 		
-		if( vfs_read( h, (BYTE *)&buff, 64 ) != VFS_FAIL )
-		{
-			kprintf( "read success\n");
-			kprintf( "%s\n", buff );
-		}
+		kprintf( "file size = %d\n", vfs_seek( h, 0, SEEK_END ) );
+		
+		offset = vfs_seek( h, 200, SEEK_START );
+		kprintf( "offset = %d\n", offset );
+		///for(i=0;i<7;i++)
+		//{
+			if( (read=vfs_read( h, (BYTE *)&buff, 100 )) != VFS_FAIL )
+			{
+				kprintf( "read=%d %s\n",read, buff );
+			} else {
+				kprintf( "read fail, i = %d\n", i );
+				//break;
+			}
+		//}
 	}
 
 	struct VFS_HANDLE * console;

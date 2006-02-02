@@ -373,8 +373,8 @@ int floppy_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin )
 	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data_ptr;
 	// calculate the current block from the offset
 	floppy->current_block = ( offset / floppy->geometry->blocksize );
-	// returnt he current block to the caller
-	return floppy->current_block;	
+	// returnt the current offset to the caller
+	return floppy->current_block * floppy->geometry->blocksize;	
 }
 
 int floppy_init()

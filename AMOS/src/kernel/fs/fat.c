@@ -20,37 +20,42 @@
 
 struct FAT_MOUNTPOINT * mount0;
 
-int fat_getFATEntry( struct FAT_MOUNTPOINT * mount, int index )
+int fat_nextCluster( struct FAT_MOUNTPOINT * mount, int cluster )
 {
-	int entry=-1;
+	int next_cluster;
 
 	switch( mount->type )
 	{
 		case FAT_12:
-			entry = ((WORD *)mount->fat_data)[ ( (index * 3) / 2 ) ];
-			
-			if( index%2 == 1 )
-				entry >>= 4;
+
+			next_cluster = *(WORD *)((BYTE *)&mount->fat_data[ ( (cluster * 3) / 2 ) ]);
+
+			// if cluster is odd
+			if( cluster & 1 )
+				next_cluster >>= 4;
 			else
-				entry &= 0x0FFF; 
-
-			if( entry == FAT_EOC12 )
+				next_cluster = FAT_CLUSTER12( next_cluster );
+		
+			if( next_cluster == FAT_12_ENDOFCLUSTER )
 				return -1;
-
+			
 			break;
+			
 		case FAT_16:
-			entry = ((WORD *)mount->fat_data)[ index ];
-			if( entry == FAT_EOC16 )
+			next_cluster = ((WORD *)mount->fat_data)[ cluster ];
+			if( next_cluster == FAT_16_ENDOFCLUSTER )
 				return -1;
 			break;	
 		case FAT_32:
-			entry = ((DWORD *)mount->fat_data)[ index ];
-			if( entry == FAT_EOC32 )
+			next_cluster = ((DWORD *)mount->fat_data)[ cluster ];
+			if( next_cluster == FAT_32_ENDOFCLUSTER )
 				return -1;
 			break;
+		default:
+			return -1;
 	}
-	
-	return entry;	
+
+	return (int)next_cluster;	
 }
 
 int fat_determineType( struct FAT_MOUNTPOINT * mount )
@@ -73,10 +78,10 @@ int fat_determineType( struct FAT_MOUNTPOINT * mount )
 	else
 		total_sectors = mount->bootsector.total_sectors_large;
 
-	data_sectors = total_sectors - ( mount->bootsector.num_boot_sectors + (mount->bootsector.num_fats * fats) + root_dir_sectors );
+	data_sectors = total_sectors - ( mount->bootsector.reserved_sectors + (mount->bootsector.num_fats * fats) + root_dir_sectors );
 	
 	cluster_count = data_sectors / mount->bootsector.sectors_per_cluster;
-	
+
 	if( cluster_count < 4085 )
 		mount->type = FAT_12;
 	else if( cluster_count < 65525 )
@@ -89,16 +94,15 @@ int fat_determineType( struct FAT_MOUNTPOINT * mount )
 
 int fat_cluster2block( struct FAT_MOUNTPOINT * mount, int cluster )
 {
-  return cluster * mount->bootsector.sectors_per_cluster
-    + mount->bootsector.hidden_sectors 
-    + mount->bootsector.num_fats * mount->bootsector.sectors_per_fat 
-    + mount->bootsector.num_root_dir_ents /(mount->bootsector.bytes_per_sector / sizeof (struct FAT_ENTRY))-1;
+	return cluster * mount->bootsector.sectors_per_cluster
+		+ mount->bootsector.hidden_sectors 
+    	+ mount->bootsector.num_fats * mount->bootsector.sectors_per_fat 
+    	+ mount->bootsector.num_root_dir_ents /(mount->bootsector.bytes_per_sector / sizeof (struct FAT_ENTRY))-1;
 }
 
 int fat_loadCluster( struct FAT_MOUNTPOINT * mount, int cluster, BYTE * clusterBuffer )
 {
-	int i;
-	int block;
+	int i, block;
 	// convert cluster to a logical block number
 	block = fat_cluster2block( mount, cluster );
 	// seek to the correct offset
@@ -107,11 +111,9 @@ int fat_loadCluster( struct FAT_MOUNTPOINT * mount, int cluster, BYTE * clusterB
 	for( i=0 ; i<mount->bootsector.sectors_per_cluster ; i++ )
 	{
 		clusterBuffer += mount->bootsector.bytes_per_sector * i;
-		if( vfs_read( mount->device, (void *)(clusterBuffer+(mount->bootsector.bytes_per_sector*i)), mount->bootsector.bytes_per_sector ) == -1 )
-		{
-			kprintf("FAT: fat_loadCluster failed to read buffer\n" );
-			return -1;	
-		}
+		if( vfs_read( mount->device, (void *)clusterBuffer, mount->bootsector.bytes_per_sector ) == -1 )
+			return -1;
+		//if( vfs_read( mount->device, (void *)(clusterBuffer+(mount->bootsector.bytes_per_sector*i)), mount->bootsector.bytes_per_sector ) == -1 )
 	}
 	return 0;
 }
@@ -119,18 +121,12 @@ int fat_loadCluster( struct FAT_MOUNTPOINT * mount, int cluster, BYTE * clusterB
 int fat_compareName( struct FAT_ENTRY * entry, char * name )
 {
 	int i, x;
-	//char c;
-	
+
 	if( entry->name[0] == 0x00 || entry->name[0] == 0xE5 )
 		return FALSE;
 		
 	if( entry->name[0] == 0x05 )
 		entry->name[0] = 0xE5;
-			
-	//c = entry->name[7];
-	//entry->name[7] = 0x00;
-	//kprintf( "fat_compareName = %s  to  %s\n", name, entry->name );
-	//entry->name[7] = c;
 	
 	//to do: check past the end of the extension
 	for( i=0 ; i<8 ; i++ )
@@ -187,7 +183,7 @@ int fat_file2entry( struct FAT_MOUNTPOINT * mount, char * filename, struct FAT_E
 	// get the total length of the filename string
 	length = strlen( filename );
 	// allocate a buffer of memory the same size as a cluster
-	clusterBuffer = (BYTE *)mm_malloc( mount0->cluster_size );
+	clusterBuffer = (BYTE *)mm_malloc( mount->cluster_size );
 	// point the curr_name pointer to the filename
 	curr_name = filename;
 	// point the curr_dir the the root directory where we begin the search
@@ -282,7 +278,6 @@ void fat_displayDir( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * dir )
 
 int fat_mount( char * device, char * mountpoint, int fstype )
 {
-	int i;
 	int root_dir_offset;
 	mount0 = (struct FAT_MOUNTPOINT *)mm_malloc( sizeof(struct FAT_MOUNTPOINT) );
 	//open the device we wish to mount
@@ -302,13 +297,14 @@ int fat_mount( char * device, char * mountpoint, int fstype )
 	fat_determineType( mount0 );
 	// calculate clster size
 	mount0->cluster_size = mount0->bootsector.bytes_per_sector * mount0->bootsector.sectors_per_cluster;
-
+	// calculate the fat size
 	mount0->fat_size = mount0->bootsector.sectors_per_fat * mount0->bootsector.bytes_per_sector;
+	// malloc some space for the fat
 	mount0->fat_data = (BYTE *)mm_malloc( mount0->fat_size );
+	// and clear it
 	memset( mount0->fat_data, 0x00, mount0->fat_size );
 	// read in the FAT
-	for( i=0 ; i<mount0->bootsector.sectors_per_fat ; i++ )
-		vfs_read( mount0->device, (void *)(mount0->fat_data+(mount0->bootsector.bytes_per_sector*i)), mount0->bootsector.bytes_per_sector );
+	vfs_read( mount0->device, (void *)mount0->fat_data, mount0->fat_size );
 	// read in root directory
 	mount0->rootdir = (struct FAT_ENTRY *)mm_malloc( mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
 	memset( mount0->rootdir, 0x00, mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
@@ -368,43 +364,63 @@ int fat_close( struct VFS_HANDLE * handle )
 
 int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
-	int bytes_to_read=0, bytes_read=0, cluster, cluster_offset;
+	int bytes_to_read=0, bytes_read=0, cluster_offset=0;
+	int cluster;
 	struct FAT_FILE * file;
-	BYTE * clusterBuffer;
+	BYTE * clusterBuffer;	
 	// retrieve the file structure
 	file = (struct FAT_FILE *)handle->data_ptr;
-	// allocate a buffer to read data into
-	clusterBuffer = (BYTE *)mm_malloc( mount0->cluster_size );
+	// reduce size if we are trying to read past the end of the file
+	if( file->current_pos + size > file->entry.file_size )
+		size = file->entry.file_size - file->current_pos;
 	// initially set the cluster number to the first cluster as specified in the file entry
 	cluster = file->entry.start_cluster;
 	// get the correct cluster to begin reading from
 	int i = file->current_pos / file->mount->cluster_size;
-	while( i-->0 )
-		cluster = fat_getFATEntry( file->mount, cluster );
-	// fail if we have gone beyond the files cluster chain
-	if( cluster == 0x0000 )
+	// we traverse the cluster chain i times
+	kprintf("fat_read: size = %d i = %d file->current_pos = %d\n",size, i, file->current_pos );
+	while( i-- )
 	{
-		// free the buffer
-		mm_free( clusterBuffer );
-		// return fail
-		return VFS_FAIL;		
+	//	kprintf("\ti = %d     cluster = %x\n", i, cluster );
+		// get the next cluster in the file
+		cluster = fat_nextCluster( file->mount, cluster );
+		// fail if we have gone beyond the files cluster chain
+		if( cluster == 0x0000 || cluster == -1 )
+		{
+			kprintf("fat_read: cluster == 0x0000 || cluster == -1\n");
+			return VFS_FAIL;
+		}
 	}
 	// handle reads that begin from some point inside a cluster
 	cluster_offset = file->current_pos % file->mount->cluster_size;
+	
+	kprintf("fat_read: cluster_offset = %d\n",cluster_offset);
+	// allocate a buffer to read data into
+	clusterBuffer = (BYTE *)mm_malloc( file->mount->cluster_size );
 	// read in the data
 	while( TRUE )
 	{
-		// to-do: handle the difference with cluster_offset if it applies
+		// se the amount of data we want to read in this loop itteration
 		if( size >= file->mount->cluster_size )
 			bytes_to_read = file->mount->cluster_size;
 		else
 			bytes_to_read = size;
+		// test if we are reading accross 2 clusters, if we are we can only read up to the end of the
+		// first cluster in this itteration of the loop, the next itteration will take care of the rest
+		// this solution is ugly, more then likely a much cleaner way of checking for this!
+		if( (cluster_offset + bytes_to_read) > (((file->current_pos / file->mount->cluster_size)+1)*file->mount->cluster_size) )
+		{
+			bytes_to_read = (cluster_offset + bytes_to_read) - (((file->current_pos / file->mount->cluster_size)+1)*file->mount->cluster_size);
+			bytes_to_read = size - bytes_to_read;
+			kprintf("fat_read: reading accross 2 clusters, bytes_to_read = %d\n", bytes_to_read );	
+		}
 		// read in the next cluster of data
 		if( fat_loadCluster( file->mount, cluster, clusterBuffer ) < 0 )
 		{
+			kprintf("fat_read: fat_loadCluster failed\n");
 			// free the buffer
 			mm_free( clusterBuffer );
-			// return fail
+			// return fail, should we reset the files offset position if its changed?
 			return VFS_FAIL;
 		}
 		// copy it over to the users buffer
@@ -416,18 +432,26 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 		// reduce the size
 		size -= bytes_to_read;
 		// if size has gone negative we have read enough
-		if( size < 0 )
+		if( size <= 0 )
+		{
+			//kprintf("fat_read: size < 0 \n");
 			break;
+		}
 		// get the next cluster to read from
-		cluster = fat_getFATEntry( file->mount, cluster );
+		cluster = fat_nextCluster( file->mount, cluster );
 		// if the cluster = 0x0000 we have reached the end of the cluster chain
-		if( cluster == 0x0000 )
+		if( cluster == 0x0000 || cluster == -1 )
+		{
+			kprintf("fat_read: bottom of loop, cluster == 0x0000 || cluster == -1  \n");
 			break;
+		}
 		// we can now set the cluster offset to 0 if we are reading from more then 1 cluster
 		cluster_offset = 0;
 	}
 	// free the buffer
 	mm_free( clusterBuffer );
+	// update the files offset position
+	file->current_pos += bytes_read;
 	// return the total bytes read
 	return bytes_read;	
 }
@@ -440,18 +464,25 @@ int fat_write( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size )
 int fat_seek( struct VFS_HANDLE * handle, DWORD offset, BYTE origin )
 {
 	struct FAT_FILE * file;
-	
+	int saved_pos;
+	// retrieve the file structure
 	file = (struct FAT_FILE *)handle->data_ptr;
-
-	// to do: bounds checking!
-
+	// save the origional position in case we nee to roll back
+	saved_pos = file->current_pos;
+	// set the new position
 	if( origin == SEEK_START )
 		file->current_pos = offset;
 	else if( origin == SEEK_CURRENT )
 		file->current_pos += offset;
+	else if( origin == SEEK_END )
+		file->current_pos = file->entry.file_size - offset;
 	else
 		return VFS_FAIL;
-	return VFS_SUCCESS;	
+	// reset if we have gone over the file size
+	if( file->current_pos > file->entry.file_size )
+		file->current_pos = saved_pos;
+	// return the current file position
+	return file->current_pos;
 }
 
 int fat_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
@@ -524,6 +555,7 @@ struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )
 			entry[entryIndex].attributes = VFS_FILE;
 		// fill in the size
 		entry[entryIndex].size = dir[dirIndex].file_size;
+
 		entryIndex++;
 	}
 	// fill in terminating entry

@@ -4,67 +4,73 @@
 #include <sys/types.h>
 #include <kernel/io/io.h>
 
-#define FAT_TYPE			1
+#define FAT_TYPE				1
 
-#define FAT_CLUSTER12(c)	( c & 0x00000FFF )	// 12 bits
-#define FAT_CLUSTER16(c)	( c & 0x0000FFFF )	// 16 bits
-#define FAT_CLUSTER31(c)	( c & 0x0FFFFFFF )	// 28 bits
+#define FAT_CLUSTER12(c)		( c & 0x00000FFF )	// 12 bits
+#define FAT_CLUSTER16(c)		( c & 0x0000FFFF )	// 16 bits
+#define FAT_CLUSTER31(c)		( c & 0x0FFFFFFF )	// 28 bits
 
+#define FAT_12_ENDOFCLUSTER		0x0FFF
+#define FAT_12_BADCLUSTER		0x0FF7
+#define FAT_12_RESERVERCLUSTER	0x0FF8
 
-#define FAT_EOC12			0xFF8
-#define FAT_BAD_CLUSTER		0xFF7
-#define FAT_EOC16			0xFFF8
-#define FAT_EOC32			0xFFFFFFF8
+#define FAT_16_ENDOFCLUSTER		0xFFFF
+#define FAT_16_BADCLUSTER		0xFFF7
+#define FAT_16_RESERVERCLUSTER	0xFFF8
 
-#define FAT_12				12
-#define FAT_16				16
-#define FAT_32				32
+#define FAT_32_ENDOFCLUSTER		0xFFFFFFFF
+#define FAT_32_BADCLUSTER		0x0FFFFFF7
+#define FAT_32_RESERVERCLUSTER	0x0FFFFFF8
 
-#define FAT_MAGIC			0xAA55
+#define FAT_12					12
+#define FAT_16					16
+#define FAT_32					32
+
+#define FAT_MAGIC				0xAA55
 
 // for FAT 12 and 16
 struct FAT_BOOTSECTOR16
 {
-	BYTE BS_DrvNum;
-	BYTE BS_Reserved1;
-	BYTE BS_BootSig;
+	BYTE  BS_DrvNum;
+	BYTE  BS_Reserved1;
+	BYTE  BS_BootSig;
 	DWORD BS_VolID;
-	BYTE BS_VolLab[11];
-	BYTE BS_FilSysType[8];
+	BYTE  BS_VolLab[11];
+	BYTE  BS_FilSysType[8];
 } PACKED;
 
 // for FAT 32
 struct FAT_BOOTSECTOR32
 {
 	DWORD BPB_FATSz32;
-	WORD BPB_ExtFlags;
-	WORD BPB_FSVer;
+	WORD  BPB_ExtFlags;
+	WORD  BPB_FSVer;
 	DWORD BPB_RootClus;
-	WORD BPB_FSInfo;
-	WORD BPB_BkBootSec;
-	BYTE BPB_Reserved[12];
-	BYTE BS_DrvNum;
-	BYTE BS_Reserved1;
-	BYTE BS_BootSig;
+	WORD  BPB_FSInfo;
+	WORD  BPB_BkBootSec;
+	BYTE  BPB_Reserved[12];
+	BYTE  BS_DrvNum;
+	BYTE  BS_Reserved1;
+	BYTE  BS_BootSig;
 	DWORD BS_VolID;
-	BYTE BS_VolLab[11];
-	BYTE BS_FilSysType[8];
+	BYTE  BS_VolLab[11];
+	BYTE  BS_FilSysType[8];
 } PACKED;
 
 struct FAT_BOOTSECTOR
 {
-	BYTE jmp[3];
-	BYTE oem_id[8];
-	WORD bytes_per_sector;
-	BYTE sectors_per_cluster;
-	WORD num_boot_sectors;
-	BYTE num_fats;
-	WORD num_root_dir_ents;
-	WORD total_sectors;
-	BYTE media_id_byte;
-	WORD sectors_per_fat;
-	WORD sectors_per_track;
-	WORD heads;
+	BYTE  jmp[3];
+	BYTE  oem_id[8];
+	WORD  bytes_per_sector;
+	BYTE  sectors_per_cluster;
+	WORD  reserved_sectors;
+	BYTE  num_fats;
+	WORD  num_root_dir_ents;
+	WORD  total_sectors;
+	BYTE  media_id_byte;
+	WORD  sectors_per_fat;
+	WORD  sectors_per_track;
+	WORD  heads;
 	DWORD hidden_sectors;
 	DWORD total_sectors_large;
 	union
@@ -78,7 +84,7 @@ struct FAT_BOOTSECTOR
 
 struct FAT_DOSTIME
 {
-	unsigned int twosecs:5;  /* low 5 bits: 2-second increments */
+	unsigned int twosecs:5;   /* low 5 bits: 2-second increments */
 	unsigned int minutes:6;   /* middle 6 bits: minutes */
 	unsigned int hours:5;     /* high 5 bits: hours (0-23) */
 } PACKED;

@@ -31,11 +31,11 @@ OBJ=loader.o kernel.o idt.o irq.o isr.o kprintf.o
 all: $(TARGET_ELF)
 
 $(TARGET_ELF): $(OBJ)
+	$(MAKE) -C $(FS)
 	$(MAKE) -C $(MM)
 	$(MAKE) -C $(PM)
 	$(MAKE) -C $(IO)
 	$(MAKE) -C $(LIB)
-	$(MAKE) -C $(FS)
 	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_COFF) $(OBJ) ./$(MM)/*.o ./$(PM)/*.o ./$(IO)/*.o ./$(IO)/$(DEV)/*.o ./$(FS)/*.o ./$(LIB)/*.o
 	$(OBJCOPY) $(OBJCOPY_FLAGS) $(TARGET_DIR)$(TARGET_COFF) $(TARGET_DIR)$(TARGET_ELF)
 	
