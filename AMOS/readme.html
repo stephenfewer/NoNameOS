@@ -12,44 +12,61 @@ p {
 </head>
 <body bgcolor="#FFFFFF" text="#000000" link="#0000FF" vlink="#FF00CC" alink="#FF0000">
 <h2>AMOS</h2>
-<p>Version 0.3.0<br>
-  27th October 2005<br>
+<p>Version 0.4.0<br>
+  3rd February 2006<br>
 </p>
 <h2>Contents<br>
 </h2>
 <ul>
   <li><a href="#Introduction">Introduction</a></li>
   <li><a href="#Building">Building</a></li>
+  <li><a href="#CVS">CVS</a></li>
   <li><a href="#Changelog">Changelog</a></li>
 </ul>
 <h2><a name="Introduction"></a>Introduction</h2>
 <div style="margin-left: 40px;">
   <p><a href="http://amos.harmonysecurity.com/" target="_blank">AMOS</a> is an 
-    open source operating system that I am developing as a hobby. The goal is 
-    by version 1.0.0 to have a completely memory managed, multitasking kernel. 
-    I am developing it in C and x86 assembly. My developmeny enviroment is the 
-    windows port of the GNU development tools <a href="http://www.delorie.com/djgpp/" target="_blank">DJGPP</a> 
+    open source operating system that I am developing. The goal is by version 
+    1.0.0 to have a completely memory managed, multitasking kernel. I am developing 
+    it in C and x86 assembly. My developmeny enviroment is the windows port of 
+    the GNU development tools <a href="http://www.delorie.com/djgpp/" target="_blank">DJGPP</a> 
     along with the <a href="http://nasm.sourceforge.net/wakka.php?wakka=HomePage" target="_blank">NASM</a> 
     assembler. For my IDE I am useing IBM's <a href="http://www.eclipse.org/" target="_blank">Eclipse</a> 
     with the <a href="http://www.eclipse.org/cdt/" target="_blank">CDT</a> plugin 
-    which provides a C/C++ development enviroment within Eclipse. Eclipse will 
-    be great when I get some a <a href="http://www.gnu.org/software/cvs/" target="_blank">CVS</a> 
-    account and I can maintain the source tree with it. I am using <a href="http://bochs.sourceforge.net/" target="_blank">bochs</a> 
+    which provides a C/C++ development enviroment within Eclipse. Eclipse is great 
+    for accessing the projects <a href="http://www.gnu.org/software/cvs/" target="_blank">CVS</a> 
+    account. I am using <a href="http://bochs.sourceforge.net/" target="_blank">bochs</a> 
     to run AMOS.</p>
   <p>Author: Steve Fewer<br>
     Contact : steve [AT] harmonysecurity [DOT] com<br>
-    Web: <a href="http://amos.harmonysecurity.com/" target="_blank">amos.harmonysecurity.com</a><br>
-  </p>
-  </div>
+    Web Blog: <a href="http://amos.harmonysecurity.com/" target="_blank">http://amos.harmonysecurity.com/</a><br>
+    Web CVS: <a href="http://cvs.sourceforge.net/viewcvs.py/osamos" target="_blank">http://cvs.sourceforge.net/viewcvs.py/osamos</a></p>
+</div>
 <ol>
   <ol>
   </ol>
 </ol>
+<h2><a name="CVS"></a>CVS</h2>
+<div style="margin-left: 40px;"> 
+  <p>To access the AMOS CVS repository from your web browser you can go <a href="http://cvs.sourceforge.net/viewcvs.py/osamos" target="_blank">here</a>. 
+    To access the AMOS source tree from a CVS client you must use the following 
+    information. I recommend Eclipse as it is also the recommended development 
+    environment for AMOS and includes an integrated CVS client.</p>
+  <p>CVS Server: <i>cvs.sourceforge.net</i><br>
+    CVS Root: <i>/cvsroot/osamos</i><br>
+    Login: <i>anonymous</i><br>
+    Module: <i>AMOS</i></p>
+  <p>If you are using a command line client you should use the following:</p>
+  <p><i>cvs -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/osamos login<br>
+    cvs -z3 -d:pserver:anonymous@cvs.sourceforge.net:/cvsroot/osamos co -P AMOS</i></p>
+  </div>
 <h2><a name="Building"></a>Building</h2>
 <div style="margin-left: 40px;"> 
   <p>In order to build the AMOS source code you will need some of the tools mentioned 
-    above. Enter the root directory of the code and run make. It should be that 
-    simple. Make sure you have your enviroment variables set up correctly, e.g.</p>
+    above. Enter the root directory of the code and run make, If you are using 
+    eclipse just click build, you might need to tweek the Eclipse project settings 
+    to suit your machine. It should be that simple. Make sure you have your enviroment 
+    variables set up correctly, e.g.</p>
 </div>
 <div style="margin-left: 40px;">
   <p><font face="Courier New, Courier, mono" size="2">set PATH=C:\\DJGPP\bin;%PATH<br>
@@ -59,12 +76,15 @@ p {
   <p>If you are building this on Windows you will need to install <a href="http://membres.lycos.fr/placr/binutils.html" target="_blank">binutils</a> for DJGPP in order to build ELF files.</p>
   <p>The linker will place the finished binary <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
     in the bin directory.</p>
-  <p>Run the batch file elf.bat to create the ELF kernel form the COFF file and it will then place <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
-    in the disk image <font face="Courier New, Courier, mono" size="2">amos.ima</font>. <a href="http://www.gnu.org/software/grub/" target="_blank">GRUB</a> 
-    is allready configured to boot the kernel.</p>
+  <p>The make process will create the ELF kernel form the COFF file and it will 
+    then place <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
+    in the disk image <font face="Courier New, Courier, mono" size="2">amos.ima</font>. 
+    <a href="http://www.gnu.org/software/grub/" target="_blank">GRUB</a> is allready 
+    configured to boot the kernel.</p>
   <p>You can now use bochs to boot off the disk image, the <font face="Courier New, Courier, mono" size="2">bochsrc.bxrc</font> 
-    config script should be fine but go over it to make sure. Either double click 
-    on the <font face="Courier New, Courier, mono" size="2">bochsrc.bxrc</font> 
+    config script should be fine but go over it to make sure. In Eclipse you can 
+    set up an external tool to run thr run.bat file to automate this, otherwse 
+    double click on the <font face="Courier New, Courier, mono" size="2">bochsrc.bxrc</font> 
     config script or run it from the command line, e.g.</p>
   <p><font face="Courier New, Courier, mono" size="2">C:\Bochs-2.2.pre4\bochs 
     -q -f bochsrc.bxrc</font></p>
@@ -73,9 +93,16 @@ p {
   </div>
 <h2><a name="Changelog"></a>Changelog<br>
 </h2>
-<div style="margin-left: 40px;">
+<div style="margin-left: 40px;"> 
+  <p>Version 0.4.0 - 3rd February 2006<br>
+    Big update, added the IO Subsystem with drivers for floppy drive (currently 
+    does not suppport write operations), virtual consoles and keyboard. Added 
+    a Virtual File System subsystem with a device file system driver to interface 
+    with the io devices and a FAT file system driver which currently only supports 
+    read operations.</p>
   <p>Version 0.3.0 - 27th October 2005<br>
-  Initial multitasking up and running. Eack task runs in its own 4GB address space.</p>
+    Initial multitasking up and running. Eack task runs in its own 4GB address 
+    space.</p>
   <p>Version 0.2.0 - 30th September 2005<br>
   Kernel now being built as an ELF file. Build proccess entirely automated within Eclipse.
   Paging setup and kernel mapped into the higher half. Kernel heap setup as are malloc() & free().</p>
