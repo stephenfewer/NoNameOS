@@ -3,17 +3,30 @@
 
 #include <sys/types.h>
 
-#define VFS_SUCCESS		0
-#define VFS_FAIL		-1
+#define VFS_SUCCESS			0
+#define VFS_FAIL			-1
 
-#define VFS_FILE		0
-#define VFS_DIRECTORY	1
-#define VFS_DEVICE		2
+
+#define VFS_FILE			0
+#define VFS_DIRECTORY		1
+#define VFS_DEVICE			2
+
+#define VFS_SEEK_START		0
+#define VFS_SEEK_CURRENT	1
+#define VFS_SEEK_END		2
+
+#define VFS_MODE_READ		1	// Allow read access to the file
+#define VFS_MODE_WRITE		2	// Allow write access to the file
+#define VFS_MODE_READWRITE	(VFS_MODE_READ | VFS_MODE_WRITE) // Allow read & write access to the file
+#define VFS_MODE_CREATE		4	// Create the file if it does not exist
+#define VFS_MODE_TRUNCATE	8	// Upon opening the file, set length to 0
+#define VFS_MODE_APPEND		9	// Set file position to the end of the file after each write
 
 struct VFS_HANDLE
 {
 	struct VFS_MOUNTPOINT * mount;
 	void * data_ptr;
+	int mode;
 };
 
 struct VFS_FILESYSTEM_CALLTABLE
@@ -74,7 +87,7 @@ int vfs_mount( char *, char *, int );
 int vfs_unmount( char * );
 
 // file operations
-struct VFS_HANDLE * vfs_open( char * );
+struct VFS_HANDLE * vfs_open( char *, int );
 
 int vfs_close( struct VFS_HANDLE * );
 

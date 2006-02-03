@@ -106,7 +106,7 @@ int fat_loadCluster( struct FAT_MOUNTPOINT * mount, int cluster, BYTE * clusterB
 	// convert cluster to a logical block number
 	block = fat_cluster2block( mount, cluster );
 	// seek to the correct offset
-	vfs_seek( mount->device, (block*mount->bootsector.bytes_per_sector)+1, SEEK_START );
+	vfs_seek( mount->device, (block*mount->bootsector.bytes_per_sector)+1, VFS_SEEK_START );
 	// load in the blocks
 	for( i=0 ; i<mount->bootsector.sectors_per_cluster ; i++ )
 	{
@@ -281,7 +281,7 @@ int fat_mount( char * device, char * mountpoint, int fstype )
 	int root_dir_offset;
 	mount0 = (struct FAT_MOUNTPOINT *)mm_malloc( sizeof(struct FAT_MOUNTPOINT) );
 	//open the device we wish to mount
-	mount0->device = vfs_open( device );
+	mount0->device = vfs_open( device, VFS_MODE_READWRITE );
 	if( mount0->device == NULL )
 		return VFS_FAIL;
 	// read in the bootsector
@@ -310,7 +310,7 @@ int fat_mount( char * device, char * mountpoint, int fstype )
 	memset( mount0->rootdir, 0x00, mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
 	// find and read in the root directory	
 	root_dir_offset = (mount0->bootsector.num_fats * mount0->fat_size) + sizeof(struct FAT_BOOTSECTOR) + 1;
-	vfs_seek( mount0->device, root_dir_offset, SEEK_START );
+	vfs_seek( mount0->device, root_dir_offset, VFS_SEEK_START );
 	vfs_read( mount0->device, (void *)(mount0->rootdir), mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
 	// return success
 	return VFS_SUCCESS;
@@ -346,6 +346,9 @@ struct VFS_HANDLE * fat_open( struct VFS_HANDLE * handle, char * filename )
 	file->current_pos = 0;
 	// associate the handle with the file entry
 	handle->data_ptr = file;
+	// if we open the file in truncate mode we need to set the size to 0
+	//if( (handle->mode & VFS_MODE_TRUNCATE) == VFS_MODE_TRUNCATE )
+	
 	// return success
 	return handle;	
 }
@@ -470,11 +473,11 @@ int fat_seek( struct VFS_HANDLE * handle, DWORD offset, BYTE origin )
 	// save the origional position in case we nee to roll back
 	saved_pos = file->current_pos;
 	// set the new position
-	if( origin == SEEK_START )
+	if( origin == VFS_SEEK_START )
 		file->current_pos = offset;
-	else if( origin == SEEK_CURRENT )
+	else if( origin == VFS_SEEK_CURRENT )
 		file->current_pos += offset;
-	else if( origin == SEEK_END )
+	else if( origin == VFS_SEEK_END )
 		file->current_pos = file->entry.file_size - offset;
 	else
 		return VFS_FAIL;
@@ -490,8 +493,11 @@ int fat_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 	return VFS_FAIL;		
 }
 
-int fat_create( char * filename, int flags )
+int fat_create( char * filename, int mode )
 {
+	// get the correct directory entry
+	// add in a new entry for the file
+	// write it back to disk
 	return VFS_FAIL;	
 }
 

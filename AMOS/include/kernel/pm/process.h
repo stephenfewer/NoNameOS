@@ -2,7 +2,7 @@
 #define _KERNEL_PM_PROCESS_H_
 
 #include <sys/types.h>
-//#include <kernel/mm/paging.h>
+#include <kernel/fs/vfs.h>
 
 #define PROCESS_CODEADDRESS		(void *)0x10000000
 #define PROCESS_STACKADDRESS	(void *)0x20000000
@@ -46,8 +46,11 @@ struct PROCESS_INFO
 	DWORD current_esp;
 	void * stack;
 	struct PAGE_DIRECTORY * page_dir;
+	struct VFS_HANDLE * console;
 	//struct MM_HEAP heap;	
 };
+
+int process_spawn( char *, struct VFS_HANDLE * );
 
 void process_destroy( struct PROCESS_INFO * );
 

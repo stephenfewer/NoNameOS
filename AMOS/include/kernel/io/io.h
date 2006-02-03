@@ -11,11 +11,6 @@
 #define IO_SUCCESS		VFS_SUCCESS
 #define IO_FAIL			VFS_FAIL
 
-// the origin defines for io_seek()
-#define SEEK_START		0
-#define SEEK_CURRENT	1
-#define SEEK_END		2
-
 struct IO_CALLTABLE
 {
 	struct IO_HANDLE * (*open)(struct IO_HANDLE *, char *);

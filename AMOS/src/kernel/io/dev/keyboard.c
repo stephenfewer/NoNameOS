@@ -102,7 +102,7 @@ DWORD keyboard_handler( struct PROCESS_STACK * taskstack )
 			else if( scancode == 0x3E )
 				name =  "/device/console4";
 				
-			console = vfs_open( name );
+			console = vfs_open( name, VFS_MODE_WRITE );
 			if( console != NULL )
 			{
 				vfs_control( console, CONSOLE_SETACTIVE, 0L );
@@ -132,7 +132,7 @@ int keyboard_init()
 	calltable->seek = NULL;
 	calltable->control = NULL;
 	
-	keyboard_output = vfs_open( "/device/console0" );
+	keyboard_output = vfs_open( "/device/console0", VFS_MODE_WRITE );
 	if( keyboard_output == NULL )
 		return IO_FAIL;
 	// add the keyboard device

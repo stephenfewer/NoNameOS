@@ -23,6 +23,23 @@
 
 int process_total = 0;
 
+int process_spawn( char * filename, struct VFS_HANDLE * console )
+{
+	struct VFS_HANDLE * handle;
+	// open the process image
+	handle = vfs_open( filename, VFS_MODE_READ );
+	if( handle == NULL )
+		return -1;
+		
+	// determine what type: elf/coff/flat/...
+	
+	// close the process images handle
+	vfs_close( handle );
+	
+	// return success
+	return 0;
+}
+
 /*
 extern DWORD scheduler_ticks;
 

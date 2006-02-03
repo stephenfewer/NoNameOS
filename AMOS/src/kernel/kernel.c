@@ -149,7 +149,7 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	kernel_init( m );
 	
 	// open the kernels console
-	kernel_console = vfs_open( "/device/console1" );
+	kernel_console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
 	if( kernel_console == NULL )
 		kernel_panic();
 	kprintf( "Welcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
@@ -160,10 +160,10 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	
 	//printdir( "/" );
 	//printdir( "/device/" );
-	//printdir( "/fat/BOOT/" );
+	printdir( "/fat/BOOT/" );
 
 	struct VFS_HANDLE * h;
-	h = vfs_open( "/fat/BOOT/TEST.TXT" );
+	h = vfs_open( "/fat/BOOT/TEST.TXT", VFS_MODE_READWRITE );
 	if( h == NULL )
 	{
 		kprintf( "Failed to open test file.\n" );
@@ -173,9 +173,9 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 		int i=0;
 		int read=0;
 		
-		kprintf( "file size = %d\n", vfs_seek( h, 0, SEEK_END ) );
+		kprintf( "file size = %d\n", vfs_seek( h, 0, VFS_SEEK_END ) );
 		
-		offset = vfs_seek( h, 200, SEEK_START );
+		offset = vfs_seek( h, 200, VFS_SEEK_START );
 		kprintf( "offset = %d\n", offset );
 		///for(i=0;i<7;i++)
 		//{
@@ -190,7 +190,7 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	}
 
 	struct VFS_HANDLE * console;
-	console = vfs_open( "/device/console2" );
+	console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
 	if( console != NULL )
 		kernel_shell( console );
 	

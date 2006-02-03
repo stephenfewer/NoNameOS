@@ -145,7 +145,9 @@ struct VFS_MOUNTPOINT * vfs_file2mountpoint( char * filename )
 	return mount;
 }
 
-struct VFS_HANDLE * vfs_open( char * filename )
+
+
+struct VFS_HANDLE * vfs_open( char * filename, int mode )
 {
 	struct VFS_HANDLE * handle;
 	struct VFS_MOUNTPOINT * mount;
@@ -161,9 +163,33 @@ struct VFS_HANDLE * vfs_open( char * filename )
 	// create the new virtual file handle	
 	handle = (struct VFS_HANDLE *)mm_malloc( sizeof(struct VFS_HANDLE) );
 	handle->mount = mount;
+	handle->mode = mode;
 	// try to open the file on the mounted file system
 	if( mount->fs->calltable.open( handle, filename ) != NULL )
+	{	
+		// set the file position to the end of the file if in append mode
+		if( (handle->mode & VFS_MODE_APPEND) == VFS_MODE_APPEND )
+			vfs_seek( handle, 0, VFS_SEEK_END );
 		return handle;
+	}
+	else
+	{
+		// if we fail to open the file but are in create mode, we can create the file
+		//     TO-DO: test the failed open() result for a value like FILE_NOT_FOUND
+		//     otherwise we could end up in an infinite recurive loop
+		if( (handle->mode & VFS_MODE_CREATE) == VFS_MODE_CREATE )
+		{	
+			if( mount->fs->calltable.create != NULL )
+			{
+				// try to create it
+				if( mount->fs->calltable.create( filename, 0 ) != VFS_FAIL )
+				{
+					if( mount->fs->calltable.open( handle, filename ) != NULL )
+						return VFS_SUCCESS;
+				}
+			}
+		}		
+	}
 	// if we fail, free the handle and return NULL
 	mm_free( handle );
 	return NULL;
@@ -183,15 +209,36 @@ int vfs_close( struct VFS_HANDLE * handle )
 
 int vfs_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
+	// test if the file has been opened in read mode first
+	if( (handle->mode & VFS_MODE_READ) != VFS_MODE_READ )
+		return VFS_FAIL;
+	// try to call the file system driver to read
 	if( handle->mount->fs->calltable.read != NULL )
 		return handle->mount->fs->calltable.read( handle, buffer, size  );
+	// if we get here we have failed
 	return VFS_FAIL;
 }
 
 int vfs_write( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size )
 {
+	int ret;
+	// test if the file ha been opened in read mode first
+	if( (handle->mode & VFS_MODE_WRITE) != VFS_MODE_WRITE )
+		return VFS_FAIL;
+	// try to call the file system driver to write
 	if( handle->mount->fs->calltable.write != NULL )
-		return handle->mount->fs->calltable.write( handle, buffer, size  );
+	{
+		ret = handle->mount->fs->calltable.write( handle, buffer, size );
+		if( ret != VFS_FAIL )
+		{
+			// set the file position to the end of the file if in append mode
+			if( (handle->mode & VFS_MODE_APPEND) == VFS_MODE_APPEND )
+				vfs_seek( handle, 0, VFS_SEEK_END );
+			// return the write result
+			return ret;
+		}
+	}
+	// if we get here we have failed
 	return VFS_FAIL;
 }
 
@@ -209,7 +256,7 @@ int vfs_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 	return VFS_FAIL;
 }
 
-int vfs_create( char * filename, int flags )
+int vfs_create( char * filename, int mode )
 {
 	struct VFS_MOUNTPOINT * mount;
 	// find the correct mountpoint for this file
@@ -220,7 +267,7 @@ int vfs_create( char * filename, int flags )
 	filename = (char *)( filename + strlen(mount->mountpoint) );
 	// try to create the file on the mounted file system
 	if( mount->fs->calltable.create != NULL )
-		return mount->fs->calltable.create( filename, flags );
+		return mount->fs->calltable.create( filename, mode );
 	// return fail
 	return VFS_FAIL;	
 }
@@ -293,8 +340,9 @@ struct VFS_DIRLIST_ENTRY * vfs_list( char * dir )
 	{
 		struct VFS_DIRLIST_ENTRY * entry;
 		entry = mount->fs->calltable.list( dir );
-		// add any virtual mount points
-		// add in a ".." 
+		/*
+		// to-do: add any virtual mount points
+		//        add in a ".." 
 		struct VFS_MOUNTPOINT * mount;
 		// find the mountpoint
 		for( mount=vfs_mpBottom ; mount!=NULL ; mount=mount->next )
@@ -310,9 +358,10 @@ struct VFS_DIRLIST_ENTRY * vfs_list( char * dir )
 				if( c <= 2 )
 					kprintf("vfs: mountpoint %s\n", mount->mountpoint );
 			}
-		}		
+		}*/		
 		
-		// sort...
+		// to-do: maby sort the list...
+		
 		return entry;
 	}
 	// return fail
