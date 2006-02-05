@@ -2,9 +2,9 @@ MAKEFILE=Makefile
 
 TARGET=amos.ima
 
-KERNEL_ELF=kernel.elf
-KERNEL_COFF=kernel.coff
-KERNEL_TXT=kernel.txt
+KERNEL_ELF=.\kernel\kernel.elf
+KERNEL_COFF=.\kernel\kernel.coff
+KERNEL_TXT=.\kernel\kernel.txt
 
 IMAGE=grub.ima
 IMAGE_DIR=a:\boot
@@ -16,12 +16,12 @@ RM=del
 OBJDUMP=objdump-elf
 
 all: $(TARGET)
-	$(MCOPY) -o .\$(KERNEL_ELF) $(IMAGE_DIR)
-
+	$(MCOPY) -o $(KERNEL_ELF) $(IMAGE_DIR)
+	
 $(TARGET):
 	$(COPY) .\$(IMAGE) .\$(TARGET)
 	$(MCOPY) -o .\$(IMAGE_MENU) $(IMAGE_DIR)
-	$(MCOPY) -o .\test.txt $(IMAGE_DIR)
+	$(MCOPY) -o .\apps\test.bin $(IMAGE_DIR)
 	
 clean:
 	$(RM) $(TARGET)

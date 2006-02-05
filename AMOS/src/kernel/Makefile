@@ -3,7 +3,7 @@ MAKEFILE=Makefile
 TARGET_ELF=kernel.elf
 TARGET_COFF=kernel.coff
 
-TARGET_DIR=../../bin/
+TARGET_DIR=../../bin/kernel/
 
 INCLUDE_DIR=../../include/
 

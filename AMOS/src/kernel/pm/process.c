@@ -20,11 +20,14 @@
 #include <kernel/kernel.h>
 #include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
+#include <kernel/fs/vfs.h>
+#include <kernel/pm/elf.h>
 
 int process_total = 0;
 
 int process_spawn( char * filename, struct VFS_HANDLE * console )
 {
+	int i;
 	struct VFS_HANDLE * handle;
 	// open the process image
 	handle = vfs_open( filename, VFS_MODE_READ );
@@ -32,6 +35,25 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 		return -1;
 		
 	// determine what type: elf/coff/flat/...
+	
+	BYTE * buffer;
+	int size;
+	
+	size = vfs_seek( handle, 0, VFS_SEEK_END );
+	kprintf("size = %d\n", size );
+	
+	buffer = (BYTE *)mm_malloc( size );
+	
+	vfs_seek( handle, 0, VFS_SEEK_START );
+	if( vfs_read( handle, buffer, size ) == VFS_FAIL )
+		return -1;
+		
+	kprintf("read in buffer\n" );
+	
+	//if( (i=elf_load( handle )) < 0 )
+	//	kprintf("Failed to load ELF [%d]: %s\n", i, filename );
+	
+	process_create( (void *)buffer );
 	
 	// close the process images handle
 	vfs_close( handle );

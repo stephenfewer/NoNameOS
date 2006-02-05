@@ -7,7 +7,7 @@ RM=del
 
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -finline-functions -nostdinc -I $(INCLUDE_DIR)
 
-OBJ=scheduler.o process.o
+OBJ=scheduler.o process.o elf.o
 	
 all: $(OBJ)
 

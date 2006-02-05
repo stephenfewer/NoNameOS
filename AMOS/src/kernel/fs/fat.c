@@ -381,7 +381,7 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 	// get the correct cluster to begin reading from
 	int i = file->current_pos / file->mount->cluster_size;
 	// we traverse the cluster chain i times
-	kprintf("fat_read: size = %d i = %d file->current_pos = %d\n",size, i, file->current_pos );
+	//kprintf("fat_read: size = %d i = %d file->current_pos = %d\n",size, i, file->current_pos );
 	while( i-- )
 	{
 	//	kprintf("\ti = %d     cluster = %x\n", i, cluster );
@@ -397,7 +397,7 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 	// handle reads that begin from some point inside a cluster
 	cluster_offset = file->current_pos % file->mount->cluster_size;
 	
-	kprintf("fat_read: cluster_offset = %d\n",cluster_offset);
+	//kprintf("fat_read: cluster_offset = %d\n",cluster_offset);
 	// allocate a buffer to read data into
 	clusterBuffer = (BYTE *)mm_malloc( file->mount->cluster_size );
 	// read in the data
@@ -415,7 +415,7 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 		{
 			bytes_to_read = (cluster_offset + bytes_to_read) - (((file->current_pos / file->mount->cluster_size)+1)*file->mount->cluster_size);
 			bytes_to_read = size - bytes_to_read;
-			kprintf("fat_read: reading accross 2 clusters, bytes_to_read = %d\n", bytes_to_read );	
+			//kprintf("fat_read: reading accross 2 clusters, bytes_to_read = %d\n", bytes_to_read );	
 		}
 		// read in the next cluster of data
 		if( fat_loadCluster( file->mount, cluster, clusterBuffer ) < 0 )
