@@ -155,38 +155,35 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	kprintf( "Welcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
 	
 	// mount the root file system
-	kprintf( "mounting device /device/floppy1 to /fat/ as a FAT file system.\n" );
-	vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
+	//kprintf( "mounting device /device/floppy1 to /fat/ as a FAT file system.\n" );
+	//vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
 	
 	//printdir( "/" );
 	//printdir( "/device/" );
-	printdir( "/fat/BOOT/" );
+	//printdir( "/fat/BOOT/" );
 
 	struct VFS_HANDLE * h;
-	h = vfs_open( "/fat/BOOT/TEST.TXT", VFS_MODE_READWRITE );
+	h = vfs_open( "/device/floppy1", VFS_MODE_READWRITE );
 	if( h == NULL )
 	{
 		kprintf( "Failed to open test file.\n" );
 	} else {
-		char buff[100];
-		int offset=0;
-		int i=0;
-		int read=0;
+		char buff[513];
+		int write,i;
 		
-		kprintf( "file size = %d\n", vfs_seek( h, 0, VFS_SEEK_END ) );
+		for(i=0;i<512;i++)
+			buff[i]='A';
+		buff[512] = '\0';
 		
-		offset = vfs_seek( h, 200, VFS_SEEK_START );
-		kprintf( "offset = %d\n", offset );
-		///for(i=0;i<7;i++)
-		//{
-			if( (read=vfs_read( h, (BYTE *)&buff, 100 )) != VFS_FAIL )
-			{
-				kprintf( "read=%d %s\n",read, buff );
-			} else {
-				kprintf( "read fail, i = %d\n", i );
-				//break;
-			}
-		//}
+		vfs_seek( h, 513, VFS_SEEK_START );
+		
+		if( (write=vfs_write( h, (BYTE *)&buff, 512 )) != VFS_FAIL )
+		{
+			kprintf( "write=%d %s\n",write, buff );
+		} else {
+			kprintf( "write fail, i = %d\n", i );
+		}
+		
 	}
 
 	struct VFS_HANDLE * console;

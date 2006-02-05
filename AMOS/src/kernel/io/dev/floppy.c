@@ -210,13 +210,17 @@ void floppy_blockGeometry( struct FLOPPY_DRIVE * floppy, int block, struct FLOPP
 }
 
 // based on Figure 8.5 (read/write) of the Intel 82077AA spec
-int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, int size )
+int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, int mode )
 {
+	// To-Do: alloc this from the physical memory manager!
 	void * dma_address = (void *)0x00080000;
 	int tries = FLOPPY_RWTRIES;
 	struct FLOPPY_GEOMETRY blockGeometry;
 	// retrieve the block geometry
 	floppy_blockGeometry( floppy, block, &blockGeometry );
+	// if we are issuing a write command we copy the data into the DMA buffer first
+	if( mode == FLOPPY_WRITEBLOCK )
+		memcpy( dma_address, buffer, floppy->geometry->blocksize );
 	// we try this 3 times as laid out int the Intel documentation
     while( tries-- )
     {			
@@ -228,13 +232,23 @@ int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, in
     		kprintf("floppy: read seek failed, block %d\n", block );
     		// turn off the floppy motor
     		floppy_off( floppy );
-    		return FALSE;	
+    		return IO_FAIL;	
     	}
-    	// setup DMA
-    	dma_write( FLOPPY_DMA_CHANNEL, dma_address, floppy->geometry->blocksize );
-    	// issue a read command
-    	floppy_sendbyte( floppy, FLOPPY_READ );
-    	// followed by the read data
+		if( mode == FLOPPY_READBLOCK )
+		{
+			// setup DMA for a floppy read
+			dma_write( FLOPPY_DMA_CHANNEL, dma_address, floppy->geometry->blocksize );
+			// issue a read command
+			floppy_sendbyte( floppy, FLOPPY_READ );
+		}
+		else
+		{
+			// setup DMA for a floppy write
+			dma_read( FLOPPY_DMA_CHANNEL, dma_address, floppy->geometry->blocksize );
+			// issue a write command
+			floppy_sendbyte( floppy, FLOPPY_WRITE );
+		}
+    	// followed by the data
     	floppy_sendbyte( floppy, (blockGeometry.heads << 2) | ( floppy->base == FLOPPY_PRIMARY ? 0 : 1 ) );
     	floppy_sendbyte( floppy, blockGeometry.cylinders );
 		floppy_sendbyte( floppy, blockGeometry.heads );
@@ -251,7 +265,7 @@ int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, in
 			floppy_reset( floppy );
 			// turn off the floppy motor
     		floppy_off( floppy );
-			return FALSE;
+			return IO_FAIL;
 		}
 		// read in the result phase of the read command
 		// we dont need the bytes we just need to clear the FIFO queue
@@ -267,12 +281,11 @@ int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, in
 		{
 			// turn off the floppy motor
     		floppy_off( floppy );
-    		// sanity check, we can only copy max a block
-    		if( size > floppy->geometry->blocksize )
-				size = floppy->geometry->blocksize;
-			// copy size bytes back to buffer
-			memcpy( buffer, dma_address, size );
-			return TRUE;
+			// copy back buffer if we were reading
+			if( mode == FLOPPY_READBLOCK )
+				memcpy( buffer, dma_address, floppy->geometry->blocksize );
+			// return sucess :)
+			return IO_SUCCESS;
 		}
     	// recalibrate the drive
 		floppy_recalibrate( floppy );
@@ -281,7 +294,33 @@ int floppy_readBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, in
 	// we fail if we cant read in three tries
 	// turn off the floppy motor
     floppy_off( floppy );
-	return FALSE;
+	return IO_FAIL;
+}
+
+int floppy_rw( struct IO_HANDLE * handle, BYTE * buffer, DWORD size, int mode  )
+{
+	int bytes_rw=0, blocks=0;
+	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data_ptr;
+	// we can only write block alligned buffers of data
+	if( size < floppy->geometry->blocksize || size % floppy->geometry->blocksize != 0 )
+		return IO_FAIL;
+	// calculate how many blocks we need to read or write
+	blocks = size / floppy->geometry->blocksize;
+	// while we still have blocks to read or write, loop...
+	while( blocks-- > 0 )
+	{
+		// try to read or write the next block
+		if( floppy_rwBlock( floppy, floppy->current_block, buffer, mode ) == IO_FAIL )
+			return IO_FAIL;
+		// update the buffer pointer
+		buffer += floppy->geometry->blocksize;
+		// update the total amount of bytes read or written
+		bytes_rw += floppy->geometry->blocksize;
+		// increment the current block for the next read or write
+		floppy->current_block++;
+	}
+	// return the total bytes read or written
+	return bytes_rw;
 }
 
 struct IO_HANDLE * floppy_open( struct IO_HANDLE * handle, char * filename )
@@ -331,48 +370,26 @@ int floppy_close( struct IO_HANDLE * handle)
 
 int floppy_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
-	int bytes_to_read=0, bytes_read=0;
-	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data_ptr;
-	// make sure the buffer is big enough	
-	if( size < floppy->geometry->blocksize )
-		return IO_FAIL;
-	// while we still have data to read, loop...
-	while( size > 0 )
-	{
-		// calculate the bytes to read which can be no more than the size of a block
-		if( size >= floppy->geometry->blocksize )
-			bytes_to_read = floppy->geometry->blocksize;
-		else
-			bytes_to_read = size;
-		// try to read in the next block into the buffer
-		if( !floppy_readBlock( floppy, floppy->current_block, buffer, bytes_to_read ) )
-		{
-			// return fail
-			return IO_FAIL;
-		}
-		// update the buffer pointer
-		buffer += bytes_to_read;
-		// update the total amount of bytes read
-		bytes_read += bytes_to_read;
-		// increment the current block for the next read
-		floppy->current_block++;
-		// decrement the amount to read by the disks block size
-		size -= floppy->geometry->blocksize;	
-	}
-	// return the total bytes read
-	return bytes_read;
+	return floppy_rw( handle, buffer, size, FLOPPY_READBLOCK );	
 }
 
 int floppy_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
-	return IO_FAIL;	
+	return floppy_rw( handle, buffer, size, FLOPPY_WRITEBLOCK );
 }
 
 int floppy_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin )
 {
 	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data_ptr;
 	// calculate the current block from the offset
-	floppy->current_block = ( offset / floppy->geometry->blocksize );
+	if( origin == VFS_SEEK_START )
+		floppy->current_block = ( offset / floppy->geometry->blocksize );
+	else if( origin == VFS_SEEK_CURRENT )
+		floppy->current_block += ( offset / floppy->geometry->blocksize );
+	//else if( origin == VFS_SEEK_END )
+	//	floppy->current_block = TOTAL_FLOPPY_BLOCKS - ( offset / floppy->geometry->blocksize );
+	else
+		return VFS_FAIL;
 	// returnt the current offset to the caller
 	return floppy->current_block * floppy->geometry->blocksize;	
 }

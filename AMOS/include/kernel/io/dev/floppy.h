@@ -3,6 +3,9 @@
 
 #include <sys/types.h>
 
+#define FLOPPY_READBLOCK	1
+#define FLOPPY_WRITEBLOCK	2
+
 #define FLOPPY_TIMEOUT		128
 #define FLOPPY_RWTRIES		3
 #define FLOPPY_DMA_CHANNEL	2
@@ -21,8 +24,9 @@
 // commands
 #define FLOPPY_RECALIBRATE	0x07
 #define FLOPPY_SIS			0x08	// sence interrupt status
-#define FLOPPY_SEEK			0x0F	// seek
-#define FLOPPY_READ			0xE6	// read
+#define FLOPPY_SEEK			0x0F
+#define FLOPPY_WRITE		0xC5
+#define FLOPPY_READ			0xE6
 
 struct FLOPPY_GEOMETRY
 {
