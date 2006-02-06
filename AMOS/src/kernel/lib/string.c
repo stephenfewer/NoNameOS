@@ -22,6 +22,18 @@ int strlen( char * srs )
 	return s-srs;
 }
 
+char * strrchr( char * src, int c )
+{
+	char * p = src + strlen(src);
+	do
+	{
+		if( *p == (char)c )
+			return (char *)p;
+	} while( --p >= src );
+	
+	return NULL;
+}
+
 int strcmp( char * src, char * dest )
 {
 	register signed char res;

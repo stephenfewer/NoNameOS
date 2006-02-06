@@ -6,6 +6,7 @@
 #define VFS_SUCCESS			0
 #define VFS_FAIL			-1
 
+#define VFS_MAXFILENAME		256
 
 #define VFS_FILE			0
 #define VFS_DIRECTORY		1
@@ -29,12 +30,14 @@ struct VFS_HANDLE
 	int mode;
 };
 
+typedef int (*rw)(struct VFS_HANDLE *, BYTE *, DWORD );
+
 struct VFS_FILESYSTEM_CALLTABLE
 {
 	struct VFS_HANDLE * (*open)( struct VFS_HANDLE *, char * );
 	int (*close)(struct VFS_HANDLE *);
-	int (*read)(struct VFS_HANDLE *, BYTE *, DWORD );
-	int (*write)(struct VFS_HANDLE *, BYTE *, DWORD );
+	rw read;
+	rw write;
 	int (*seek)(struct VFS_HANDLE *, DWORD, BYTE );
 	int (*control)(struct VFS_HANDLE *, DWORD, DWORD );
 	int (*create)( char *, int );

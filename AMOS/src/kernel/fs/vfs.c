@@ -90,11 +90,15 @@ int vfs_mount( char * device, char * mountpoint, int fstype )
 int vfs_unmount( char * mountpoint )
 {
 	struct VFS_MOUNTPOINT * mount, * m;
+	char name[VFS_MAXFILENAME], * name_ptr;
+	// copy the name so we can modify it
+	name_ptr = (char *)&name;
+	strcpy( name_ptr, mountpoint );
 	// find the mountpoint
 	for( mount=vfs_mpBottom ; mount!=NULL ; mount=mount->next )
 	{
 		// if we have a match we break from the search
-		if( strcmp( mount->mountpoint, mountpoint ) == 0 )
+		if( strcmp( mount->mountpoint, name_ptr ) == 0 )
 			break;
 	}
 	// fail if we cant find it
@@ -103,7 +107,7 @@ int vfs_unmount( char * mountpoint )
 	// call the file system driver to unmount
 	if( mount->fs->calltable.unmount == NULL )
 		return VFS_FAIL;
-	mount->fs->calltable.unmount( mountpoint );
+	mount->fs->calltable.unmount( name_ptr );
 	// remove the mount point from the VFS
 	if( mount == vfs_mpBottom )
 	{
@@ -151,12 +155,16 @@ struct VFS_HANDLE * vfs_open( char * filename, int mode )
 {
 	struct VFS_HANDLE * handle;
 	struct VFS_MOUNTPOINT * mount;
+	char name[VFS_MAXFILENAME], * name_ptr;
+	// copy the name so we can modify it
+	name_ptr = (char *)&name;
+	strcpy( name_ptr, filename );
 	// find the correct mountpoint for this file
-	mount = vfs_file2mountpoint( filename );
+	mount = vfs_file2mountpoint( name_ptr );
 	if( mount == NULL )
 		return NULL;
 	// advance the filname past the mount point
-	filename = (char *)( filename + strlen(mount->mountpoint) );
+	name_ptr = (char *)( name_ptr + strlen(mount->mountpoint) );
 	// call the file system driver to open
 	if( mount->fs->calltable.open == NULL )
 		return NULL;
@@ -165,7 +173,7 @@ struct VFS_HANDLE * vfs_open( char * filename, int mode )
 	handle->mount = mount;
 	handle->mode = mode;
 	// try to open the file on the mounted file system
-	if( mount->fs->calltable.open( handle, filename ) != NULL )
+	if( mount->fs->calltable.open( handle, name_ptr ) != NULL )
 	{	
 		// set the file position to the end of the file if in append mode
 		if( (handle->mode & VFS_MODE_APPEND) == VFS_MODE_APPEND )
@@ -182,9 +190,9 @@ struct VFS_HANDLE * vfs_open( char * filename, int mode )
 			if( mount->fs->calltable.create != NULL )
 			{
 				// try to create it
-				if( mount->fs->calltable.create( filename, 0 ) != VFS_FAIL )
+				if( mount->fs->calltable.create( name_ptr, 0 ) != VFS_FAIL )
 				{
-					if( mount->fs->calltable.open( handle, filename ) != NULL )
+					if( mount->fs->calltable.open( handle, name_ptr ) != NULL )
 						return VFS_SUCCESS;
 				}
 			}
@@ -259,15 +267,19 @@ int vfs_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 int vfs_create( char * filename, int mode )
 {
 	struct VFS_MOUNTPOINT * mount;
+	char name[VFS_MAXFILENAME], * name_ptr;
+	// copy the name so we can modify it
+	name_ptr = (char *)&name;
+	strcpy( name_ptr, filename );
 	// find the correct mountpoint for this file
-	mount = vfs_file2mountpoint( filename );
+	mount = vfs_file2mountpoint( name_ptr );
 	if( mount == NULL )
 		return VFS_FAIL;
 	// advance the filname past the mount point
-	filename = (char *)( filename + strlen(mount->mountpoint) );
+	name_ptr = (char *)( name_ptr + strlen(mount->mountpoint) );
 	// try to create the file on the mounted file system
 	if( mount->fs->calltable.create != NULL )
-		return mount->fs->calltable.create( filename, mode );
+		return mount->fs->calltable.create( name_ptr, mode );
 	// return fail
 	return VFS_FAIL;	
 }
@@ -275,15 +287,19 @@ int vfs_create( char * filename, int mode )
 int vfs_delete( char * filename )
 {
 	struct VFS_MOUNTPOINT * mount;
+	char name[VFS_MAXFILENAME], * name_ptr;
+	// copy the name so we can modify it
+	name_ptr = (char *)&name;
+	strcpy( name_ptr, filename );
 	// find the correct mountpoint for this file
-	mount = vfs_file2mountpoint( filename );
+	mount = vfs_file2mountpoint( name_ptr );
 	if( mount == NULL )
 		return VFS_FAIL;
 	// advance the filname past the mount point
-	filename = (char *)( filename + strlen(mount->mountpoint) );
+	name_ptr = (char *)( name_ptr + strlen(mount->mountpoint) );
 	// try to delete the file on the mounted file system
 	if( mount->fs->calltable.delete != NULL )
-		return mount->fs->calltable.delete( filename );
+		return mount->fs->calltable.delete( name_ptr );
 	// return fail
 	return VFS_FAIL;		
 }
@@ -291,16 +307,23 @@ int vfs_delete( char * filename )
 int vfs_rename( char * src, char * dest )
 {
 	struct VFS_MOUNTPOINT * mount;
+	char srcname[VFS_MAXFILENAME], * srcname_ptr;
+	char destname[VFS_MAXFILENAME], * destname_ptr;
+	// copy the name so we can modify it
+	srcname_ptr = (char *)&srcname;
+	strcpy( srcname_ptr, src );
+	destname_ptr = (char *)&destname;
+	strcpy( destname_ptr, dest );
 	// find the correct mountpoint for this file
-	mount = vfs_file2mountpoint( src );
+	mount = vfs_file2mountpoint( srcname_ptr );
 	if( mount == NULL )
 		return VFS_FAIL;
 	// advance the filnames past the mount point, we should sanity check this better
-	src = (char *)( src + strlen(mount->mountpoint) );
-	dest = (char *)( dest + strlen(mount->mountpoint) );
+	srcname_ptr = (char *)( srcname_ptr + strlen(mount->mountpoint) );
+	destname_ptr = (char *)( destname_ptr + strlen(mount->mountpoint) );
 	// try to rename the file on the mounted file system
 	if( mount->fs->calltable.rename != NULL )
-		return mount->fs->calltable.rename( src, dest );
+		return mount->fs->calltable.rename( srcname_ptr, destname_ptr );
 	// return fail
 	return VFS_FAIL;
 }
@@ -308,17 +331,24 @@ int vfs_rename( char * src, char * dest )
 int vfs_copy( char * src, char * dest )
 {
 	struct VFS_MOUNTPOINT * mount;
+	char srcname[VFS_MAXFILENAME], * srcname_ptr;
+	char destname[VFS_MAXFILENAME], * destname_ptr;
+	// copy the name so we can modify it
+	srcname_ptr = (char *)&srcname;
+	strcpy( srcname_ptr, src );
+	destname_ptr = (char *)&destname;
+	strcpy( destname_ptr, dest );
 	// find the correct mountpoint for this file
-	mount = vfs_file2mountpoint( src );
+	mount = vfs_file2mountpoint( srcname_ptr );
 	if( mount == NULL )
 		return VFS_FAIL;
 	// advance the filnames past the mount point, we should sanity check this better
 	// also dest may be on another mountpoint
-	src = (char *)( src + strlen(mount->mountpoint) );
-	dest = (char *)( dest + strlen(mount->mountpoint) );
+	srcname_ptr = (char *)( srcname_ptr + strlen(mount->mountpoint) );
+	destname_ptr = (char *)( destname_ptr + strlen(mount->mountpoint) );
 	// try to copy the file on the mounted file system
 	if( mount->fs->calltable.copy != NULL )
-		return mount->fs->calltable.copy( src, dest );
+		return mount->fs->calltable.copy( srcname_ptr, destname_ptr );
 	// return fail
 	return VFS_FAIL;	
 }
@@ -326,23 +356,26 @@ int vfs_copy( char * src, char * dest )
 struct VFS_DIRLIST_ENTRY * vfs_list( char * dir )
 {
 	struct VFS_MOUNTPOINT * mount;
+	char name[VFS_MAXFILENAME], * name_ptr;
+	// copy the name so we can modify it
+	name_ptr = (char *)&name;
+	strcpy( name_ptr, dir );
 	// sanity check that this is a dir and not a file
-	if( dir[ strlen(dir)-1 ] != '/' )
+	if( dir[ strlen(name_ptr)-1 ] != '/' )
 		return NULL;
 	// find the correct mountpoint for this dir
-	mount = vfs_file2mountpoint( dir );
+	mount = vfs_file2mountpoint( name_ptr );
 	if( mount == NULL )
 		return NULL;
 	// advance the dir name past the mount point
-	dir = (char *)( dir + strlen(mount->mountpoint) );
+	name_ptr = (char *)( name_ptr + strlen(mount->mountpoint) );
 	// try to list the dir on the mounted file system
 	if( mount->fs->calltable.list != NULL )
 	{
 		struct VFS_DIRLIST_ENTRY * entry;
-		entry = mount->fs->calltable.list( dir );
+		entry = mount->fs->calltable.list( name_ptr );
 		/*
 		// to-do: add any virtual mount points
-		//        add in a ".." 
 		struct VFS_MOUNTPOINT * mount;
 		// find the mountpoint
 		for( mount=vfs_mpBottom ; mount!=NULL ; mount=mount->next )

@@ -6,6 +6,9 @@
 
 #define FAT_TYPE				1
 
+#define FAT_READ				1
+#define FAT_WRITE				2
+
 #define FAT_CLUSTER12(c)		( c & 0x00000FFF )	// 12 bits
 #define FAT_CLUSTER16(c)		( c & 0x0000FFFF )	// 16 bits
 #define FAT_CLUSTER31(c)		( c & 0x0FFFFFFF )	// 28 bits
@@ -21,6 +24,8 @@
 #define FAT_32_ENDOFCLUSTER		0xFFFFFFFF
 #define FAT_32_BADCLUSTER		0x0FFFFFF7
 #define FAT_32_RESERVERCLUSTER	0x0FFFFFF8
+
+#define FAT_ENTRY_DELETED		0xE5
 
 #define FAT_12					12
 #define FAT_16					16

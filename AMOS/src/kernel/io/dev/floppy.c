@@ -210,14 +210,14 @@ void floppy_blockGeometry( struct FLOPPY_DRIVE * floppy, int block, struct FLOPP
 }
 
 // based on Figure 8.5 (read/write) of the Intel 82077AA spec
-int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, int mode )
+int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
 {
 	// To-Do: alloc this from the physical memory manager!
 	void * dma_address = (void *)0x00080000;
 	int tries = FLOPPY_RWTRIES;
 	struct FLOPPY_GEOMETRY blockGeometry;
 	// retrieve the block geometry
-	floppy_blockGeometry( floppy, block, &blockGeometry );
+	floppy_blockGeometry( floppy, floppy->current_block, &blockGeometry );
 	// if we are issuing a write command we copy the data into the DMA buffer first
 	if( mode == FLOPPY_WRITEBLOCK )
 		memcpy( dma_address, buffer, floppy->geometry->blocksize );
@@ -229,7 +229,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, int 
     	// seek to the correct location
     	if( !floppy_seekcylinder( floppy, blockGeometry.cylinders ) )
     	{
-    		kprintf("floppy: read seek failed, block %d\n", block );
+    		kprintf("floppy: read seek failed, block %d\n", floppy->current_block );
     		// turn off the floppy motor
     		floppy_off( floppy );
     		return IO_FAIL;	
@@ -260,7 +260,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, int 
 		// wait for the floppy drive to send back an interrupt
 		if( !floppy_wait( floppy, FALSE ) )
 		{
-			kprintf("floppy: read floppy_wait failed, block %d\n", block );
+			kprintf("floppy: read floppy_wait failed, block %d\n", floppy->current_block );
 			// if this fails reset the drive
 			floppy_reset( floppy );
 			// turn off the floppy motor
@@ -290,7 +290,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, int 
     	// recalibrate the drive
 		floppy_recalibrate( floppy );
     }
-    kprintf("floppy: read failed 3 times, block %d\n", block );
+    kprintf("floppy: read failed 3 times, block %d\n", floppy->current_block );
 	// we fail if we cant read in three tries
 	// turn off the floppy motor
     floppy_off( floppy );
@@ -299,7 +299,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, int block, void * buffer, int 
 
 int floppy_rw( struct IO_HANDLE * handle, BYTE * buffer, DWORD size, int mode  )
 {
-	int bytes_rw=0, blocks=0;
+	int bytes_rw=IO_FAIL, blocks=0;
 	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data_ptr;
 	// we can only write block alligned buffers of data
 	if( size < floppy->geometry->blocksize || size % floppy->geometry->blocksize != 0 )
@@ -310,8 +310,8 @@ int floppy_rw( struct IO_HANDLE * handle, BYTE * buffer, DWORD size, int mode  )
 	while( blocks-- > 0 )
 	{
 		// try to read or write the next block
-		if( floppy_rwBlock( floppy, floppy->current_block, buffer, mode ) == IO_FAIL )
-			return IO_FAIL;
+		if( floppy_rwBlock( floppy, buffer, mode ) == IO_FAIL )
+			break;
 		// update the buffer pointer
 		buffer += floppy->geometry->blocksize;
 		// update the total amount of bytes read or written

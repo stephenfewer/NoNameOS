@@ -141,6 +141,7 @@ void printdir( char * dir )
 		entry++;
 	}
 	kprintf( "\n" );
+	mm_free( entry );
 }
 
 void kernel_main( struct MULTIBOOT_INFO * m )
@@ -160,6 +161,13 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	
 	//printdir( "/" );
 	//printdir( "/device/" );
+	printdir( "/fat/BOOT/" );
+	
+	if( vfs_delete( "/fat/BOOT/TEST.TXT" ) == VFS_SUCCESS )
+		kprintf( "delete success\n" );
+	else
+		kprintf( "delete fail\n" );
+	
 	printdir( "/fat/BOOT/" );
 /*
 	struct VFS_HANDLE * h;
@@ -189,7 +197,7 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 		//}
 	}
 */
-
+/*
 	struct VFS_HANDLE * console;
 	console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
 	if( console != NULL )
@@ -200,7 +208,7 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 		
 		//kernel_shell( console );
 	}
-	
+*/	
 	while(TRUE);
 	
 /*	kprintf( "\nMultitasking Test:\n" );

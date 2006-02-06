@@ -5,6 +5,8 @@
 
 int strlen( char * );
 
+char * strrchr( char *, int );
+
 int strcmp( char *, char * );
 
 int strncmp( char *, char *, int );
