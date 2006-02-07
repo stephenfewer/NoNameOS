@@ -190,7 +190,7 @@ struct VFS_HANDLE * vfs_open( char * filename, int mode )
 			if( mount->fs->calltable.create != NULL )
 			{
 				// try to create it
-				if( mount->fs->calltable.create( name_ptr, 0 ) != VFS_FAIL )
+				if( mount->fs->calltable.create( name_ptr ) != VFS_FAIL )
 				{
 					if( mount->fs->calltable.open( handle, name_ptr ) != NULL )
 						return VFS_SUCCESS;
@@ -264,7 +264,7 @@ int vfs_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 	return VFS_FAIL;
 }
 
-int vfs_create( char * filename, int mode )
+int vfs_create( char * filename )
 {
 	struct VFS_MOUNTPOINT * mount;
 	char name[VFS_MAXFILENAME], * name_ptr;
@@ -279,7 +279,7 @@ int vfs_create( char * filename, int mode )
 	name_ptr = (char *)( name_ptr + strlen(mount->mountpoint) );
 	// try to create the file on the mounted file system
 	if( mount->fs->calltable.create != NULL )
-		return mount->fs->calltable.create( name_ptr, mode );
+		return mount->fs->calltable.create( name_ptr );
 	// return fail
 	return VFS_FAIL;	
 }

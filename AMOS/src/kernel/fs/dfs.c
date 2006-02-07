@@ -127,7 +127,7 @@ int dfs_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 	return io_control( (struct IO_HANDLE *)handle->data_ptr, request, arg );		
 }
 
-int dfs_create( char * filename, int mode )
+int dfs_create( char * filename )
 {
 	// we cant create a new file here. new devices are to be loaded
 	// into the system with the IO Subsystems load() system call.

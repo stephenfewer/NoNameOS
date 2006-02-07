@@ -9,6 +9,10 @@
 #define FAT_READ				1
 #define FAT_WRITE				2
 
+#define FAT_PROCESS_BREAK		-1
+#define FAT_PROCESS_CONTINUE	-2
+#define FAT_PROCESS_SUCCESS		0
+
 #define FAT_CLUSTER12(c)		( c & 0x00000FFF )	// 12 bits
 #define FAT_CLUSTER16(c)		( c & 0x0000FFFF )	// 16 bits
 #define FAT_CLUSTER31(c)		( c & 0x0FFFFFFF )	// 28 bits
@@ -141,6 +145,8 @@ struct FAT_FILE
 	struct FAT_ENTRY entry;
 	int current_pos;
 };
+
+typedef int (*processEntry)( struct FAT_MOUNTPOINT *, struct FAT_ENTRY *, int, char *, char * );
 
 int fat_init();
 

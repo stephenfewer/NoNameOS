@@ -40,7 +40,7 @@ struct VFS_FILESYSTEM_CALLTABLE
 	rw write;
 	int (*seek)(struct VFS_HANDLE *, DWORD, BYTE );
 	int (*control)(struct VFS_HANDLE *, DWORD, DWORD );
-	int (*create)( char *, int );
+	int (*create)( char * );
 	int (*delete)( char * );
 	int (*rename)( char *, char * );
 	int (*copy)( char *, char * );
@@ -103,7 +103,7 @@ int vfs_seek( struct VFS_HANDLE *, DWORD, BYTE );
 int vfs_control( struct VFS_HANDLE *, DWORD, DWORD );
 
 // fs operations
-int vfs_create( char *, int );
+int vfs_create( char * );
 
 int vfs_delete( char * );
 

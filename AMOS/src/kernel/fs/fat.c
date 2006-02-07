@@ -246,43 +246,181 @@ int fat_file2entry( struct FAT_MOUNTPOINT * mount, char * filename, struct FAT_E
 	return 0;
 }
 
-/*
-void fat_displayDir( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * dir )
+int fat_setName( struct FAT_ENTRY * entry, char * name )
 {
-	int x, next_cluster;
+	int i, x;
 	
-	kprintf("\n-------[dir start]-------");
-	
-	for(x=0;x<16;x++)
+	for( i=0 ; i<8 ; i++ )
 	{
-		if( dir[x].start_cluster == 0x0000 )
-			continue;
-			
-		kprintf("\n");
-		
-		dir[x].name[7] = 0x00;
-		if( dir[x].attribute.directory )
-			kprintf("D\t-\t");
-		else
-			kprintf("F\t-\t");
-			
-		kprintf("%s (%d) - start cluster %x", dir[x].name, dir[x].file_size, dir[x].start_cluster );
-		
-		next_cluster = fat_getFATEntry( mount, dir[x].start_cluster );
-		while( TRUE )
+		if( name[i] == 0x00 || name[i] == '.' )
+			break;
+		entry->name[i] = name[i];
+	}
+
+	if( name[i++] == '.' )
+	{
+		for( x=0 ; x<3 ; x++, i++ )
 		{
-			if( next_cluster == 0x0000 )
+			if( name[i] == 0x00 )
 				break;
-			
-			kprintf(" -> %x", next_cluster );
-			
-			next_cluster = fat_getFATEntry( mount, next_cluster );
+			entry->extention[x] = name[i];
 		}
 	}
-	
-	kprintf("\n-------[dir end]---------");
+
+	return 0;	
 }
-*/
+
+int fat_findEntry( struct FAT_MOUNTPOINT * mount, char * src_filename, char * dest_filename, processEntry foo )
+{
+	struct FAT_ENTRY * dir;
+	char * dirname, * tmp;
+	int dirIndex, ret=VFS_FAIL;
+	int dir_cluster;
+	// decompose the full filename into its directory path and file name components
+	tmp = src_filename;
+	dirname = strrchr( src_filename, '/' );
+	if( dirname == NULL )
+		return VFS_FAIL;
+	src_filename = dirname + 1;
+	*dirname = 0x00;
+	dirname = tmp;
+	// get to the destination filename
+	if( dest_filename != NULL )
+	{
+		dest_filename = strrchr( dest_filename, '/' );
+		if( dest_filename == NULL )
+			return VFS_FAIL;
+		dest_filename += 1;
+	}
+	// allcoate the directory structure
+	dir = (struct FAT_ENTRY *)mm_malloc( mount->cluster_size );
+	// try to read in the entry that points to this directory
+	if( fat_file2entry( mount, dirname, dir ) < 0 )
+	{
+		mm_free( dir );
+		return VFS_FAIL;
+	}
+	// save the directory cluster so we can write it back later
+	dir_cluster = dir->start_cluster;
+	// read in the directory data
+	fat_rwCluster( mount, dir_cluster, (BYTE *)dir, FAT_READ );
+	// loop through it
+	for( dirIndex=0 ; dirIndex<(mount->cluster_size/sizeof(struct FAT_ENTRY)) ; dirIndex++ )
+	{
+		// skip it if it has negative size
+		if( dir[dirIndex].file_size == -1 )
+			continue;
+		// process it
+		ret = foo( mount, dir, dirIndex, src_filename, dest_filename );
+		if( ret == FAT_PROCESS_BREAK ) {
+			break;
+		} else if( ret == FAT_PROCESS_SUCCESS ) {
+			ret = VFS_SUCCESS;
+			break;
+		}
+	}
+	// only try to write it back if we have a success
+	if( ret == VFS_SUCCESS )
+	{
+		// write back the directory to disk
+		if( fat_rwCluster( mount, dir_cluster, (BYTE *)dir, FAT_WRITE ) != VFS_SUCCESS )
+			ret = VFS_FAIL;
+	}
+	// free the directory data structure
+	mm_free( dir );
+	// return the success of the operation
+	return ret;	
+}
+
+int fat_processCreate( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * entry, int index, char * src_filename, char * dest_filename )
+{
+	struct FAT_DOSTIME time;
+	struct FAT_DOSDATE date;
+	// test if their are any more entries
+	if( entry[index].name[0] == 0x00 || entry[index].name[0] == FAT_ENTRY_DELETED )
+	{
+		// if this is the end of the entries, advance the end by one
+		if( entry[index].name[0] == 0x00 )
+		{
+			// make sure we dont go to far
+			if( index+1>=(mount->cluster_size/sizeof(struct FAT_ENTRY)) )
+				return FAT_PROCESS_BREAK;
+			entry[index+1].name[0] = 0x00;
+		}
+		// clear it
+		memset( &entry[index], 0x20, sizeof(struct FAT_ENTRY) );
+		// set a default attribte
+		entry[index].attribute.archive = 1;
+		// set default time
+		time.hours = 0;
+		time.minutes = 0;
+		time.twosecs = 0;
+		memcpy( &entry[index].time, &time, sizeof(struct FAT_DOSTIME) );
+		// set default date
+		date.date = 0;
+		date.month = 0;
+		date.year = 0;
+		memcpy( &entry[index].date, &date, sizeof(struct FAT_DOSTIME) );
+		// set the file name and extension	
+		fat_setName( &entry[index], src_filename );
+		// set its initial size to zero
+		entry[index].file_size = 0;
+// THIS DOESNT WORK CORRECTLY YET !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
+		// we have no start cluster yet, To-Do: handle FAT32
+		if( mount->type == FAT_12 )
+			entry[index].start_cluster = FAT_12_ENDOFCLUSTER;
+		else if( mount->type == FAT_16 )
+			entry[index].start_cluster = FAT_16_ENDOFCLUSTER;
+		else
+			entry[index].start_cluster = FAT_16_ENDOFCLUSTER;
+		// return success
+		return FAT_PROCESS_SUCCESS;
+	}
+	// continue to try
+	return FAT_PROCESS_CONTINUE;
+}
+
+int fat_processDelete( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * entry, int index, char * src_filename, char * dest_filename )
+{
+	// test if their are any more entries
+	if( entry[index].name[0] == 0x00 )
+		return FAT_PROCESS_BREAK;
+	// if the file is deleated, continue past it
+	if( entry[index].name[0] == FAT_ENTRY_DELETED )
+		return FAT_PROCESS_CONTINUE;
+	// try and get a match
+	if( fat_compareName( &entry[index], src_filename ) )
+	{
+		// TO-DO: traverse the cluster chain and mark them all free
+		//  ...
+		// mark it as deleated
+		entry[index].name[0] = FAT_ENTRY_DELETED;
+		// return success
+		return FAT_PROCESS_SUCCESS;
+	}
+	// continue to try
+	return FAT_PROCESS_CONTINUE;
+}
+
+int fat_processRename( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * entry, int index, char * src_filename, char * dest_filename )
+{
+	// test if their are any more entries
+	if( entry[index].name[0] == 0x00 )
+		return FAT_PROCESS_BREAK;
+	// if the file is deleated, continue past it
+	if( entry[index].name[0] == FAT_ENTRY_DELETED )
+		return FAT_PROCESS_CONTINUE;
+	// try and get a match
+	if( fat_compareName( &entry[index], src_filename ) )
+	{
+		// rename the entry
+		fat_setName( &entry[index], dest_filename );
+		// return success
+		return FAT_PROCESS_SUCCESS;
+	}
+	// continue to try
+	return FAT_PROCESS_CONTINUE;
+}
 
 int fat_mount( char * device, char * mountpoint, int fstype )
 {
@@ -498,86 +636,28 @@ int fat_seek( struct VFS_HANDLE * handle, DWORD offset, BYTE origin )
 
 int fat_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 {
-	return VFS_FAIL;		
+	// we dont need to support and control calls
+	return VFS_FAIL;
 }
 
-int fat_create( char * filename, int mode )
+int fat_create( char * filename )
 {
-	// get the correct directory entry
-	// add in a new entry for the file
-	// write it back to disk
-	return VFS_FAIL;	
+	return fat_findEntry( mount0, filename, NULL, fat_processCreate );
 }
 
 int fat_delete( char * filename )
 {
-	struct FAT_ENTRY * dir;
-	char * dirname, * tmp;
-	int dirIndex, ret=VFS_FAIL;
-	int dir_cluster;
-	// decompose the full filename into its directory path and file name components
-	tmp = filename;
-	dirname = strrchr( filename, '/' );
-	if( dirname == NULL )
-		return VFS_FAIL;
-	filename = dirname + 1;
-	*dirname = 0x00;
-	dirname = tmp;
-	// allcoate the directory structure
-	dir = (struct FAT_ENTRY *)mm_malloc( mount0->cluster_size );
-	// try to read in the entry that points to this directory
-	if( fat_file2entry( mount0, dirname, dir ) < 0 )
-	{
-		mm_free( dir );
-		return VFS_FAIL;
-	}
-	// save the directory cluster so we can write it back later
-	dir_cluster = dir->start_cluster;
-	// read in the directory data
-	fat_rwCluster( mount0, dir_cluster, (BYTE *)dir, FAT_READ );
-	// loop through it
-	for( dirIndex=0 ; dirIndex<(mount0->cluster_size/sizeof(struct FAT_ENTRY)) ; dirIndex++ )
-	{
-		// test if their are any more entries
-		if( dir[dirIndex].name[0] == 0x00 )
-			break;
-		// if the file is deleated, continue past it
-		if( dir[dirIndex].name[0] == FAT_ENTRY_DELETED )
-			continue;
-		// skip it if it has negative size
-		if( dir[dirIndex].file_size == -1 )
-			continue;
-		// try and get a match
-		if( fat_compareName( &dir[dirIndex], filename ) )
-		{
-			kprintf("fat_delete: found filename = %s size = %d\n", filename, dir[dirIndex].file_size );
-			// TO-DO: traverse the cluster chain and mark them all free
-			//  ...
-			// mark it as deleated
-			dir[dirIndex].name[0] = FAT_ENTRY_DELETED;
-			// we return success later
-			ret = VFS_SUCCESS;
-			// break out of the loop
-			break;
-		}	
-	}
-	// write back the directory to disk
-	if( fat_rwCluster( mount0, dir_cluster, (BYTE *)dir, FAT_WRITE ) != VFS_SUCCESS )
-		ret = VFS_FAIL;
-	// free the directory data structure
-	mm_free( dir );
-	// return the success of the operation
-	return ret;	
+	return fat_findEntry( mount0, filename, NULL, fat_processDelete );
 }
 
 int fat_rename( char * src, char * dest )
 {
-	return VFS_FAIL;
+	return fat_findEntry( mount0, src, dest, fat_processRename );
 }
 
 int fat_copy( char * src, char * dest )
 {
-	return VFS_FAIL;	
+	return VFS_FAIL;//fat_findEntry( mount0, src, dest, fat_processCopy );
 }
 
 struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )

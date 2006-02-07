@@ -161,14 +161,28 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	
 	//printdir( "/" );
 	//printdir( "/device/" );
-	printdir( "/fat/BOOT/" );
-	
-	if( vfs_delete( "/fat/BOOT/TEST.TXT" ) == VFS_SUCCESS )
-		kprintf( "delete success\n" );
+
+	if( vfs_create( "/fat/BOOT/STEVE.TXT" ) == VFS_SUCCESS )
+	{
+		kprintf( "create success\n" );
+		
+		printdir( "/fat/BOOT/" );
+		/*
+		if( vfs_rename( "/fat/BOOT/STEVE.TXT", "/fat/BOOT/DELETEME.TXT" ) == VFS_SUCCESS )
+		{
+			kprintf( "rename success\n" );
+			if( vfs_delete( "/fat/BOOT/DELETEME.TXT" ) == VFS_SUCCESS )
+				kprintf( "delete success\n" );
+			else
+				kprintf( "delete fail\n" );
+		} 
+		else
+			kprintf( "rename fail\n" );
+		printdir( "/fat/BOOT/" );*/
+	}
 	else
-		kprintf( "delete fail\n" );
+		kprintf( "create fail\n" );
 	
-	printdir( "/fat/BOOT/" );
 /*
 	struct VFS_HANDLE * h;
 	h = vfs_open( "/fat/BOOT/TEST.TXT", VFS_MODE_READWRITE );
