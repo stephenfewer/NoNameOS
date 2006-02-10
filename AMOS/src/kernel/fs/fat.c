@@ -20,7 +20,31 @@
 
 struct FAT_MOUNTPOINT * mount0;
 
-int fat_nextCluster( struct FAT_MOUNTPOINT * mount, int cluster )
+void fat_setFATCluster( struct FAT_MOUNTPOINT * mount, int cluster, int value, int commit )
+{
+	switch( mount->type )
+	{
+		case FAT_12:
+			mount->fat_data[ (cluster * 3) / 2 ] = value;
+			break;
+		case FAT_16:
+			mount->fat_data[ cluster ] = value;
+			break;	
+		case FAT_32:
+			mount->fat_data[ cluster ] = value;
+			break;
+		default:
+			return;
+	}
+	
+	if( commit )
+	{
+		vfs_seek( mount->device, sizeof(struct FAT_BOOTSECTOR)+1, VFS_SEEK_START );	
+		vfs_write( mount->device, (void *)mount->fat_data, mount->fat_size );
+	}
+}
+
+int fat_getFATCluster( struct FAT_MOUNTPOINT * mount, int cluster )
 {
 	int next_cluster;
 
@@ -250,6 +274,9 @@ int fat_setName( struct FAT_ENTRY * entry, char * name )
 {
 	int i, x;
 	
+	// clear the name and extension (first 11 bytes of the structure)
+	memset( &entry->name[0], 0x20, 11 );
+	
 	for( i=0 ; i<8 ; i++ )
 	{
 		if( name[i] == 0x00 || name[i] == '.' )
@@ -348,7 +375,7 @@ int fat_processCreate( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * entry, 
 			entry[index+1].name[0] = 0x00;
 		}
 		// clear it
-		memset( &entry[index], 0x20, sizeof(struct FAT_ENTRY) );
+		memset( &entry[index], 0x00, sizeof(struct FAT_ENTRY) );
 		// set a default attribte
 		entry[index].attribute.archive = 1;
 		// set default time
@@ -365,14 +392,8 @@ int fat_processCreate( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * entry, 
 		fat_setName( &entry[index], src_filename );
 		// set its initial size to zero
 		entry[index].file_size = 0;
-// THIS DOESNT WORK CORRECTLY YET !!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!1
-		// we have no start cluster yet, To-Do: handle FAT32
-		if( mount->type == FAT_12 )
-			entry[index].start_cluster = FAT_12_ENDOFCLUSTER;
-		else if( mount->type == FAT_16 )
-			entry[index].start_cluster = FAT_16_ENDOFCLUSTER;
-		else
-			entry[index].start_cluster = FAT_16_ENDOFCLUSTER;
+		// we have no start cluster yet
+		entry[index].start_cluster = FAT_FREECLUSTER;
 		// return success
 		return FAT_PROCESS_SUCCESS;
 	}
@@ -391,8 +412,24 @@ int fat_processDelete( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * entry, 
 	// try and get a match
 	if( fat_compareName( &entry[index], src_filename ) )
 	{
-		// TO-DO: traverse the cluster chain and mark them all free
-		//  ...
+		// traverse the cluster chain and mark them all free
+		int cluster = entry[index].start_cluster;
+		// set the first cluster to be free
+/*
+ * we need to do this backwards
+		fat_setFATCluster( mount, cluster, FAT_FREECLUSTER, FALSE );
+		while( cluster != FAT_FREECLUSTER )
+		{
+			// get the next cluster
+			cluster = fat_getFATCluster( mount, cluster );
+			if( cluster == FAT_FREECLUSTER || cluster == -1 )
+				break;
+			// set the next cluster to be free
+			fat_setFATCluster( mount, cluster, FAT_FREECLUSTER, FALSE );
+		}
+		// commit the FAT to disk
+		fat_setFATCluster( mount, cluster, FAT_FREECLUSTER, TRUE );
+*/
 		// mark it as deleated
 		entry[index].name[0] = FAT_ENTRY_DELETED;
 		// return success
@@ -504,7 +541,6 @@ int fat_close( struct VFS_HANDLE * handle )
 	// check we have a fat entry associated with this handle
 	if( handle->data_ptr == NULL )
 		return VFS_FAIL;
-	// to do: flush any buffers to disk
 	// free the files fat entry
 	mm_free( handle->data_ptr );
 	// return success
@@ -532,9 +568,9 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 	{
 	//	kprintf("\ti = %d     cluster = %x\n", i, cluster );
 		// get the next cluster in the file
-		cluster = fat_nextCluster( file->mount, cluster );
+		cluster = fat_getFATCluster( file->mount, cluster );
 		// fail if we have gone beyond the files cluster chain
-		if( cluster == 0x0000 || cluster == -1 )
+		if( cluster == FAT_FREECLUSTER || cluster == -1 )
 		{
 			kprintf("fat_read: cluster == 0x0000 || cluster == -1\n");
 			return VFS_FAIL;
@@ -587,11 +623,11 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 			break;
 		}
 		// get the next cluster to read from
-		cluster = fat_nextCluster( file->mount, cluster );
-		// if the cluster = 0x0000 we have reached the end of the cluster chain
-		if( cluster == 0x0000 || cluster == -1 )
+		cluster = fat_getFATCluster( file->mount, cluster );
+		// if the cluster = FAT_FREECLUSTER we have reached the end of the cluster chain
+		if( cluster == FAT_FREECLUSTER || cluster == -1 )
 		{
-			kprintf("fat_read: bottom of loop, cluster == 0x0000 || cluster == -1  \n");
+			kprintf("fat_read: bottom of loop, cluster == FAT_FREECLUSTER || cluster == -1  \n");
 			break;
 		}
 		// we can now set the cluster offset to 0 if we are reading from more then 1 cluster
@@ -628,7 +664,7 @@ int fat_seek( struct VFS_HANDLE * handle, DWORD offset, BYTE origin )
 	else
 		return VFS_FAIL;
 	// reset if we have gone over the file size
-	if( file->current_pos > file->entry.file_size )
+	if( file->current_pos > file->entry.file_size || file->current_pos < 0 )
 		file->current_pos = saved_pos;
 	// return the current file position
 	return file->current_pos;

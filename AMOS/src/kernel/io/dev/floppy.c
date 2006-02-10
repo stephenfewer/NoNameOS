@@ -18,7 +18,8 @@
 #include <kernel/mm/dma.h>
 #include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
-#include <kernel/isr.h>
+#include <kernel/interrupt.h>
+#include <kernel/pm/scheduler.h>
 
 struct FLOPPY_DRIVE * floppy1 = NULL;
 struct FLOPPY_DRIVE * floppy2 = NULL;
@@ -129,7 +130,7 @@ int floppy_wait( struct FLOPPY_DRIVE * floppy, BYTE sence )
     {
     	if( floppy_donewait == TRUE )
     		break;
-    	//inportb( 0x80 );
+    	scheduler_idle();
     }
     // reset the donewait flag
     floppy_donewait = FALSE;
@@ -407,7 +408,7 @@ int floppy_init()
     calltable->seek = floppy_seek;
     calltable->control = NULL;
     // setup the floppy handler
-	isr_setHandler( IRQ6, floppy_handler );
+	interrupt_enable( IRQ6, floppy_handler );
     // ask the CMOS if we have any floppy drives
     // location 0x10 has the floppy info
 	outportb( 0x70, 0x10 );

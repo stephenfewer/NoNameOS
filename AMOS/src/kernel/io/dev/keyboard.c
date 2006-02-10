@@ -12,7 +12,7 @@
  */
 
 #include <kernel/io/dev/keyboard.h>
-#include <kernel/isr.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/mm/mm.h>
 #include <kernel/io/dev/console.h>
@@ -71,11 +71,6 @@ int keyboard_close( struct IO_HANDLE * handle )
 	return IO_SUCCESS;
 }
 
-int keyboard_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
-{
-	return IO_FAIL;
-}
-
 DWORD keyboard_handler( struct PROCESS_STACK * taskstack )
 {
 	BYTE scancode;
@@ -109,10 +104,8 @@ DWORD keyboard_handler( struct PROCESS_STACK * taskstack )
 				vfs_close( console );
 			}
 		} else {
-
 			if( keyboard_output != NULL )
 				vfs_control( keyboard_output, CONSOLE_SENDCHAR, keymap[scancode] );
-		
 		}
 
 	}
@@ -127,7 +120,7 @@ int keyboard_init()
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open = keyboard_open;
 	calltable->close = keyboard_close;
-	calltable->read = keyboard_read;
+	calltable->read = NULL;
 	calltable->write = NULL;
 	calltable->seek = NULL;
 	calltable->control = NULL;
@@ -139,7 +132,7 @@ int keyboard_init()
 	io_add( "keyboard1", calltable, IO_CHAR );
 	
 	// setup the keyboard handler
-	isr_setHandler( IRQ1, keyboard_handler );
+	interrupt_enable( IRQ1, keyboard_handler );
 	
 	return IO_SUCCESS;
 }

@@ -17,6 +17,8 @@
 #define FAT_CLUSTER16(c)		( c & 0x0000FFFF )	// 16 bits
 #define FAT_CLUSTER31(c)		( c & 0x0FFFFFFF )	// 28 bits
 
+#define FAT_FREECLUSTER			0x0000
+
 #define FAT_12_ENDOFCLUSTER		0x0FFF
 #define FAT_12_BADCLUSTER		0x0FF7
 #define FAT_12_RESERVERCLUSTER	0x0FF8

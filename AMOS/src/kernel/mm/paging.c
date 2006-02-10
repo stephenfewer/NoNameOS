@@ -16,7 +16,7 @@
 #include <kernel/mm/mm.h>
 #include <kernel/kernel.h>
 #include <kernel/kprintf.h>
-#include <kernel/isr.h>
+#include <kernel/interrupt.h>
 #include <kernel/pm/process.h>
 #include <kernel/lib/string.h>
 
@@ -190,7 +190,7 @@ void paging_init()
 	void * linearAddress;
 
 	// install the page fault handler
-	isr_setHandler( INT14, paging_pageFaultHandler );
+	interrupt_enable( INT14, paging_pageFaultHandler );
 
 	// create the kernels page directory
 	paging_kernelPageDir = paging_createDirectory();

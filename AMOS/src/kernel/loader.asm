@@ -11,8 +11,10 @@
 
 BITS 32
 
-KERNEL_VMA	equ 0xC0001000
-KERNEL_LMA	equ 0x00101000
+KERNEL_VMA				equ 0xC0001000
+KERNEL_LMA				equ 0x00101000
+
+KERNEL_DATA_SEL			equ	0x10
 
 MULTIBOOT_PAGE_ALIGN	equ 1<<0
 MULTIBOOT_MEMORY_INFO	equ 1<<1
@@ -23,7 +25,7 @@ MULTIBOOT_CHECKSUM		equ -(MULTIBOOT_HEADER_MAGIC + MULTIBOOT_HEADER_FLAGS)
 
 EXTERN text, kernel, setup, data, bss, _end, _kernel_main
 
-EXTERN _isr_dispatcher
+EXTERN _interrupt_dispatcher, _scheduler_switch
 
 EXTERN _current_esp, _current_cr3
 
@@ -82,6 +84,10 @@ GLOBAL _irq13
 GLOBAL _irq14
 GLOBAL _irq15
 
+GLOBAL _disable_int
+GLOBAL _disable_irqA
+GLOBAL _disable_irqB
+
 SECTION .setup
 
 PAGE_DIRCTORY	equ	0x9C000
@@ -139,45 +145,42 @@ _start:
 
     call _kernel_main
     hlt
+    
 isr_common_stub:
-    pushad				; push all general purpose registers
-    push ds				; push al the segments
+    pushad					; push all general purpose registers
+    push ds					; push al the segments
     push es
     push fs
-    push gs
-    
-    ;mov ax, 0x10		; set data segments for kernel
-    ;mov ds, ax
-    ;mov es, ax
-    ;mov fs, ax
-    ;mov gs, ax
-    
-    mov [_current_esp], esp
-
-    push esp			; push current stack pointer
-
-    mov eax, _isr_dispatcher
-    call eax			; call out C isr_dispatcher() function
-    
-    ;add esp, 4			; clean up the previously pushed stack pointer
-
-    test eax, eax		; test the return value
-    jz movealong		; if its null, dont set new stack pointer
-    mov [_current_esp], eax		; set new stack pointer
-    mov eax, [_current_cr3]		; switch over to the tasks address space
-    mov cr3, eax
-movealong:
-	mov esp, [_current_esp]
-	
-    pop gs				; pop al the segments
+    push gs 
+    mov ax, 0x10 ;KERNEL_DATA_SEL	; set data segments for kernel
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    push esp				; push current stack pointer
+    call _interrupt_dispatcher	; call out C interrupt_dispatcher() function
+	add esp, 4				; clean up the previously pushed stack pointer
+    pop gs					; pop al the segments
     pop fs
     pop es
     pop ds
-    
-    popad				; pop all general purpose registers
-    
-    add esp, 8			; clean up the two bytes we pushed on via the _isrXX routine
-    iret				; iret back
+    popad					; pop all general purpose registers
+    add esp, 8				; clean up the two bytes we pushed on via the _isrXX routine
+    iret					; iret back
+
+_disable_int:
+	iret
+
+_disable_irqA:
+	mov al, 0x20
+	out 0x20, al
+	iret
+
+_disable_irqB:
+	mov al, 0x20
+	out 0xA0, al
+	out 0x20, al
+	iret
 
 ;  Divide By Zero
 _isr00:
@@ -396,12 +399,42 @@ _isr31:
     push byte 0
     push byte 31
     jmp isr_common_stub
-
+	
 _irq00:
-    cli
+	cli
     push byte 0
     push byte 32
     jmp isr_common_stub
+    hlt
+
+;	cli
+    pushad						; push all general purpose registers
+    push ds						; push al the segments
+    push es
+    push fs
+    push gs  
+    mov ax, 0x10	;KERNEL_DATA_SEL		; set data segments for kernel
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax  
+	mov [_current_esp], esp
+    push esp					; push current stack pointer
+    call _scheduler_switch		; call out C isr_dispatcher() function
+    test eax, eax				; test the return value
+    jz movealong				; if its null, dont set new stack pointer
+    mov [_current_esp], eax		; set new stack pointer
+    mov eax, [_current_cr3]		; switch over to the tasks address space
+    mov cr3, eax
+movealong:
+	mov esp, [_current_esp]		; restore esp
+    pop gs						; pop al the segments
+    pop fs
+    pop es
+    pop ds  
+    popad						; pop all general purpose registers
+    add esp, 8
+    iret						; iret back
 
 _irq01:
     cli

@@ -11,12 +11,13 @@
  *    License: GNU General Public License (GPL)
  */
 
-//#include <kernel/tasking/task.h>
+//#include <kernel/pm/process.h>
 #include <kernel/pm/scheduler.h>
 #include <kernel/mm/paging.h>
+#include <kernel/mm/segmentation.h>
 #include <kernel/mm/physical.h>
 #include <kernel/mm/mm.h>
-#include <kernel/isr.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
@@ -27,21 +28,22 @@ int process_total = 0;
 
 int process_spawn( char * filename, struct VFS_HANDLE * console )
 {
-	int i;
+	struct PROCESS_INFO * process;
 	struct VFS_HANDLE * handle;
+	BYTE * buffer;
+	int size;
+		
 	// open the process image
 	handle = vfs_open( filename, VFS_MODE_READ );
 	if( handle == NULL )
 		return -1;
 		
 	// determine what type: elf/coff/flat/...
-	
-	BYTE * buffer;
-	int size;
-	
+
 	size = vfs_seek( handle, 0, VFS_SEEK_END );
 	kprintf("size = %d\n", size );
 	
+	// we will need to free this at some point? ...process_destroy()
 	buffer = (BYTE *)mm_malloc( size );
 	
 	vfs_seek( handle, 0, VFS_SEEK_START );
@@ -53,11 +55,17 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	//if( (i=elf_load( handle )) < 0 )
 	//	kprintf("Failed to load ELF [%d]: %s\n", i, filename );
 	
-	process_create( (void *)buffer );
-	
+	process = process_create( (void *)buffer );
+	if( process != NULL )
+	{
+		process->console = console;
+		kprintf( "adding process %d to the scheduler\n", process->id );
+		// add the process to the scheduler
+		scheduler_addProcess( process );
+	}
 	// close the process images handle
 	vfs_close( handle );
-	
+
 	// return success
 	return 0;
 }
@@ -122,24 +130,36 @@ struct PROCESS_INFO * process_create( void (*entrypoint)() )
 	// clear the stack
 	memset( (void *)stack, 0x00, sizeof(struct PROCESS_STACK) );
 	// set the code segment
-	stack->cs = 0x08;
+	stack->cs = 0x08;//KERNEL_CODE_SEL;
 	// set the data segments
-	stack->ds = 0x10;
-	stack->es = 0x10;
-	stack->fs = 0x10;
-	stack->gs = 0x10;
+	stack->ds = 0x10;//KERNEL_DATA_SEL;
+	stack->es = 0x10;//KERNEL_DATA_SEL;
+	stack->fs = 0x10;//KERNEL_DATA_SEL;
+	stack->gs = 0x10;//KERNEL_DATA_SEL;
 	// set the eflags register
 	stack->eflags = 0x0202;
 	// set our initial entrypoint
 	stack->eip = (DWORD)entrypoint;
 	// set the interrupt number we will return from
 	stack->intnumber = IRQ0;
+	
+	//stack->ss = 0x10;
+	//stack->userstack = (DWORD)stack;
+	//stack->esp = (DWORD)stack;
+	
 	// set the tasks current esp to the stack
 	process->current_esp = (DWORD)stack;
+	
+	kprintf( "creating process -\n" );
+	kprintf( "                 - CS:%x EIP:%x\n", stack->cs, stack->eip );
+	kprintf( "                 - DS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );
+	kprintf( "                 - EDI:%x ESI:%x EBP:%x ESP:%x\n", stack->edi, stack->esi, stack->ebp, stack->esp );
+	kprintf( "                 - EBX:%x EDX:%x ECX:%x EAX:%x\n", stack->ebx, stack->edx, stack->ecx, stack->eax );
+	kprintf( "                 - EFLAGS:%x  SS:%x userstack:%x\n", stack->eflags, stack->ss, stack->userstack );		
+	kprintf( "\n" );
+	
 	// unmap the stack from the kernels address space
 	paging_setPageTableEntry( paging_kernelPageDir, PROCESS_STACKADDRESS, NULL, FALSE );
-	// add the process to the scheduler
-	scheduler_addProcess( process );
 	
 	kernel_unlock();
 	// return with new process info

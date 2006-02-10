@@ -1,4 +1,4 @@
-OUTPUT_FORMAT("coff-go32")
+OUTPUT_FORMAT("elf32-i386")
 ENTRY(_setup)
 phys = 0x00100000;
 virt = 0xC0001000;

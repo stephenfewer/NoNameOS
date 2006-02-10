@@ -19,7 +19,7 @@
 #include <kernel/io/io.h>
 #include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
-#include <kernel/isr.h>
+#include <kernel/pm/scheduler.h>
 
 // our currently active console will point to one of the four virtual consoles below
 struct CONSOLE_DATA ** console0 = NULL;
@@ -258,8 +258,7 @@ int console_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 		{
 			if( console->in_break == TRUE )
 				break;
-			// delay
-			inportb( 0x80 );
+			scheduler_idle();
 		}
 		
 		console->in_buff = NULL;

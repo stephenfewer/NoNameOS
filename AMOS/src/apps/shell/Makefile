@@ -1,19 +1,19 @@
 MAKEFILE=Makefile
 
-TARGET_ELF=test.elf
+TARGET_ELF=shell.elf
 
-TARGET_DIR=../../bin/apps/
+TARGET_DIR=../../../bin/apps/
 
-INCLUDE_DIR=../../include/
+INCLUDE_DIR=../../../include/
 
 CC=gcc
-LD=ld-elf
+LD=ld
 RM=del
 
 LDFLAGS=--oformat elf32-i386 -nostdlib
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -finline-functions -nostdinc -I $(INCLUDE_DIR)
 
-OBJ=test.o
+OBJ=shell.o tinysh.o
 	
 all: $(TARGET_ELF)
 

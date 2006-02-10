@@ -32,7 +32,9 @@ void scheduler_removeProcesss( struct PROCESS_INFO * );
 
 void scheduler_enable();
 
-void scheduler_disable();
+//void scheduler_disable();
+
+void scheduler_idle( void );
 
 void scheduler_init();
 

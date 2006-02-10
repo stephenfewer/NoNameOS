@@ -13,7 +13,7 @@
 
 #include <kernel/pm/scheduler.h>
 #include <kernel/pm/process.h>
-#include <kernel/isr.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/kprintf.h>
 #include <kernel/mm/paging.h>
@@ -43,6 +43,12 @@ void scheduler_removeProcesss( struct PROCESS_INFO * process )
 }
 
 extern struct PAGE_DIRECTORY * paging_kernelPageDir;
+
+void scheduler_idle( void )
+{
+	// delay
+	inportb( 0x80 );
+}
 
 DWORD scheduler_switch( struct PROCESS_STACK * process_stack )
 {
@@ -117,7 +123,9 @@ if(scheduler_ticks>128)
 	// fixup the tss
 	//scheduler_tss->cr3 = scheduler_currentTask->page_dir;
 	//scheduler_tss->esp0 = scheduler_currentTask->current_esp;
-		
+	
+	outportb( INTERRUPT_PIC_2, INTERRUPT_EOI );
+	
 	return scheduler_currentProcess->current_esp;
 }
 
@@ -139,20 +147,20 @@ void scheduler_enable()
 	// calculate the timer interval
 	interval = 1193180 / 100000; //100Hz
 	// square wave mode
-	outportb( PIT_COMMAND_REG, 0x36);
+	outportb( INTERRUPT_PIT_COMMAND_REG, 0x36);
 	// set the low interval for timer 0 (mapped to IRQ0)
-	outportb( PIT_TIMER_0, interval & 0xFF);
+	outportb( INTERRUPT_PIT_TIMER_0, interval & 0xFF);
 	// set the high interval for timer 0
-	outportb( PIT_TIMER_0, interval >> 8);
+	outportb( INTERRUPT_PIT_TIMER_0, interval >> 8);
 	// set the scheduler to run via the timer interrupt
-	isr_setHandler( IRQ0, scheduler_switch );	
+	//interrupt_enable( IRQ0, scheduler_switch );	
 }
-
+/*
 void scheduler_disable()
 {
-	isr_setHandler( IRQ0, NULL );	
+	interrupt_disable( IRQ0, NULL );	
 }
-
+*/
 void scheduler_init()
 {
 	int i;
