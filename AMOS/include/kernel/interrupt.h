@@ -16,6 +16,10 @@
 
 #define INTERRUPT_EOI				0x20
 
+#define sti() __asm__ __volatile__ ("sti")
+
+#define cli() __asm__ __volatile__ ("cli")
+
 struct INTERRUPT_TABLE_ENTRY
 {
     WORD base_low;

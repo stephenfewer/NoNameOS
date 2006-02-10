@@ -2,24 +2,13 @@
 #define _KERNEL_KERNEL_H_
 
 #include <sys/types.h>
+#include <kernel/pm/elf.h>
 
 #define AMOS_VERSION_MAJOR			0
 #define AMOS_VERSION_MINOR			5
 #define AMOS_VERSION_PATCH			0
 
 #define AMOS_VERSION_STRING			"AMOS 0.5.0"
-
-#define sti() __asm__ __volatile__ ("sti")
-
-#define cli() __asm__ __volatile__ ("cli")
-
-struct ELF_SECTION_HEADER_TABLE
-{
-    DWORD num;
-    DWORD size;
-    DWORD addr;
-    DWORD shndx;
-};
 
 struct MULTIBOOT_INFO
 {
@@ -31,7 +20,7 @@ struct MULTIBOOT_INFO
     DWORD mods_count;
     DWORD mods_addr;
     
-    struct ELF_SECTION_HEADER_TABLE elf_sec;
+    struct ELF_SECTION_HDR_TABLE elf_sec;
     
     DWORD mmap_length;
     DWORD mmap_addr;

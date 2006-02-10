@@ -15,9 +15,9 @@
 #include <kernel/kernel.h>
 #include <kernel/lib/string.h>
 
-struct GDT_ENTRY	segmentation_gdt[GDT_ENTRYS];
+struct SEGMENTATION_GDT_ENTRY segmentation_gdt[SEGMENTATION_GDT_ENTRYS];
 
-struct GDT_POINTER	segmentation_gdtp;
+struct SEGMENTATION_GDT_POINTER segmentation_gdtp;
 
 void segmentation_setEntry( int selector, DWORD base, DWORD limit, BYTE access, BYTE granularity )
 {
@@ -38,13 +38,32 @@ void segmentation_setEntry( int selector, DWORD base, DWORD limit, BYTE access, 
     segmentation_gdt[selector].access = access;
 }
 
+void segmentation_ltr( WORD selector )
+{
+	// load the task regiter with the TSS in the given selector
+	ASM( "ltr %0" : : "rm" (selector) );
+}
+
+void segmentation_reload( void )
+{
+	ASM( "lgdt (%0)" :: "r" ( &segmentation_gdtp ) );
+	ASM( "movw $0x10, %ax" );
+	ASM( "movw %ax, %ds" );
+	ASM( "movw %ax, %ss" );
+	ASM( "movw %ax, %es" );
+	ASM( "movw %ax, %fs" );
+	ASM( "movw %ax, %gs" );
+	ASM( "ljmp $0x08, $flush" );	
+	ASM( "flush:" );
+}
+
 void segmentation_init()
 {
-    segmentation_gdtp.limit = ( sizeof(struct GDT_ENTRY) * GDT_ENTRYS ) - 1;
+    segmentation_gdtp.limit = ( sizeof(struct SEGMENTATION_GDT_ENTRY) * SEGMENTATION_GDT_ENTRYS ) - 1;
     // base should be physical?
     segmentation_gdtp.base = (unsigned int)&segmentation_gdt;
 
-	memset( (void *)&segmentation_gdt, 0x00, sizeof(struct GDT_ENTRY) * GDT_ENTRYS );
+	memset( (void *)&segmentation_gdt, 0x00, sizeof(struct SEGMENTATION_GDT_ENTRY) * SEGMENTATION_GDT_ENTRYS );
 
     // NULL descriptor
     segmentation_setEntry( KERNEL_NULL_SEL, 0L, 0L, 0x00, 0x00 );
@@ -57,15 +76,7 @@ void segmentation_init()
     
     // empty descriptor, we fill it in with a TSS descriptor later in scheduler_init()
     segmentation_setEntry( KERNEL_TSS_SEL, 0L, 0L, 0x00, 0x00 );
-    
+	
 	// Enable flat segmentation...
-	ASM( "lgdt (%0)" :: "r" ( &segmentation_gdtp ) );
-	ASM( "movw $0x10, %ax" );
-	ASM( "movw %ax, %ds" );
-	ASM( "movw %ax, %ss" );
-	ASM( "movw %ax, %es" );
-	ASM( "movw %ax, %fs" );
-	ASM( "movw %ax, %gs" );
-	ASM( "ljmp $0x08, $gdtflush" );	
-	ASM( "gdtflush:" );
+	segmentation_reload();
 }

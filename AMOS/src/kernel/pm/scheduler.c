@@ -16,6 +16,7 @@
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/kprintf.h>
+#include <kernel/mm/segmentation.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/mm.h>
 #include <kernel/lib/string.h>
@@ -30,7 +31,7 @@ struct PROCESS_INFO * scheduler_currentProcess = NULL;
 // this really really should be a dynamic linked list
 struct PROCESS_INFO * scheduler_queue[MAX_TASKS];
 
-struct TSS * scheduler_tss = NULL;
+struct SEGMENTATION_TSS * scheduler_tss = NULL;
 
 void scheduler_addProcess( struct PROCESS_INFO * process )
 {
@@ -129,18 +130,6 @@ if(scheduler_ticks>128)
 	return scheduler_currentProcess->current_esp;
 }
 
-void scheduler_ltr( WORD selector )
-{
-	ASM( "ltr %0" : : "rm" (selector) );
-}
-   
-DWORD getESP()
-{
-	DWORD esp;
-	ASM( "movl %%esp, %0" : "=r" ( esp ) );
-	return esp;
-}
-
 void scheduler_enable()
 {
 	int interval;
@@ -155,29 +144,28 @@ void scheduler_enable()
 	// set the scheduler to run via the timer interrupt
 	//interrupt_enable( IRQ0, scheduler_switch );	
 }
-/*
-void scheduler_disable()
-{
-	interrupt_disable( IRQ0, NULL );	
-}
-*/
+
 void scheduler_init()
 {
-	int i;
-	
+	int index;
 	// create the empty task queue
-	for( i=0 ; i<MAX_TASKS ; i++ )
-		scheduler_queue[i] = NULL;
-
+	for( index=0 ; index<MAX_TASKS ; index++ )
+		scheduler_queue[index] = NULL;
+		
 	// create a TSS for our software task switching (6.2)
-	//scheduler_tss = (struct TSS *)mm_malloc( sizeof( struct TSS ) );
-	//memset( (void*)scheduler_tss, 0x00, sizeof( struct TSS ) );
+	scheduler_tss = (struct SEGMENTATION_TSS *)mm_malloc( sizeof(struct SEGMENTATION_TSS) );
+	memset( (void*)scheduler_tss, 0x00, sizeof(struct SEGMENTATION_TSS) );
+	
 	//scheduler_tss->cr3 = paging_getCurrentPageDir();
+	
+	//scheduler_tss->ss0 = KERNEL_DATA_SEL;
+	
 	//scheduler_tss->esp0 = getESP();
 	
 	// setup the TSS Descriptor (6.2.2)
-	//gdt_setEntry( KERNEL_TSS_SEL, (DWORD)scheduler_tss, sizeof(struct TSS)-1, 0x89, 0x00 );
-	//scheduler_ltr( KERNEL_TSS_SEL );
-
-
+	segmentation_setEntry( KERNEL_TSS_SEL, (DWORD)scheduler_tss, sizeof(struct SEGMENTATION_TSS)-1, 0x89, 0x00 );
+	
+	segmentation_reload();
+	
+	segmentation_ltr( KERNEL_TSS_SEL );
 }

@@ -171,10 +171,8 @@ BOOL interrupt_disable( int index )
 	if( index < INTERRUPT_TABLE_ENTRYS && index >= 0 )
 	{
 		INTERRUPT_SERVICE_ROUTINE stub;
-	
-		if( index >= INT0 && index <= INT31 )
-			stub = disable_int;
-		else if( index >= IRQ0 && index < IRQ8 )
+
+		if( index >= IRQ0 && index < IRQ8 )
 			stub = disable_irqA;
 		else if( index >= IRQ8 && index <= IRQ15 )
 			stub = disable_irqB;

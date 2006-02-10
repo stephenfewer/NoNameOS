@@ -70,6 +70,14 @@ struct ELF_SECTION_HDR
 	DWORD sh_entsize;
 };
 
+struct ELF_SECTION_HDR_TABLE
+{
+    DWORD sht_num;
+    DWORD sht_size;
+    DWORD sht_addr;
+    DWORD sht_shndx;
+};
+
 int elf_load( struct VFS_HANDLE * );
 
 #endif

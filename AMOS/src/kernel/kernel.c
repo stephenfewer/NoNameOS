@@ -22,6 +22,7 @@
 #include <kernel/fs/vfs.h>
 #include <kernel/fs/fat.h>
 #include <kernel/lib/printf.h>
+#include <kernel/syscall.h>
 
 // the global handle for the kernels console
 struct VFS_HANDLE * kernel_console = NULL;
@@ -113,6 +114,8 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 	io_init();
 	// setup scheduling
 	scheduler_init();
+	// setup our system calls
+	syscall_init();
 	// unlock protected code
 	kernel_unlock();
 }

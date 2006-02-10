@@ -11,7 +11,7 @@ LD=ld
 RM=del
 
 LDFLAGS=--oformat elf32-i386 -nostdlib
-CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -finline-functions -nostdinc -I $(INCLUDE_DIR)
+CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
 
 OBJ=shell.o tinysh.o
 	
