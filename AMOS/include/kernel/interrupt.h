@@ -20,8 +20,11 @@ struct INTERRUPT_TABLE_ENTRY
 {
     WORD base_low;
     WORD selector;
-    BYTE reserved;
-	BYTE flags;
+    BYTE reserved:5;
+	BYTE unknown:3;
+	BYTE size:5;
+	BYTE DPL:2;
+	BYTE present:1;
     WORD base_high;
 } PACKED;
 

@@ -3,7 +3,7 @@
 
 #include <sys/types.h>
 
-#define GDT_ENTRYS	4
+#define GDT_ENTRYS			4
 
 #define SELECTOR_TO_INDEX(selector)	(selector/8)
 

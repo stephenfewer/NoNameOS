@@ -14,6 +14,8 @@
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/kprintf.h>
+#include <kernel/mm/segmentation.h>
+#include <kernel/mm/paging.h>
 #include <kernel/lib/string.h>
 
 struct INTERRUPT_TABLE_ENTRY interrupt_table[INTERRUPT_TABLE_ENTRYS];
@@ -90,7 +92,7 @@ DWORD interrupt_dispatcher( struct PROCESS_STACK * taskstack )
 			kprintf( "\tDS:%x ES:%x FS:%x GS:%x\n", taskstack->ds, taskstack->es, taskstack->fs, taskstack->gs );
 			kprintf( "\tEDI:%x ESI:%x EBP:%x ESP:%x\n", taskstack->edi, taskstack->esi, taskstack->ebp, taskstack->esp );
 			kprintf( "\tEBX:%x EDX:%x ECX:%x EAX:%x\n", taskstack->ebx, taskstack->edx, taskstack->ecx, taskstack->eax );
-			kprintf( "\tEFLAGS:%x  SS:%x userstack:%x\n", taskstack->eflags, taskstack->ss, taskstack->userstack );
+			//kprintf( "                 - EFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );
 			
 			kernel_panic();
 		}
@@ -115,13 +117,19 @@ BOOL interrupt_setHandler( int index, INTERRUPT_HANDLER handler )
 	return FALSE;
 }
 
-void interrupt_setTableEntry( BYTE index, INTERRUPT_SERVICE_ROUTINE routine, WORD selector, BYTE flags )
+void interrupt_setTableEntry( BYTE index, INTERRUPT_SERVICE_ROUTINE routine, WORD selector, BYTE privilege )
 {
 	interrupt_table[index].base_high = ((DWORD)routine & 0xFFFF0000) >> 16;
 	
 	interrupt_table[index].base_low  = ((DWORD)routine & 0xFFFF);
 
-	interrupt_table[index].flags = flags;
+	interrupt_table[index].present = TRUE;
+	
+	interrupt_table[index].DPL = privilege;
+	
+	// this is slightly innacurate, we need to set the D bit here to 1 for the size of the gate (32bit in our case)
+	// while also setting two other bits, so we shortcut and just set it to 14decimal which is 01110 binary
+	interrupt_table[index].size = 14;
 	
 	interrupt_table[index].reserved = 0;
 	
@@ -150,7 +158,7 @@ BOOL interrupt_enable( int index, INTERRUPT_HANDLER handler )
 {
 	if( index < INTERRUPT_TABLE_ENTRYS && index >= 0 )
 	{
-		interrupt_setTableEntry(  index, interrupt_stubs[index], 0x08, 0x8E );
+		interrupt_setTableEntry( index, interrupt_stubs[index], KERNEL_CODE_SEL, SUPERVISOR );
 		if( handler != NULL )
 			return interrupt_setHandler( index, handler );
 		return TRUE;
@@ -173,7 +181,7 @@ BOOL interrupt_disable( int index )
 		else
 			stub = disable_int;
 		
-		interrupt_setTableEntry(  index, stub, 0x08, 0x8E );
+		interrupt_setTableEntry( index, stub, KERNEL_CODE_SEL, SUPERVISOR );
 		// return success
 		return TRUE;
 	}
@@ -200,6 +208,6 @@ void interrupt_init()
 	// disable all IRQ's for now
 	for( index=IRQ0 ; index<=IRQ15 ; index++ )
 		interrupt_disable( index );
-	// load the interrupt descriptor table
+	// load the interrupt descriptor table (interrupt_ptable pointer to a linear address of the interrupt_table)
 	ASM( "lidt (%0)" : : "r" ( &interrupt_ptable) );
 }

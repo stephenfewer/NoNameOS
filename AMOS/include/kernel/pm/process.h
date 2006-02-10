@@ -27,8 +27,8 @@ struct PROCESS_STACK
 	DWORD eip;
 	DWORD cs;
 	DWORD eflags;
-	DWORD userstack;
-	DWORD ss;
+	//DWORD esp0;
+	//DWORD ss0;
 };
 
 enum

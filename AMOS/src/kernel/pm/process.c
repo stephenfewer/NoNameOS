@@ -130,12 +130,12 @@ struct PROCESS_INFO * process_create( void (*entrypoint)() )
 	// clear the stack
 	memset( (void *)stack, 0x00, sizeof(struct PROCESS_STACK) );
 	// set the code segment
-	stack->cs = 0x08;//KERNEL_CODE_SEL;
+	stack->cs = KERNEL_CODE_SEL;
 	// set the data segments
-	stack->ds = 0x10;//KERNEL_DATA_SEL;
-	stack->es = 0x10;//KERNEL_DATA_SEL;
-	stack->fs = 0x10;//KERNEL_DATA_SEL;
-	stack->gs = 0x10;//KERNEL_DATA_SEL;
+	stack->ds = KERNEL_DATA_SEL;
+	stack->es = KERNEL_DATA_SEL;
+	stack->fs = KERNEL_DATA_SEL;
+	stack->gs = KERNEL_DATA_SEL;
 	// set the eflags register
 	stack->eflags = 0x0202;
 	// set our initial entrypoint
@@ -155,7 +155,7 @@ struct PROCESS_INFO * process_create( void (*entrypoint)() )
 	kprintf( "                 - DS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );
 	kprintf( "                 - EDI:%x ESI:%x EBP:%x ESP:%x\n", stack->edi, stack->esi, stack->ebp, stack->esp );
 	kprintf( "                 - EBX:%x EDX:%x ECX:%x EAX:%x\n", stack->ebx, stack->edx, stack->ecx, stack->eax );
-	kprintf( "                 - EFLAGS:%x  SS:%x userstack:%x\n", stack->eflags, stack->ss, stack->userstack );		
+	//kprintf( "                 - EFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );		
 	kprintf( "\n" );
 	
 	// unmap the stack from the kernels address space

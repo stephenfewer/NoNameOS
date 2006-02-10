@@ -152,7 +152,7 @@ isr_common_stub:
     push es
     push fs
     push gs 
-    mov ax, 0x10 ;KERNEL_DATA_SEL	; set data segments for kernel
+    mov ax, KERNEL_DATA_SEL	; set data segments for kernel
     mov ds, ax
     mov es, ax
     mov fs, ax
@@ -413,7 +413,7 @@ _irq00:
     push es
     push fs
     push gs  
-    mov ax, 0x10	;KERNEL_DATA_SEL		; set data segments for kernel
+    mov ax, KERNEL_DATA_SEL		; set data segments for kernel
     mov ds, ax
     mov es, ax
     mov fs, ax

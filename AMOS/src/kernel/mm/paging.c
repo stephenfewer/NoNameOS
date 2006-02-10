@@ -34,6 +34,7 @@ struct PAGE_DIRECTORY * paging_getCurrentPageDir()
 
 void paging_setCurrentPageDir( struct PAGE_DIRECTORY * pd )
 {
+	// set cr3 to the physical address of the page directory
 	ASM( "movl %%eax, %%cr3" :: "r" ( pd ) );
 }
 
