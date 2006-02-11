@@ -92,7 +92,7 @@ DWORD interrupt_dispatcher( struct PROCESS_STACK * taskstack )
 			kprintf( "\tDS:%x ES:%x FS:%x GS:%x\n", taskstack->ds, taskstack->es, taskstack->fs, taskstack->gs );
 			kprintf( "\tEDI:%x ESI:%x EBP:%x ESP:%x\n", taskstack->edi, taskstack->esi, taskstack->ebp, taskstack->esp );
 			kprintf( "\tEBX:%x EDX:%x ECX:%x EAX:%x\n", taskstack->ebx, taskstack->edx, taskstack->ecx, taskstack->eax );
-			//kprintf( "                 - EFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );
+			kprintf( "\tEFLAGS:%x  SS0:%x ESP0:%x\n", taskstack->eflags, taskstack->ss0, taskstack->esp0 );
 			
 			kernel_panic();
 		}

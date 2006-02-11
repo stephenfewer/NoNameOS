@@ -8,11 +8,9 @@
 
 void scheduler_addProcess( struct PROCESS_INFO * );
 
-void scheduler_removeProcesss( struct PROCESS_INFO * );
+struct PROCESS_INFO * scheduler_removeProcesss( int );
 
 void scheduler_enable();
-
-//void scheduler_disable();
 
 void scheduler_idle( void );
 

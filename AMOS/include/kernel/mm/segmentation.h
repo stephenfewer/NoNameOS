@@ -50,6 +50,8 @@ struct SEGMENTATION_TSS
 
 void segmentation_setEntry( int, DWORD, DWORD, BYTE, BYTE );
 
+void segmentation_ltr( WORD );
+
 void segmentation_reload( void );
 
 void segmentation_init();

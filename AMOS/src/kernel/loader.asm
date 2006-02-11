@@ -369,10 +369,8 @@ _isr31:
     jmp isr_common_stub
 	
 _irq00:
-    push byte 0
+    push byte 0					; we dont need these but push a dummy error code and int number so the PROCESS_STACK sructure fits properly
     push byte 32
-    jmp isr_common_stub
-
     pushad						; push all general purpose registers
     push ds						; push al the segments
     push es
@@ -383,22 +381,19 @@ _irq00:
     mov es, ax
     mov fs, ax
     mov gs, ax  
-	mov [_current_esp], esp
-    push esp					; push current stack pointer
-    call _scheduler_switch		; call out C isr_dispatcher() function
-    test eax, eax				; test the return value
-    jz movealong				; if its null, dont set new stack pointer
-    mov [_current_esp], eax		; set new stack pointer
+	mov [_current_esp], esp		; save the current esp
+    call _scheduler_switch		; call out C scheduler_switch() function
     mov eax, [_current_cr3]		; switch over to the tasks address space
     mov cr3, eax
-movealong:
-	mov esp, [_current_esp]		; restore esp
+	mov esp, [_current_esp]		; restore esp (possibly a new one)
+	mov al, 0x20
+	out 0x20, al
     pop gs						; pop al the segments
     pop fs
     pop es
     pop ds  
     popad						; pop all general purpose registers
-    add esp, 8
+    add esp, 8					; clear off the two bytes we pushed at the begining
     iret						; iret back
 
 _irq01:

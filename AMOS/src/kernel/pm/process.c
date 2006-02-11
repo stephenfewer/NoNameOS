@@ -82,86 +82,98 @@ void process_sleep( int ticks )
     while( scheduler_ticks < tickend );
 }
 */
-void process_destroy( struct PROCESS_INFO * task )
+int process_kill( int id )
 {
-	kernel_lock();
-	// remove the task from the scheduler so it cant be switched back in
-	scheduler_removeProcesss( task );
-	// destroy the tasks page directory, inturn destroying the stack
-	paging_destroyDirectory( task->page_dir );
-	// destroy the task info structure
-	mm_free( task );
+	struct PROCESS_INFO * process;
+	// cant kill the kernel ...we'd get court marshelled! :)
+	if( id == 0 )
+		return -1;
+	// remove the process from the scheduler so it cant be switched back in
+	process = scheduler_removeProcesss( id );
+	if( process == NULL )
+		return -1;
+	// destroy the process's page directory, inturn destroying the stack
+	paging_destroyDirectory( process->page_dir );
+	
+	// destroy he user & kernel stacks, user heap, ...
+	physical_pageFree( process->user_stack );
+	
+	// destroy the process info structure
+	mm_free( process );
 	
 	process_total--;
-	kernel_unlock();
+	
+	return 0;
 }
 
 extern struct PAGE_DIRECTORY * paging_kernelPageDir;
 
+BYTE kstacks[8][PROCESS_STACKSIZE];
+
 struct PROCESS_INFO * process_create( void (*entrypoint)() )
 {
-	struct PROCESS_STACK * stack;
+	struct PROCESS_STACK * kernel_stack;
 	struct PROCESS_INFO * process;
 	void * physicalAddress;
-	
-	kernel_lock();
 	// create a new process info structure
 	process = mm_malloc( sizeof( struct PROCESS_INFO ) );
+	if( process == NULL )
+		return NULL;
 	// assign a process id
-	process->id = process_total++;
+	process->id = ++process_total;
 	// give it an initial tick slice
-	process->tick_slice = 1;
+	process->tick_slice = PROCESS_TICKS_NORMAL;
 	// set the initial process state
 	process->state = READY;
 	// create the new process's page directory
 	process->page_dir = paging_createDirectory();
 	// map in the kernel including its heap and bottom 4 megs
 	paging_mapKernel( process->page_dir );
-	// allocate a page for the stack
+	// allocate a page for the process's user stack
 	physicalAddress = physical_pageAlloc();
-	//  map in the stack to the kernels address space so we can write to it
-	paging_setPageTableEntry( paging_kernelPageDir, PROCESS_STACKADDRESS, physicalAddress, TRUE );
 	//  map in the stack to the process's address space
-	paging_setPageTableEntry( process->page_dir, PROCESS_STACKADDRESS, physicalAddress, TRUE );
-	// save the physical stack address
-	process->stack = physicalAddress;
-	// create the initial stack fo we can perform a context switch
-	stack = (struct PROCESS_STACK *)( PROCESS_STACKADDRESS + PROCESS_STACKSIZE - sizeof(struct PROCESS_STACK) );
-	// clear the stack
-	memset( (void *)stack, 0x00, sizeof(struct PROCESS_STACK) );
+	paging_setPageTableEntry( process->page_dir, PROCESS_USER_STACKADDRESS, physicalAddress, TRUE );
+	// save the physical user stack address
+	process->user_stack = physicalAddress;
+	// create the process's initial kernel stack so we can perform a context switch
+	process->kernel_stack = (struct PROCESS_STACK *)kstacks[ process->id ];
+	// advance the pointer to the top of the stack, less the size of the stack structure, so we can begin filling it in
+	kernel_stack = ( process->kernel_stack + PROCESS_STACKSIZE - sizeof(struct PROCESS_STACK) );
+	// clear the stack structure
+	memset( (void *)kernel_stack, 0x00, sizeof(struct PROCESS_STACK) );
 	// set the code segment
-	stack->cs = KERNEL_CODE_SEL;
+	kernel_stack->cs = KERNEL_CODE_SEL;
 	// set the data segments
-	stack->ds = KERNEL_DATA_SEL;
-	stack->es = KERNEL_DATA_SEL;
-	stack->fs = KERNEL_DATA_SEL;
-	stack->gs = KERNEL_DATA_SEL;
+	kernel_stack->ds = KERNEL_DATA_SEL;
+	kernel_stack->es = KERNEL_DATA_SEL;
+	kernel_stack->fs = KERNEL_DATA_SEL;
+	kernel_stack->gs = KERNEL_DATA_SEL;
 	// set the eflags register
-	stack->eflags = 0x0202;
+	kernel_stack->eflags = 0x0202;
 	// set our initial entrypoint
-	stack->eip = (DWORD)entrypoint;
+	kernel_stack->eip = (DWORD)entrypoint;
 	// set the interrupt number we will return from
-	stack->intnumber = IRQ0;
+	kernel_stack->intnumber = IRQ0;
 	
-	//stack->ss = 0x10;
-	//stack->userstack = (DWORD)stack;
-	//stack->esp = (DWORD)stack;
+	kernel_stack->ss0 = KERNEL_DATA_SEL;
+	kernel_stack->esp0 = (DWORD)kernel_stack;
 	
-	// set the tasks current esp to the stack
-	process->current_esp = (DWORD)stack;
+	// set the processes initial esp to the top of its user stack, will get poped off its kernel stack
+	kernel_stack->esp = (DWORD)(PROCESS_USER_STACKADDRESS + PROCESS_STACKSIZE);
 	
+	// set the processes current esp to the top of its kernel stack
+	process->current_esp = (DWORD)kernel_stack;
+	/*
 	kprintf( "creating process -\n" );
-	kprintf( "                 - CS:%x EIP:%x\n", stack->cs, stack->eip );
-	kprintf( "                 - DS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );
-	kprintf( "                 - EDI:%x ESI:%x EBP:%x ESP:%x\n", stack->edi, stack->esi, stack->ebp, stack->esp );
-	kprintf( "                 - EBX:%x EDX:%x ECX:%x EAX:%x\n", stack->ebx, stack->edx, stack->ecx, stack->eax );
-	//kprintf( "                 - EFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );		
+	kprintf( "                 - process->current_esp:%x\n", process->current_esp );
+	kprintf( "                 - process->page_dir:%x\n", process->page_dir );
+	kprintf( "                 - CS:%x EIP:%x\n", kernel_stack->cs, kernel_stack->eip );
+	kprintf( "                 - DS:%x ES:%x FS:%x GS:%x\n", kernel_stack->ds, kernel_stack->es, kernel_stack->fs, kernel_stack->gs );
+	kprintf( "                 - EDI:%x ESI:%x EBP:%x ESP:%x\n", kernel_stack->edi, kernel_stack->esi, kernel_stack->ebp, kernel_stack->esp );
+	kprintf( "                 - EBX:%x EDX:%x ECX:%x EAX:%x\n", kernel_stack->ebx, kernel_stack->edx, kernel_stack->ecx, kernel_stack->eax );
+	//kprintf( "                 - EFLAGS:%x  SS0:%x ESP0:%x\n", kstack->eflags, kstack->ss0, kstack->esp0 );		
 	kprintf( "\n" );
-	
-	// unmap the stack from the kernels address space
-	paging_setPageTableEntry( paging_kernelPageDir, PROCESS_STACKADDRESS, NULL, FALSE );
-	
-	kernel_unlock();
+*/
 	// return with new process info
 	return process;
 }

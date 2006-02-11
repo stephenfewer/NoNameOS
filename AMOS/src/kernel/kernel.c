@@ -48,6 +48,9 @@ void kernel_shell( struct VFS_HANDLE * c )
 
 void task1()
 {
+	struct VFS_HANDLE * console = vfs_open( "/device/console2", VFS_MODE_READWRITE );
+	kernel_shell( console );
+	/*
 	unsigned char* VidMemChar = (unsigned char*)0xB8000;
 	*VidMemChar='1';
 	for(;;)
@@ -56,7 +59,7 @@ void task1()
 			*VidMemChar='2';
 		else
 			*VidMemChar='1';
-	}
+	}*/
 }
 
 void task2()
@@ -69,7 +72,7 @@ void task2()
 		if( *VidMemChar=='a' )
 			*VidMemChar='b';
 		else{
-			*VidMemChar='a';
+			*VidMemChar='a';	
 			//*crash=0xDEADBEEF;
 		}
 	}
@@ -142,18 +145,20 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	kprintf( "Welcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
 
 	// mount the root file system
-	//kprintf( "mounting device /device/floppy1 to /fat/ as a FAT file system. " );
-	//vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
-	//kprintf( "done.\n" );
+	kprintf( "mounting device /device/floppy1 to /fat/ as a FAT file system. " );
+	vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
+	kprintf( "done.\n" );
 	
 	console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
 	if( console != NULL )
 	{
-		//process_create( task1 );
-		//process_create( task2 );
-//		process_spawn( "/fat/BOOT/TEST.BIN", console );
+		scheduler_addProcess( process_create( (void*)&task1 ) );
+
+		//scheduler_addProcess( process_create( (void*)&task2 ) );
 		
-		//scheduler_enable();
+		process_spawn( "/fat/BOOT/TEST.BIN", console );
+		
+		scheduler_enable();
 		
 		kernel_shell( console );
 	} else {
