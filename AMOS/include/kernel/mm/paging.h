@@ -83,7 +83,6 @@ struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( struct PAGE_DIRECTORY *, voi
 
 void paging_setPageTableEntry( struct PAGE_DIRECTORY *, void *, void *, BOOL );
 
-//void paging_setDirectoryTableEntry( struct PAGE_DIRECTORY *, void *, void * );
 void paging_setPageDirectoryEntry( struct PAGE_DIRECTORY *, void *, void *, BOOL );
 
 struct PAGE_DIRECTORY * paging_createDirectory();

@@ -23,7 +23,7 @@ ASFLAGS=-f elf
 LDFLAGS=-T kernel.ld -Map $(TARGET_DIR)kernel.map -nostdlib
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
 
-OBJ=loader.o kernel.o interrupt.o kprintf.o syscall.o
+OBJ=loader.o isr.o kernel.o interrupt.o syscall.o
 	
 all: $(TARGET_ELF)
 

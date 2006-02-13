@@ -15,7 +15,6 @@
 #include <kernel/pm/process.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <kernel/kprintf.h>
 #include <kernel/mm/segmentation.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/mm.h>
@@ -26,20 +25,23 @@ DWORD current_cr3 = 0x00000000;
 
 DWORD scheduler_ticks = 0;
 
+struct SEGMENTATION_TSS * scheduler_tss        = NULL;
+
 struct PROCESS_INFO * scheduler_currentProcess = NULL;
+struct PROCESS_INFO * scheduler_processTop     = NULL;
+struct PROCESS_INFO * scheduler_processBottom  = NULL;
 
-struct SEGMENTATION_TSS * scheduler_tss = NULL;
+extern struct PROCESS_INFO kernel_process;
 
-struct PROCESS_INFO * scheduler_processTop = NULL;
-struct PROCESS_INFO * scheduler_processBottom = NULL;
-
-void scheduler_addProcess( struct PROCESS_INFO * process )
+struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * process )
 {
 	if( scheduler_processBottom == NULL )
 		scheduler_processBottom = process;
 	else
 		scheduler_processTop->next = process;
 	scheduler_processTop = process;
+	
+	return scheduler_processTop;
 }
 
 struct PROCESS_INFO * scheduler_findProcesss( int id )
@@ -79,8 +81,7 @@ struct PROCESS_INFO * scheduler_removeProcesss( int id )
 	return process;
 }
 
-extern struct PAGE_DIRECTORY * paging_kernelPageDir;
-extern struct VFS_HANDLE * kernel_console;
+
 
 void scheduler_idle( void )
 {
@@ -88,39 +89,32 @@ void scheduler_idle( void )
 	inportb( 0x80 );
 }
 
-void scheduler_switch( void )
+void scheduler_handler( void )
 {
 	scheduler_ticks++;
 	
 //	if( scheduler_ticks > 14 )
 //		while(TRUE);
-		
+	/*	
 	if( scheduler_currentProcess == NULL )
 	{
-		// create a kernel process 0 with current_esp
-		struct PROCESS_INFO * kernel_process = (struct PROCESS_INFO *)mm_malloc( sizeof(struct PROCESS_INFO) );
-		// clear it
-		memset( kernel_process, 0x00, sizeof(struct PROCESS_INFO) );
-		// set the values we need
-		kernel_process->current_esp = current_esp;
-		kernel_process->id = 0;
-		kernel_process->tick_slice = PROCESS_TICKS_LOW;
-		kernel_process->state = READY;
-		kernel_process->page_dir = paging_kernelPageDir;
-		kernel_process->console = kernel_console;
+		// set the initial values we need for the kernels process
+		kernel_process.current_esp = current_esp;
+		kernel_process.tick_slice = PROCESS_TICKS_LOW;
+		kernel_process.state = READY;
 		// add it to the scheduler
-		scheduler_addProcess( kernel_process );
+		scheduler_addProcess( &kernel_process );
 		// select the first process in the queue, gaurenteed to have at least one because we just added the kernel process above
 		scheduler_currentProcess = scheduler_processBottom;
 		// set the current_esp to our new stack
 		current_esp = scheduler_currentProcess->current_esp;
 		// set the process state to running as we are switching into this process
 		scheduler_currentProcess->state = RUNNING;
-	}
+	}*/
 	
 	scheduler_currentProcess->current_esp = current_esp;
 
-//kprintf("[%d] id: %d esp: %x\n", scheduler_ticks, scheduler_currentProcess->id, scheduler_currentProcess->current_esp );
+//kernel_printf("[%d] id: %d esp: %x\n", scheduler_ticks, scheduler_currentProcess->id, scheduler_currentProcess->current_esp );
 	
 	// if the current process has reached the end of its tick slice we must switch to a new process
 	if( scheduler_currentProcess->tick_slice <= 0 )
@@ -178,6 +172,12 @@ void scheduler_enable()
 
 void scheduler_init()
 {
+	// set the initial values we need for the kernels process
+	kernel_process.tick_slice = PROCESS_TICKS_LOW;
+	// we set the state to running as when the first context switch occurs it will be for the kernel process
+	kernel_process.state = RUNNING;
+	// add it to the scheduler and set it as the current process
+	scheduler_currentProcess = scheduler_addProcess( &kernel_process );
 	// create a TSS for our software task switching (6.2)
 	scheduler_tss = (struct SEGMENTATION_TSS *)mm_malloc( sizeof(struct SEGMENTATION_TSS) );
 	// clear it

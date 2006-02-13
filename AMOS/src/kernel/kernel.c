@@ -15,17 +15,16 @@
 #include <kernel/interrupt.h>
 #include <kernel/mm/mm.h>
 #include <kernel/mm/paging.h>
-#include <kernel/kprintf.h>
 #include <kernel/pm/scheduler.h>
 #include <kernel/pm/process.h>
 #include <kernel/io/io.h>
 #include <kernel/fs/vfs.h>
 #include <kernel/fs/fat.h>
-#include <kernel/lib/printf.h>
 #include <kernel/syscall.h>
+#include <kernel/lib/printf.h>
+#include <kernel/lib/string.h>
 
-// the global handle for the kernels console
-struct VFS_HANDLE * kernel_console = NULL;
+struct PROCESS_INFO kernel_process;
 
 volatile int kernel_lockCount = 0;
 
@@ -105,8 +104,13 @@ inline void kernel_unlock()
 // initilize the kernel and bring up all the subsystems
 void kernel_init( struct MULTIBOOT_INFO * m )
 {
+	struct VFS_HANDLE * kernel_console;
 	// lock protected code
 	kernel_lock();
+	// clear the kernels process structure
+	memset( &kernel_process, 0x00, sizeof(struct PROCESS_INFO) );
+	// set its default id
+	kernel_process.id = KERNEL_PID;
 	// setup interrupts
 	interrupt_init();
 	// setup our memory manager
@@ -119,14 +123,28 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 	scheduler_init();
 	// setup our system calls
 	syscall_init();
+	// open the kernels console
+	kernel_console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
+	if( kernel_console == NULL )
+		kernel_panic();
+	kernel_process.console = kernel_console;	
 	// unlock protected code
 	kernel_unlock();
+}
+
+void kernel_printf( char * text, ... )
+{
+	va_list args;
+	// find the first argument
+	va_start( args, text );
+	// pass printf the kernels std output handle the format text and the first argument
+	printf( kernel_process.console, text, args );
 }
 
 void kernel_panic( void )
 {
 	// attempt to display a message
-	kprintf( "AMOS Kernel Panic!\n" );
+	kernel_printf( "AMOS Kernel Panic!\n" );
 	// hang the system
 	while( TRUE );
 }
@@ -137,24 +155,20 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	
 	// initilize the kernel
 	kernel_init( m );
-
-	// open the kernels console
-	kernel_console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
-	if( kernel_console == NULL )
-		kernel_panic();
-	kprintf( "Welcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
+	
+	kernel_printf( "Welcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
 
 	// mount the root file system
-	kprintf( "mounting device /device/floppy1 to /fat/ as a FAT file system. " );
+	kernel_printf( "mounting device /device/floppy1 to /fat/ as a FAT file system. " );
 	vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
-	kprintf( "done.\n" );
+	kernel_printf( "done.\n" );
 	
 	console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
 	if( console != NULL )
 	{
-		scheduler_addProcess( process_create( (void*)&task1 ) );
+		scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
 
-		//scheduler_addProcess( process_create( (void*)&task2 ) );
+		//scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
 		
 		process_spawn( "/fat/BOOT/TEST.BIN", console );
 		
@@ -162,10 +176,10 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 		
 		kernel_shell( console );
 	} else {
-		kprintf( "failed to open /device/console1\n" );
+		kernel_printf( "failed to open /device/console1\n" );
 	}
 
-	kprintf( "hanging: -->infiniteloop<--\n" );
+	kernel_printf( "hanging: -->infiniteloop<--\n" );
 	// after scheduling is enabled we should never reach here
 	kernel_panic();
 }

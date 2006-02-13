@@ -19,12 +19,13 @@
 #include <kernel/mm/mm.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
 #include <kernel/fs/vfs.h>
 #include <kernel/pm/elf.h>
 
 int process_total = 0;
+
+extern struct PROCESS_INFO kernel_process;
 
 int process_spawn( char * filename, struct VFS_HANDLE * console )
 {
@@ -41,7 +42,7 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	// determine what type: elf/coff/flat/...
 
 	size = vfs_seek( handle, 0, VFS_SEEK_END );
-	kprintf("size = %d\n", size );
+	kernel_printf("size = %d\n", size );
 	
 	// we will need to free this at some point? ...process_destroy()
 	buffer = (BYTE *)mm_malloc( size );
@@ -50,16 +51,16 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	if( vfs_read( handle, buffer, size ) == VFS_FAIL )
 		return -1;
 		
-	kprintf("read in buffer\n" );
+	kernel_printf("read in buffer\n" );
 	
 	//if( (i=elf_load( handle )) < 0 )
-	//	kprintf("Failed to load ELF [%d]: %s\n", i, filename );
+	//	kernel_printf("Failed to load ELF [%d]: %s\n", i, filename );
 	
-	process = process_create( (void *)buffer );
+	process = process_create( (void *)buffer, size );
 	if( process != NULL )
 	{
 		process->console = console;
-		kprintf( "adding process %d to the scheduler\n", process->id );
+		kernel_printf( "adding process %d to the scheduler\n", process->id );
 		// add the process to the scheduler
 		scheduler_addProcess( process );
 	}
@@ -81,12 +82,18 @@ void process_sleep( int ticks )
     
     while( scheduler_ticks < tickend );
 }
+
+void process_wait( int id )
+{
+	//wait for the process of id to terminate...
+}
 */
+
 int process_kill( int id )
 {
 	struct PROCESS_INFO * process;
 	// cant kill the kernel ...we'd get court marshelled! :)
-	if( id == 0 )
+	if( id == KERNEL_PID )
 		return -1;
 	// remove the process from the scheduler so it cant be switched back in
 	process = scheduler_removeProcesss( id );
@@ -106,11 +113,9 @@ int process_kill( int id )
 	return 0;
 }
 
-extern struct PAGE_DIRECTORY * paging_kernelPageDir;
-
 BYTE kstacks[8][PROCESS_STACKSIZE];
 
-struct PROCESS_INFO * process_create( void (*entrypoint)() )
+struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 {
 	struct PROCESS_STACK * kernel_stack;
 	struct PROCESS_INFO * process;
@@ -121,6 +126,10 @@ struct PROCESS_INFO * process_create( void (*entrypoint)() )
 		return NULL;
 	// assign a process id
 	process->id = ++process_total;
+	// setup the initial user heap, mm_morecore() will take care of the rest
+	process->heap.heap_base = PROCESS_USER_HEAP_ADDRESS;
+	process->heap.heap_bottom = NULL;
+	process->heap.heap_top = NULL;
 	// give it an initial tick slice
 	process->tick_slice = PROCESS_TICKS_NORMAL;
 	// set the initial process state
@@ -132,7 +141,7 @@ struct PROCESS_INFO * process_create( void (*entrypoint)() )
 	// allocate a page for the process's user stack
 	physicalAddress = physical_pageAlloc();
 	//  map in the stack to the process's address space
-	paging_setPageTableEntry( process->page_dir, PROCESS_USER_STACKADDRESS, physicalAddress, TRUE );
+	paging_setPageTableEntry( process->page_dir, PROCESS_USER_STACK_ADDRESS, physicalAddress, TRUE );
 	// save the physical user stack address
 	process->user_stack = physicalAddress;
 	// create the process's initial kernel stack so we can perform a context switch
@@ -151,28 +160,45 @@ struct PROCESS_INFO * process_create( void (*entrypoint)() )
 	// set the eflags register
 	kernel_stack->eflags = 0x0202;
 	// set our initial entrypoint
-	kernel_stack->eip = (DWORD)entrypoint;
+	
+	int i=0;
+	// copy the code segment from kernel space to user space
+	for( i=0 ; i<(size/PAGE_SIZE)+1 ; i++ )
+	{
+		void * linearAddress = (void *)((DWORD)PROCESS_USER_CODE_ADDRESS+(i*PAGE_SIZE));
+		
+		physicalAddress = physical_pageAlloc();
+		
+		paging_setPageTableEntry( kernel_process.page_dir, linearAddress, physicalAddress, TRUE );
+		paging_setPageTableEntry( process->page_dir, linearAddress, physicalAddress, TRUE );
+		
+		memcpy( linearAddress, entrypoint+(i*PAGE_SIZE), PAGE_SIZE );
+		
+		paging_setPageTableEntry( kernel_process.page_dir, linearAddress, NULL, FALSE );
+	}
+	
+	kernel_stack->eip = (DWORD)PROCESS_USER_CODE_ADDRESS;//(DWORD)entrypoint;
 	// set the interrupt number we will return from
 	kernel_stack->intnumber = IRQ0;
 	
-	kernel_stack->ss0 = KERNEL_DATA_SEL;
-	kernel_stack->esp0 = (DWORD)kernel_stack;
+	//kernel_stack->ss0 = KERNEL_DATA_SEL;
+	//kernel_stack->esp0 = (DWORD)kernel_stack;
 	
 	// set the processes initial esp to the top of its user stack, will get poped off its kernel stack
-	kernel_stack->esp = (DWORD)(PROCESS_USER_STACKADDRESS + PROCESS_STACKSIZE);
+	kernel_stack->esp = (DWORD)(PROCESS_USER_STACK_ADDRESS + PROCESS_STACKSIZE);
 	
 	// set the processes current esp to the top of its kernel stack
 	process->current_esp = (DWORD)kernel_stack;
 	/*
-	kprintf( "creating process -\n" );
-	kprintf( "                 - process->current_esp:%x\n", process->current_esp );
-	kprintf( "                 - process->page_dir:%x\n", process->page_dir );
-	kprintf( "                 - CS:%x EIP:%x\n", kernel_stack->cs, kernel_stack->eip );
-	kprintf( "                 - DS:%x ES:%x FS:%x GS:%x\n", kernel_stack->ds, kernel_stack->es, kernel_stack->fs, kernel_stack->gs );
-	kprintf( "                 - EDI:%x ESI:%x EBP:%x ESP:%x\n", kernel_stack->edi, kernel_stack->esi, kernel_stack->ebp, kernel_stack->esp );
-	kprintf( "                 - EBX:%x EDX:%x ECX:%x EAX:%x\n", kernel_stack->ebx, kernel_stack->edx, kernel_stack->ecx, kernel_stack->eax );
-	//kprintf( "                 - EFLAGS:%x  SS0:%x ESP0:%x\n", kstack->eflags, kstack->ss0, kstack->esp0 );		
-	kprintf( "\n" );
+	kernel_printf( "creating process -\n" );
+	kernel_printf( "                 - process->current_esp:%x\n", process->current_esp );
+	kernel_printf( "                 - process->page_dir:%x\n", process->page_dir );
+	kernel_printf( "                 - CS:%x EIP:%x\n", kernel_stack->cs, kernel_stack->eip );
+	kernel_printf( "                 - DS:%x ES:%x FS:%x GS:%x\n", kernel_stack->ds, kernel_stack->es, kernel_stack->fs, kernel_stack->gs );
+	kernel_printf( "                 - EDI:%x ESI:%x EBP:%x ESP:%x\n", kernel_stack->edi, kernel_stack->esi, kernel_stack->ebp, kernel_stack->esp );
+	kernel_printf( "                 - EBX:%x EDX:%x ECX:%x EAX:%x\n", kernel_stack->ebx, kernel_stack->edx, kernel_stack->ecx, kernel_stack->eax );
+	//kernel_printf( "                 - EFLAGS:%x  SS0:%x ESP0:%x\n", kstack->eflags, kstack->ss0, kstack->esp0 );		
+	kernel_printf( "\n" );
 */
 	// return with new process info
 	return process;

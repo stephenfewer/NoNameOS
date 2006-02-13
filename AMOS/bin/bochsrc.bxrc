@@ -1,4 +1,4 @@
-floppya: image=c:\progra~1\steve\AMOS\bin\amos.ima, status=inserted
+floppya: image=amos.ima, status=inserted
 
 #log: nul
 #log: bochs_log.txt

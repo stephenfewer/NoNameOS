@@ -16,7 +16,6 @@
 #include <kernel/mm/mm.h>
 #include <kernel/io/io.h>
 #include <kernel/mm/dma.h>
-#include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
 #include <kernel/interrupt.h>
 #include <kernel/pm/scheduler.h>
@@ -230,7 +229,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
     	// seek to the correct location
     	if( !floppy_seekcylinder( floppy, blockGeometry.cylinders ) )
     	{
-    		kprintf("floppy: read seek failed, block %d\n", floppy->current_block );
+    		kernel_printf("floppy: read seek failed, block %d\n", floppy->current_block );
     		// turn off the floppy motor
     		floppy_off( floppy );
     		return IO_FAIL;	
@@ -261,7 +260,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
 		// wait for the floppy drive to send back an interrupt
 		if( !floppy_wait( floppy, FALSE ) )
 		{
-			kprintf("floppy: read floppy_wait failed, block %d\n", floppy->current_block );
+			kernel_printf("floppy: read floppy_wait failed, block %d\n", floppy->current_block );
 			// if this fails reset the drive
 			floppy_reset( floppy );
 			// turn off the floppy motor
@@ -291,7 +290,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
     	// recalibrate the drive
 		floppy_recalibrate( floppy );
     }
-    kprintf("floppy: read failed 3 times, block %d\n", floppy->current_block );
+    kernel_printf("floppy: read failed 3 times, block %d\n", floppy->current_block );
 	// we fail if we cant read in three tries
 	// turn off the floppy motor
     floppy_off( floppy );

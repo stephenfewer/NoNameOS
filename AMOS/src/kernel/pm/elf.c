@@ -13,7 +13,6 @@
 
 #include <kernel/pm/elf.h>
 #include <kernel/fs/vfs.h>
-#include <kernel/kprintf.h>
 
 int elf_load( struct VFS_HANDLE * handle )
 {
@@ -33,11 +32,11 @@ int elf_load( struct VFS_HANDLE * handle )
 	if( hdr.e_ident[4] != ELF_CLASS_32 )
 		return -3;
 
-	//kprintf("e_entry: %x\n", hdr.e_entry );
-	//kprintf("e_shoff: %d\n", hdr.e_shoff );
-	//kprintf("e_shnum: %d\n", hdr.e_shnum );
-	//kprintf("e_shentsize: %d\n", hdr.e_shentsize );
-	//kprintf("sizeof(struct ELF_SECTION_HDR): %d\n", sizeof(struct ELF_SECTION_HDR) );
+	//kernel_printf("e_entry: %x\n", hdr.e_entry );
+	//kernel_printf("e_shoff: %d\n", hdr.e_shoff );
+	//kernel_printf("e_shnum: %d\n", hdr.e_shnum );
+	//kernel_printf("e_shentsize: %d\n", hdr.e_shentsize );
+	//kernel_printf("sizeof(struct ELF_SECTION_HDR): %d\n", sizeof(struct ELF_SECTION_HDR) );
 	
 	vfs_seek( handle, hdr.e_shoff, VFS_SEEK_START );
 	for( i=0 ; i<hdr.e_shnum ; i++)
@@ -45,7 +44,7 @@ int elf_load( struct VFS_HANDLE * handle )
 		if( vfs_read( handle, (void *)&section_hdr, hdr.e_phentsize ) == VFS_FAIL )
 			return -4-i;
 		
-		kprintf("[%d] name index: %d addr: %x\n", i, section_hdr.sh_name, section_hdr.sh_addr );
+		kernel_printf("[%d] name index: %d addr: %x\n", i, section_hdr.sh_name, section_hdr.sh_addr );
 	}
 	
 	return 0;

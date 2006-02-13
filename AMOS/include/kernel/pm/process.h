@@ -3,13 +3,16 @@
 
 #include <sys/types.h>
 #include <kernel/fs/vfs.h>
+#include <kernel/mm/paging.h>
 
 #define PROCESS_TICKS_LOW				1//64
 #define PROCESS_TICKS_NORMAL			1//256
 #define PROCESS_TICKS_HIGH				1//512
 
-#define PROCESS_USER_CODEADDRESS		(void *)0x10000000
-#define PROCESS_USER_STACKADDRESS		(void *)0x20000000
+#define PROCESS_USER_CODE_ADDRESS		(void *)0x10000000
+#define PROCESS_USER_STACK_ADDRESS		(void *)0x20000000
+#define PROCESS_USER_HEAP_ADDRESS		(void *)0x30000000
+
 #define PROCESS_STACKSIZE				SIZE_4KB
 
 struct PROCESS_STACK
@@ -42,6 +45,13 @@ enum
 	BLOCKED,
 };
 
+struct PROCESS_HEAP
+{
+	void * heap_base;
+	void * heap_top;
+	void * heap_bottom;
+};
+
 struct PROCESS_INFO
 {
 	DWORD current_esp;
@@ -49,11 +59,11 @@ struct PROCESS_INFO
 	int tick_slice;
 	int state;
 	void * user_stack;
+	void * user_heap;
 	void * kernel_stack;
 	struct PAGE_DIRECTORY * page_dir;
 	struct VFS_HANDLE * console;
-	//struct MM_HEAP heap;
-	
+	struct PROCESS_HEAP heap;
 	struct PROCESS_INFO * next;
 };
 
@@ -61,6 +71,6 @@ int process_spawn( char *, struct VFS_HANDLE * );
 
 int process_kill( int );
 
-struct PROCESS_INFO * process_create( void (*thread)() );
+struct PROCESS_INFO * process_create( void (*thread)(), int );
 
 #endif 

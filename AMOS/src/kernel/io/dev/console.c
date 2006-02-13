@@ -17,7 +17,6 @@
 #include <kernel/mm/mm.h>
 #include <kernel/io/dev/console.h>
 #include <kernel/io/io.h>
-#include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
 #include <kernel/pm/scheduler.h>
 

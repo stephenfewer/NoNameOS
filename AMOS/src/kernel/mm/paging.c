@@ -15,7 +15,6 @@
 #include <kernel/mm/physical.h>
 #include <kernel/mm/mm.h>
 #include <kernel/kernel.h>
-#include <kernel/kprintf.h>
 #include <kernel/interrupt.h>
 #include <kernel/pm/process.h>
 #include <kernel/lib/string.h>
@@ -23,7 +22,7 @@
 extern void start;
 extern void end;
 
-struct PAGE_DIRECTORY * paging_kernelPageDir;
+extern struct PROCESS_INFO kernel_process;
 
 struct PAGE_DIRECTORY * paging_getCurrentPageDir()
 {
@@ -120,7 +119,7 @@ DWORD paging_pageFaultHandler( struct PROCESS_STACK * taskstack )
 {
 	void * linearAddress;
 	ASM( "movl %%cr2, %0" : "=r" (linearAddress) );
-	kprintf( "Page Fault at CS:EIP %d:%x Address %x\n", taskstack->cs, taskstack->eip, linearAddress );
+	kernel_printf( "Page Fault at CS:EIP %d:%x Address %x\n", taskstack->cs, taskstack->eip, linearAddress );
 	// we must hang untill we can fix the page fault
 	while(TRUE);
 	return (DWORD)NULL;
@@ -175,13 +174,13 @@ void paging_mapKernel( struct PAGE_DIRECTORY * pd )
 {
 	struct PAGE_DIRECTORY_ENTRY * pde;
 	// map in the bottom 4MB's ( which are identity mapped, see paging_init() )
-	pde = paging_getPageDirectoryEntry( paging_kernelPageDir, NULL );
+	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, NULL );
 	paging_setPageDirectoryEntry( pd, NULL, (void *)TABLE_SHIFT_L(pde->address), FALSE );
 	// map in the kernel
-	pde = paging_getPageDirectoryEntry( paging_kernelPageDir, KERNEL_CODE_VADDRESS );
+	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_CODE_VADDRESS );
 	paging_setPageDirectoryEntry( pd, KERNEL_CODE_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	
 	// map in the kernel's heap
-	pde = paging_getPageDirectoryEntry( paging_kernelPageDir, KERNEL_HEAP_VADDRESS );
+	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_HEAP_VADDRESS );
 	paging_setPageDirectoryEntry( pd, KERNEL_HEAP_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	
 }
 
@@ -194,11 +193,11 @@ void paging_init()
 	interrupt_enable( INT14, paging_pageFaultHandler );
 
 	// create the kernels page directory
-	paging_kernelPageDir = paging_createDirectory();
+	kernel_process.page_dir = paging_createDirectory();
 
 	// identity map bottom 4MB's
 	for( physicalAddress=0L ; physicalAddress<(void *)(1024*PAGE_SIZE) ; physicalAddress+=PAGE_SIZE )
-		paging_setPageTableEntry( paging_kernelPageDir, physicalAddress, physicalAddress, TRUE );		
+		paging_setPageTableEntry( kernel_process.page_dir, physicalAddress, physicalAddress, TRUE );		
 
 	// map in the kernel
 	physicalAddress = V2P( &start );
@@ -206,12 +205,12 @@ void paging_init()
 	
 	for( ; physicalAddress<V2P(&end)+physical_getBitmapSize() ; physicalAddress+=PAGE_SIZE )
 	{
-		paging_setPageTableEntry( paging_kernelPageDir, linearAddress, physicalAddress, TRUE );
+		paging_setPageTableEntry( kernel_process.page_dir, linearAddress, physicalAddress, TRUE );
 		linearAddress += PAGE_SIZE;		
 	}
 	
 	// enable paging
-	paging_setCurrentPageDir( paging_kernelPageDir );
+	paging_setCurrentPageDir( kernel_process.page_dir );
 	
 	ASM( "movl %cr0, %eax" );
 	ASM( "orl $0x80000000, %eax" );

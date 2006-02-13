@@ -10,6 +10,11 @@
 
 #define AMOS_VERSION_STRING			"AMOS 0.5.0"
 
+#define KERNEL_PID					0
+
+#define KERNEL_CODE_VADDRESS		(void *)0xC0000000
+#define KERNEL_HEAP_VADDRESS		(void *)0xD0000000
+
 struct MULTIBOOT_INFO
 {
     DWORD flags;
@@ -45,6 +50,8 @@ void outportb( WORD, BYTE );
 void kernel_lock();
 
 void kernel_unlock();
+
+void kernel_printf( char *, ... );
 
 void kernel_panic( void );
 

@@ -12,8 +12,9 @@
  */
 
 #include <kernel/syscall.h>
-#include <kernel/interrupt.h>
+#include <kernel/mm/mm.h>
 #include <kernel/fs/vfs.h>
+#include <kernel/interrupt.h>
 
 struct SYSCALL_ENTRY syscall_table[SYSCALL_MAXCALLS];
 
@@ -67,23 +68,28 @@ void syscall_init( void )
 		syscall_table[ index ].parameters = 0;
 	}
 	// add in all our system calls... file operations
-	syscall_add( SYSCALL_OPEN,    vfs_open,    2 );
-	syscall_add( SYSCALL_CLOSE,   vfs_close,   1 );
-	syscall_add( SYSCALL_READ,    vfs_read,    3 );
-	syscall_add( SYSCALL_WRITE,   vfs_write,   3 );
-	syscall_add( SYSCALL_SEEK,    vfs_seek,    3 );
-	syscall_add( SYSCALL_CONTROL, vfs_seek,    3 );	
+	syscall_add( SYSCALL_OPEN,     vfs_open,      2 );
+	syscall_add( SYSCALL_CLOSE,    vfs_close,     1 );
+	syscall_add( SYSCALL_READ,     vfs_read,      3 );
+	syscall_add( SYSCALL_WRITE,    vfs_write,     3 );
+	syscall_add( SYSCALL_SEEK,     vfs_seek,      3 );
+	syscall_add( SYSCALL_CONTROL,  vfs_seek,      3 );	
 	// file system operations
-	syscall_add( SYSCALL_MOUNT,   vfs_mount,   3 );
-	syscall_add( SYSCALL_UNMOUNT, vfs_unmount, 1 );
-	syscall_add( SYSCALL_CREATE,  vfs_create,  1 );
-	syscall_add( SYSCALL_DELETE,  vfs_delete,  1 );
-	syscall_add( SYSCALL_RENAME,  vfs_rename,  2 );
-	syscall_add( SYSCALL_COPY,    vfs_copy,    2 );
-	syscall_add( SYSCALL_LIST,    vfs_list,    1 );
+	syscall_add( SYSCALL_MOUNT,    vfs_mount,     3 );
+	syscall_add( SYSCALL_UNMOUNT,  vfs_unmount,   1 );
+	syscall_add( SYSCALL_CREATE,   vfs_create,    1 );
+	syscall_add( SYSCALL_DELETE,   vfs_delete,    1 );
+	syscall_add( SYSCALL_RENAME,   vfs_rename,    2 );
+	syscall_add( SYSCALL_COPY,     vfs_copy,      2 );
+	syscall_add( SYSCALL_LIST,     vfs_list,      1 );
+	// memory operations
+	syscall_add( SYSCALL_MORECORE, mm_morecore,   2 );
 	// process operations
-	//syscall_add( SYSCALL_SPAWN, process_spawn, 1 );
-	//syscall_add( SYSCALL_KILL, process_kill, 1 );
+	//syscall_add( SYSCALL_SPAWN,  process_spawn, 1 );
+	//syscall_add( SYSCALL_KILL,   process_kill,  1 );
+	//syscall_add( SYSCALL_SLEEP,  process_sleep, 1 );
+	//syscall_add( SYSCALL_WAIT,   process_wait,  1 )
+	
 	// enable the system call interrupt
 	// we will need to set the DPL TO RING3 so it may be accessed from user mode
 	interrupt_enable( SYSCALL_INTERRUPT, syscall_handler );

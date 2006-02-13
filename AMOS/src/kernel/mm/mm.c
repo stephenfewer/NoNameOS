@@ -15,13 +15,11 @@
 #include <kernel/mm/physical.h>
 #include <kernel/mm/segmentation.h>
 #include <kernel/mm/paging.h>
-#include <kernel/kprintf.h>
+#include <kernel/pm/process.h>
 #include <kernel/kernel.h>
 #include <kernel/lib/string.h>
 
-extern struct PAGE_DIRECTORY * paging_kernelPageDir;
-
-struct MM_HEAP mm_kernelHeap;
+extern struct PROCESS_INFO kernel_process;
 
 void mm_init( DWORD memUpper )
 {	
@@ -35,34 +33,34 @@ void mm_init( DWORD memUpper )
 	paging_init();
 	
 	// setup the kernel heap structure
-	mm_kernelHeap.heap_bottom = NULL;
-	mm_kernelHeap.heap_top = NULL;
-	mm_kernelHeap.page_dir = paging_kernelPageDir;
+	kernel_process.heap.heap_base   = KERNEL_HEAP_VADDRESS;
+	kernel_process.heap.heap_top    = NULL;
+	kernel_process.heap.heap_bottom = NULL;
 	
 	// from here on in we can use mm_malloc() & mm_free()
 }
 
-// increase the heap by some amount, this will be rounded up by the page size 
-void * mm_morecore( struct MM_HEAP * heap, DWORD size )
+// increase the processes heap by some amount, this will be rounded up by the page size 
+void * mm_morecore( struct PROCESS_INFO * process, DWORD size )
 {
 	// calculate how many pages we will need
 	int pages = ( size / PAGE_SIZE ) + 1;
-	// when heap->heap_top == NULL we must create the initial heap
-	if( heap->heap_top == NULL )
-		heap->heap_bottom = heap->heap_top = KERNEL_HEAP_VADDRESS;
+	// when process->heap.heap_top == NULL we must create the initial heap
+	if( process->heap.heap_top == NULL )
+		process->heap.heap_bottom = process->heap.heap_top = process->heap.heap_base;
 	// set the address to return
-	void * prevTop = heap->heap_top;
+	void * prevTop = process->heap.heap_top;
 	// create the pages
-	for( ; pages-->0 ; heap->heap_top+=PAGE_SIZE )
+	for( ; pages-->0 ; process->heap.heap_top+=PAGE_SIZE )
 	{
 		// alloc a physical page in mamory
 		void * physicalAddress = physical_pageAlloc();
 		if( physicalAddress == 0L )
 			return NULL;
-		// map it onto the end of the kernel heap
-		paging_setPageTableEntry( heap->page_dir, heap->heap_top, physicalAddress, TRUE );
+		// map it onto the end of the processes heap
+		paging_setPageTableEntry( process->page_dir, process->heap.heap_top, physicalAddress, TRUE );
 		// clear it for safety
-		memset( heap->heap_top, 0x00, PAGE_SIZE );
+		memset( process->heap.heap_top, 0x00, PAGE_SIZE );
 	}
 	// return the start address of the memory we allocated to the heap
 	return prevTop;
@@ -75,7 +73,7 @@ void mm_free( void * address )
 	struct MM_HEAPITEM * tmp_item;
 	struct MM_HEAPITEM * item = (struct MM_HEAPITEM *)( address - sizeof(struct MM_HEAPITEM) );
 	// find it
-	for( tmp_item=mm_kernelHeap.heap_bottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
+	for( tmp_item=kernel_process.heap.heap_bottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
 	{
 		if( tmp_item == item )
 			break;
@@ -89,7 +87,7 @@ void mm_free( void * address )
 	// free it
 	tmp_item->used = FALSE;
 	// coalesce any free adjacent items
-	for( tmp_item=mm_kernelHeap.heap_bottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
+	for( tmp_item=kernel_process.heap.heap_bottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
 	{
 		while( !tmp_item->used && tmp_item->next!=NULL && !tmp_item->next->used )
 		{
@@ -115,7 +113,7 @@ void * mm_malloc( DWORD size )
 	// round up by 8 bytes and add header size
 	total_size = ( ( size + 7 ) & ~7 ) + sizeof(struct MM_HEAPITEM);
 	// search for first fit
-	for( new_item=mm_kernelHeap.heap_bottom ; new_item!=NULL ; new_item=new_item->next )
+	for( new_item=kernel_process.heap.heap_bottom ; new_item!=NULL ; new_item=new_item->next )
 	{
 		if( !new_item->used && (total_size <= new_item->size) )
 			break;
@@ -135,7 +133,7 @@ void * mm_malloc( DWORD size )
 	else
 	{
 		// didnt find a fit so we must increase the heap to fit
-		new_item = mm_morecore( &mm_kernelHeap, total_size );
+		new_item = mm_morecore( &kernel_process, total_size );
 		if( new_item == NULL )
 		{
 			kernel_unlock();

@@ -15,7 +15,6 @@
 #include <kernel/fs/fat.h>
 #include <kernel/mm/mm.h>
 #include <kernel/lib/string.h>
-#include <kernel/kprintf.h>
 
 struct VFS_FILESYSTEM * vfs_fsTop = NULL;
 struct VFS_FILESYSTEM * vfs_fsBottom = NULL;
@@ -389,7 +388,7 @@ struct VFS_DIRLIST_ENTRY * vfs_list( char * dir )
 						c++;
 				}
 				if( c <= 2 )
-					kprintf("vfs: mountpoint %s\n", mount->mountpoint );
+					kernel_printf("vfs: mountpoint %s\n", mount->mountpoint );
 			}
 		}*/		
 		

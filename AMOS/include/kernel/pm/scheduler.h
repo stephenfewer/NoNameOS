@@ -6,7 +6,7 @@
 
 #define MAX_TASKS	255
 
-void scheduler_addProcess( struct PROCESS_INFO * );
+struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * );
 
 struct PROCESS_INFO * scheduler_removeProcesss( int );
 

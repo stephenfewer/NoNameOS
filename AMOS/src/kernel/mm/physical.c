@@ -14,7 +14,6 @@
 #include <kernel/mm/physical.h>
 #include <kernel/mm/paging.h>
 #include <kernel/kernel.h>
-#include <kernel/kprintf.h>
 #include <kernel/lib/string.h>
 
 extern void start;

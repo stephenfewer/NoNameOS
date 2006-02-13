@@ -97,23 +97,6 @@ extern void disable_int();
 extern void disable_irqA();
 extern void disable_irqB();
 
-extern void irq00();
-extern void irq01();
-extern void irq02();
-extern void irq03();
-extern void irq04();
-extern void irq05();
-extern void irq06();
-extern void irq07();
-extern void irq08();
-extern void irq09();
-extern void irq10();
-extern void irq11();
-extern void irq12();
-extern void irq13();
-extern void irq14();
-extern void irq15();
-
 extern void isr00();
 extern void isr01();
 extern void isr02();
@@ -146,6 +129,22 @@ extern void isr28();
 extern void isr29();
 extern void isr30();
 extern void isr31();
+extern void isr32();
+extern void isr33();
+extern void isr34();
+extern void isr35();
+extern void isr36();
+extern void isr37();
+extern void isr38();
+extern void isr39();
+extern void isr40();
+extern void isr41();
+extern void isr42();
+extern void isr43();
+extern void isr44();
+extern void isr45();
+extern void isr46();
+extern void isr47();
 
 DWORD interrupt_dispatcher( struct PROCESS_STACK * );
 

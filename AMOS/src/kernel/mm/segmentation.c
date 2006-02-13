@@ -60,7 +60,7 @@ void segmentation_reload( void )
 void segmentation_init()
 {
     segmentation_gdtp.limit = ( sizeof(struct SEGMENTATION_GDT_ENTRY) * SEGMENTATION_GDT_ENTRYS ) - 1;
-    // base should be physical?
+    // linear address, should be aligned on an 8byte boundry for best performance (3.5.1)
     segmentation_gdtp.base = (unsigned int)&segmentation_gdt;
 
 	memset( (void *)&segmentation_gdt, 0x00, sizeof(struct SEGMENTATION_GDT_ENTRY) * SEGMENTATION_GDT_ENTRYS );
