@@ -204,6 +204,8 @@ struct VFS_HANDLE * vfs_open( char * filename, int mode )
 
 int vfs_close( struct VFS_HANDLE * handle )
 {
+	if( handle == NULL )
+		return VFS_FAIL;
 	if( handle->mount->fs->calltable.close != NULL )
 	{
 		int ret;
@@ -216,6 +218,8 @@ int vfs_close( struct VFS_HANDLE * handle )
 
 int vfs_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
+	if( handle == NULL )
+		return VFS_FAIL;
 	// test if the file has been opened in read mode first
 	if( (handle->mode & VFS_MODE_READ) != VFS_MODE_READ )
 		return VFS_FAIL;
@@ -229,6 +233,8 @@ int vfs_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 int vfs_write( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size )
 {
 	int ret;
+	if( handle == NULL )
+		return VFS_FAIL;
 	// test if the file ha been opened in read mode first
 	if( (handle->mode & VFS_MODE_WRITE) != VFS_MODE_WRITE )
 		return VFS_FAIL;
@@ -251,6 +257,8 @@ int vfs_write( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size )
 
 int vfs_seek( struct VFS_HANDLE * handle, DWORD offset, BYTE origin )
 {
+	if( handle == NULL )
+		return VFS_FAIL;
 	if( handle->mount->fs->calltable.seek != NULL )
 		return handle->mount->fs->calltable.seek( handle, offset, origin  );
 	return VFS_FAIL;
@@ -258,6 +266,8 @@ int vfs_seek( struct VFS_HANDLE * handle, DWORD offset, BYTE origin )
 
 int vfs_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 {
+	if( handle == NULL )
+		return VFS_FAIL;
 	if( handle->mount->fs->calltable.control != NULL )
 		return handle->mount->fs->calltable.control( handle, request, arg  );
 	return VFS_FAIL;

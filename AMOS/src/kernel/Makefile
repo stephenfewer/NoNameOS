@@ -12,6 +12,7 @@ IO=io
 FS=fs
 LIB=lib
 DEV=dev
+SYNC=sync
 
 CC=gcc
 LD=ld-elf
@@ -33,7 +34,7 @@ $(TARGET_ELF): $(OBJ)
 	$(MAKE) -C $(PM)
 	$(MAKE) -C $(IO)
 	$(MAKE) -C $(LIB)
-	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_ELF) $(OBJ) ./$(MM)/*.o ./$(PM)/*.o ./$(IO)/*.o ./$(IO)/$(DEV)/*.o ./$(FS)/*.o ./$(LIB)/*.o
+	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_ELF) $(OBJ) ./$(MM)/*.o ./$(PM)/*.o ./$(PM)/$(SYNC)/*.o ./$(IO)/*.o ./$(IO)/$(DEV)/*.o ./$(FS)/*.o ./$(LIB)/*.o
 	
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<

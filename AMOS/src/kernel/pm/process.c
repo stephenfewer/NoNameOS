@@ -164,11 +164,11 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 	// map in the kernel including its heap and bottom 4 megs
 	paging_mapKernel( process->page_dir );
 	// allocate a page for the process's user stack
-	physicalAddress = physical_pageAlloc();
+	//physicalAddress = physical_pageAlloc();
 	//  map in the stack to the process's address space
-	paging_setPageTableEntry( process->page_dir, PROCESS_USER_STACK_ADDRESS, physicalAddress, TRUE );
+	//paging_setPageTableEntry( process->page_dir, PROCESS_USER_STACK_ADDRESS, physicalAddress, TRUE );
 	// save the physical user stack address
-	process->user_stack = physicalAddress;
+	//process->user_stack = physicalAddress;
 	// create the process's initial kernel stack so we can perform a context switch
 	process->kernel_stack = (struct PROCESS_STACK *)kstacks[ process->id ];
 	// advance the pointer to the top of the stack, less the size of the stack structure, so we can begin filling it in
@@ -210,7 +210,7 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 	//kernel_stack->esp0 = (DWORD)kernel_stack;
 	
 	// set the processes initial esp to the top of its user stack, will get poped off its kernel stack
-	kernel_stack->esp = (DWORD)(PROCESS_USER_STACK_ADDRESS + PROCESS_STACKSIZE);
+	//kernel_stack->esp = (DWORD)(PROCESS_USER_STACK_ADDRESS + PROCESS_STACKSIZE);
 	
 	// set the processes current esp to the top of its kernel stack
 	process->current_esp = (DWORD)kernel_stack;

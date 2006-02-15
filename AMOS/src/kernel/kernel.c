@@ -45,11 +45,14 @@ void kernel_shell( struct VFS_HANDLE * c )
 	}	
 }
 
-void task1()
+void task0()
 {
 	struct VFS_HANDLE * console = vfs_open( "/device/console2", VFS_MODE_READWRITE );
 	kernel_shell( console );
-	/*
+}
+
+void task1()
+{
 	unsigned char* VidMemChar = (unsigned char*)0xB8000;
 	*VidMemChar='1';
 	for(;;)
@@ -58,7 +61,7 @@ void task1()
 			*VidMemChar='2';
 		else
 			*VidMemChar='1';
-	}*/
+	}
 }
 
 void task2()
@@ -87,48 +90,6 @@ BYTE inportb( WORD port )
 void outportb( WORD port, BYTE data )
 {
     ASM( "outb %1, %0" : : "dN" (port), "a" (data) );
-}
-/*
-inline void kernel_lock()
-{
-	if( kernel_lockCount <= 0 )
-		interrupt_disableAll();
-	kernel_lockCount++;
-}
-
-inline void kernel_unlock()
-{
-	if( --kernel_lockCount <= 0 )
-		interrupt_enableAll();
-}
-*/
-// initilize the kernel and bring up all the subsystems
-void kernel_init( struct MULTIBOOT_INFO * m )
-{
-	// lock protected code
-	interrupt_disableAll();
-	// clear the kernels process structure
-	memset( &kernel_process, 0x00, sizeof(struct PROCESS_INFO) );
-	// set its default id
-	kernel_process.id = KERNEL_PID;
-	// setup interrupts
-	interrupt_init();
-	// setup our memory manager
-	mm_init( m->mem_upper );
-	// setup the virtual file system
-	vfs_init();
-	// setup the io subsystem
-	io_init();
-	// open the kernels console
-	kernel_process.console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
-	if( kernel_process.console == NULL )
-		kernel_panic( NULL, "Failed to open the kernel console." );
-	// setup our system calls
-	syscall_init();
-	// setup scheduling
-	scheduler_init();
-	// unlock protected code
-	interrupt_enableAll();
 }
 
 void kernel_printf( char * text, ... )
@@ -166,9 +127,40 @@ void kernel_panic( struct PROCESS_STACK * stack, char * message )
 	while( TRUE );
 }
 
+extern struct PROCESS_INFO * scheduler_processCurrent;
+
+// initilize the kernel and bring up all the subsystems
+void kernel_init( struct MULTIBOOT_INFO * m )
+{
+	// lock protected code
+	interrupt_disableAll();
+	// clear the kernels process structure
+	memset( &kernel_process, 0x00, sizeof(struct PROCESS_INFO) );
+	// set its default id
+	kernel_process.id = KERNEL_PID;
+	// setup interrupts
+	interrupt_init();
+	// setup our memory manager
+	mm_init( m->mem_upper );
+	// setup the virtual file system
+	vfs_init();
+	// setup the io subsystem
+	io_init();
+	// open the kernels console
+	kernel_process.console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
+	if( kernel_process.console == NULL )
+		kernel_panic( NULL, "Failed to open the kernel console." );
+	// setup our system calls
+	syscall_init();
+	// setup scheduling
+	scheduler_init();
+	// unlock protected code
+	interrupt_enableAll();
+}
+
 void kernel_main( struct MULTIBOOT_INFO * m )
 {
-	struct VFS_HANDLE * console;
+	//struct VFS_HANDLE * console;
 	
 	// initilize the kernel
 	kernel_init( m );
@@ -176,29 +168,29 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	kernel_printf( "Welcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
 
 	// mount the root file system
-	kernel_printf( "mounting device /device/floppy1 to /fat/ as a FAT file system. " );
-	vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
-	kernel_printf( "done.\n" );
+	//kernel_printf( "mounting device /device/floppy1 to /fat/ as a FAT file system. " );
+	//vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
+	//kernel_printf( "done.\n" );
 	
+	scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
+	scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
+	
+	//scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
+	/*		
 	console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
 	if( console != NULL )
-	{
-		//scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
-
-		//scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
-		
-		//process_spawn( "/fat/BOOT/TEST.BIN", console );
-	
-		scheduler_enable();
-		
-		kernel_shell( console );
-	} else {
+		process_spawn( "/fat/BOOT/TEST.BIN", console );
+	else
 		kernel_printf( "failed to open /device/console1\n" );
-	}
-
-	//while( TRUE )
+	*/
+	scheduler_enable();
+		
+	//kernel_shell( console );
+		
+	kernel_printf( "About to hang the kernel process.\n" );
+	while( TRUE );
 	//	process_sleep();
-
+	
 	// after scheduling is enabled we should never reach here
 	kernel_panic( NULL, "Kernel trying to exit." );
 }

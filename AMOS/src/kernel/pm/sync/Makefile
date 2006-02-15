@@ -1,22 +1,18 @@
 MAKEFILE=Makefile
 
-INCLUDE_DIR=../../../include/
-
-SYNC=sync
+INCLUDE_DIR=../../../../include/
 
 CC=gcc
 RM=del
 
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
 
-OBJ=scheduler.o process.o elf.o
-	
+OBJ=mutex.o
+
 all: $(OBJ)
-	$(MAKE) -C $(SYNC)
 
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<
 
 clean:
 	$(RM) *.o
-	$(MAKE) -C $(SYNC) clean

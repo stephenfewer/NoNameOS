@@ -13,24 +13,28 @@
 
 #include <kernel/pm/scheduler.h>
 #include <kernel/pm/process.h>
-#include <kernel/interrupt.h>
-#include <kernel/kernel.h>
+#include <kernel/pm/sync/mutex.h>
 #include <kernel/mm/segmentation.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/mm.h>
+#include <kernel/interrupt.h>
+#include <kernel/kernel.h>
 #include <kernel/lib/string.h>
+
+
+extern struct PROCESS_INFO kernel_process;
 
 DWORD scheduler_ticks = 0;
 
 volatile DWORD scheduler_switch = FALSE;
 
-struct SEGMENTATION_TSS * scheduler_tss        = NULL;
+struct SEGMENTATION_TSS * scheduler_tss			= NULL;
 
-struct PROCESS_INFO * scheduler_processCurrent = NULL;
-struct PROCESS_INFO * scheduler_processTop     = NULL;
-struct PROCESS_INFO * scheduler_processBottom  = NULL;
+struct PROCESS_INFO * scheduler_processCurrent	= NULL;
+struct PROCESS_INFO * scheduler_processTop		= NULL;
+struct PROCESS_INFO * scheduler_processBottom	= NULL;
 
-extern struct PROCESS_INFO kernel_process;
+struct MUTEX * scheduler_lock;
 
 void scheduler_printProcessTable( void )
 {
@@ -149,26 +153,26 @@ struct PROCESS_INFO * scheduler_removeProcesss( int id )
 DWORD scheduler_handler( struct PROCESS_STACK * stack )
 {
 	DWORD doswitch = FALSE;
+	// lock this critical section so we are guaranteed mutual exclusion
+	mutex_lock( scheduler_lock );
 	// increment our tick counter
 	scheduler_ticks++;
-	
-/*	if( scheduler_ticks > 14 )
-	{
-		interrupt_disableAll();
-		while(TRUE);
-	}*/
 	// decrement the current processes time slice by one
 	scheduler_processCurrent->tick_slice--;
 	// if the current process has reached the end of its tick slice we must select a new process to run
 	if( scheduler_processCurrent->tick_slice <= 0 )
-		doswitch = scheduler_select();
-	/*if( doswitch )
 	{
-	// fixup the tss
-	scheduler_tss->ss0 = KERNEL_DATA_SEL;
-	scheduler_tss->cr3 = scheduler_currentProcess->page_dir;
-	scheduler_tss->esp0 = scheduler_currentProcess->current_esp;
-	}*/
+		doswitch = scheduler_select();
+		if( doswitch )
+		{
+			// patch the TSS
+			//scheduler_tss->ss0 = KERNEL_DATA_SEL;
+			//scheduler_tss->cr3 = scheduler_currentProcess->page_dir;
+			//scheduler_tss->esp0 = scheduler_currentProcess->current_esp;
+		}
+	}
+	// unlock the critical section
+	mutex_unlock( scheduler_lock );
 	// return TRUE if we are to perform a context switch or FALSE if not
 	return doswitch;
 }
@@ -190,6 +194,8 @@ void scheduler_enable()
 
 void scheduler_init()
 {
+	// create the lock
+	scheduler_lock = mutex_create();
 	// set the initial values we need for the kernels process
 	kernel_process.tick_slice = PROCESS_TICKS_LOW;
 	// set its privilege to SUPERVISOR as this is the kernel

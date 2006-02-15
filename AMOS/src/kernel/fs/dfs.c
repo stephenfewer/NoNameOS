@@ -46,19 +46,17 @@ struct DFS_ENTRY * dfs_add( char * name, struct IO_CALLTABLE * calltable, int ty
 struct DFS_ENTRY * dfs_find( char * name )
 {
 	struct DFS_ENTRY * device;
-	
 	for( device=dfs_deviceBottom ; device!=NULL ; device=device->next )
 	{
 		if( strcmp( device->name, name ) == 0 )
 			break;
 	}
-	
 	return device;
 }
 
 int dfs_remove( char * name  )
 {
-	struct DFS_ENTRY * device;
+	struct DFS_ENTRY * device, * d;
 	// find the device
 	device = dfs_find( name );
 	if( device == NULL )
@@ -66,12 +64,26 @@ int dfs_remove( char * name  )
 	// To Do: test for any open file handles of the requested device
 	
 	// remove from linked list
-	
+	if( device == dfs_deviceBottom )
+	{
+		dfs_deviceBottom = device->next;
+	}
+	else
+	{
+		for( d=dfs_deviceBottom ; d!=NULL ; d=d->next )
+		{
+			if( d->next == device )
+			{
+				d->next = device->next;
+				break;
+			}
+		}
+	}	
 	// free all memory allocated
 	mm_free( device->calltable );
 	mm_free( device->name );
 	mm_free( device );
-	
+	// return success
 	return VFS_SUCCESS;
 }
 
