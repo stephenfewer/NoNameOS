@@ -50,8 +50,6 @@ int physical_getBitmapSize()
 // To-Do: return 0x00000000 if no physical memory left
 void * physical_pageAlloc()
 {
-	kernel_lock();
-	
 	// better to reserver the address 0x00000000 so we can better
 	// detect null pointer exceptions...
 	void * physicalAddress = (void *)0x00001000;
@@ -62,19 +60,13 @@ void * physical_pageAlloc()
 
 	physicalAddress = physical_pageAllocAddress( physicalAddress );
 
-	kernel_unlock();
-	
 	return physicalAddress;
 }
 
 void physical_pageFree( void * physicalAddress )
 {
-	kernel_lock();
-	
 	if( !physical_isPageFree( physicalAddress ) )
 		physical_bitmap[ BITMAP_BYTE_INDEX( physicalAddress ) ] &= ~( 1 << BITMAP_BIT_INDEX( physicalAddress ) );
-		
-	kernel_unlock();
 }
 
 void physical_init( DWORD memUpper )

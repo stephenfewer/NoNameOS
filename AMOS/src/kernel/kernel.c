@@ -26,7 +26,7 @@
 
 struct PROCESS_INFO kernel_process;
 
-volatile int kernel_lockCount = 0;
+int kernel_lockCount = 0;
 
 void kernel_shell( struct VFS_HANDLE * c )
 {
@@ -72,7 +72,7 @@ void task2()
 			*VidMemChar='b';
 		else{
 			*VidMemChar='a';	
-			//*crash=0xDEADBEEF;
+		//	*crash=0xDEADBEEF;
 		}
 	}
 }
@@ -88,25 +88,25 @@ void outportb( WORD port, BYTE data )
 {
     ASM( "outb %1, %0" : : "dN" (port), "a" (data) );
 }
-
+/*
 inline void kernel_lock()
 {
-	cli();
+	if( kernel_lockCount <= 0 )
+		interrupt_disableAll();
 	kernel_lockCount++;
 }
 
 inline void kernel_unlock()
 {
 	if( --kernel_lockCount <= 0 )
-		sti();
+		interrupt_enableAll();
 }
-
+*/
 // initilize the kernel and bring up all the subsystems
 void kernel_init( struct MULTIBOOT_INFO * m )
 {
-	struct VFS_HANDLE * kernel_console;
 	// lock protected code
-	kernel_lock();
+	interrupt_disableAll();
 	// clear the kernels process structure
 	memset( &kernel_process, 0x00, sizeof(struct PROCESS_INFO) );
 	// set its default id
@@ -119,32 +119,49 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 	vfs_init();
 	// setup the io subsystem
 	io_init();
-	// setup scheduling
-	scheduler_init();
+	// open the kernels console
+	kernel_process.console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
+	if( kernel_process.console == NULL )
+		kernel_panic( NULL, "Failed to open the kernel console." );
 	// setup our system calls
 	syscall_init();
-	// open the kernels console
-	kernel_console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
-	if( kernel_console == NULL )
-		kernel_panic();
-	kernel_process.console = kernel_console;	
+	// setup scheduling
+	scheduler_init();
 	// unlock protected code
-	kernel_unlock();
+	interrupt_enableAll();
 }
 
 void kernel_printf( char * text, ... )
 {
 	va_list args;
-	// find the first argument
-	va_start( args, text );
-	// pass printf the kernels std output handle the format text and the first argument
-	printf( kernel_process.console, text, args );
+	// we can only kernel_printf() if we have a console to do it on
+	if( kernel_process.console != NULL )
+	{
+		// find the first argument
+		va_start( args, text );
+		// pass printf the kernels std output handle the format text and the first argument
+		printf( kernel_process.console, text, args );
+	}
 }
 
-void kernel_panic( void )
+// ..."this is the end. beautiful friend, the end."
+void kernel_panic( struct PROCESS_STACK * stack, char * message )
 {
-	// attempt to display a message
-	kernel_printf( "AMOS Kernel Panic!\n" );
+	interrupt_disableAll();
+	// attempt to print out some info
+	kernel_printf( "AMOS Kernel Panic! " );
+	// print out the message
+	if( message != NULL )
+		kernel_printf( "%s\n", message );
+	// print out the stack contents
+	if( stack != NULL )
+	{
+		kernel_printf( "\tCS:%x EIP:%x\n", stack->cs, stack->eip );
+		kernel_printf( "\tDS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );
+		kernel_printf( "\tEDI:%x ESI:%x EBP:%x ESP:%x\n", stack->edi, stack->esi, stack->ebp, stack->esp );
+		kernel_printf( "\tEBX:%x EDX:%x ECX:%x EAX:%x\n", stack->ebx, stack->edx, stack->ecx, stack->eax );
+		kernel_printf( "\tEFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );
+	}
 	// hang the system
 	while( TRUE );
 }
@@ -166,12 +183,12 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
 	if( console != NULL )
 	{
-		scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
+		//scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
 
 		//scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
 		
-		process_spawn( "/fat/BOOT/TEST.BIN", console );
-		
+		//process_spawn( "/fat/BOOT/TEST.BIN", console );
+	
 		scheduler_enable();
 		
 		kernel_shell( console );
@@ -179,8 +196,10 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 		kernel_printf( "failed to open /device/console1\n" );
 	}
 
-	kernel_printf( "hanging: -->infiniteloop<--\n" );
+	//while( TRUE )
+	//	process_sleep();
+
 	// after scheduling is enabled we should never reach here
-	kernel_panic();
+	kernel_panic( NULL, "Kernel trying to exit." );
 }
 

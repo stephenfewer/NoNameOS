@@ -110,7 +110,7 @@ DWORD keyboard_handler( struct PROCESS_STACK * taskstack )
 
 	}
 	
-	return (DWORD)NULL;
+	return FALSE;
 }
 
 int keyboard_init()
@@ -130,9 +130,8 @@ int keyboard_init()
 		return IO_FAIL;
 	// add the keyboard device
 	io_add( "keyboard1", calltable, IO_CHAR );
-	
 	// setup the keyboard handler
 	interrupt_enable( IRQ1, keyboard_handler );
-	
+	// return success
 	return IO_SUCCESS;
 }

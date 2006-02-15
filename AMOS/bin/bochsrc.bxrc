@@ -1,44 +1,20 @@
-floppya: image=amos.ima, status=inserted
-
-#log: nul
-#log: bochs_log.txt
-
-debugger_log: bochs_dbg.txt
-#debugger_log: -
-
-display_library: win32, options="legacyF12" # use F12 to toggle mouse
-
-romimage: file=$BXSHARE\BIOS-bochs-latest, address=0xf0000
-
-megs: 16
-
-vgaromimage: file=$BXSHARE\VGABIOS-lgpl-latest
-
-vga: extension=vbe
-
-ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
-ata1: enabled=0, ioaddr1=0x170, ioaddr2=0x370, irq=15
-ata2: enabled=0, ioaddr1=0x1e8, ioaddr2=0x3e0, irq=11
-ata3: enabled=0, ioaddr1=0x168, ioaddr2=0x360, irq=9
+floppya: 1_44=amos.ima, status=inserted
 
 boot: floppy
 
-ips: 10000000
+romimage: file=$BXSHARE\BIOS-bochs-latest, address=0xf0000
+vgaromimage: file=$BXSHARE\VGABIOS-lgpl-latest
+vga: extension=none
 
-floppy_bootsig_check: disabled=0
+megs: 16
+
+ata0: enabled=0, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+ata1: enabled=0, ioaddr1=0x170, ioaddr2=0x370, irq=15
+
+cpu: count=1, ips=10000000
+
+clock: sync=none, time0=local
 
 parport1: enabled=0
-
-vga_update_interval: 3000
-
-keyboard_serial_delay: 250
-
-keyboard_paste_delay: 100000
-
-floppy_command_delay: 500
-
-mouse: enabled=0
-
-private_colormap: enabled=0
 
 keyboard_mapping: enabled=0, map=

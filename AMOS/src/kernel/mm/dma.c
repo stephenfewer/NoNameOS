@@ -36,7 +36,7 @@ void dma_transfer( BYTE channel, void * address, DWORD length, struct MODE mode 
 	// ...
 	length--;
 	// disable interrupts
-	cli();
+	interrupt_disableAll();
 	// ...
     outportb( dma_maskreg[channel], 0x04 | channel );
     // clear the byte pointer flip flop
@@ -54,7 +54,7 @@ void dma_transfer( BYTE channel, void * address, DWORD length, struct MODE mode 
     // ...
     outportb( dma_maskreg[channel], channel );
 	// enable interrupts
-    sti();    
+    interrupt_enableAll();    
 }
 
 void dma_read( BYTE channel, void * address, DWORD length )

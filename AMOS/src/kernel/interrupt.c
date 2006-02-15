@@ -69,41 +69,50 @@ char * interrupt_messages[] =
     "Reserved"
 };
 
-DWORD interrupt_dispatcher( struct PROCESS_STACK * taskstack )
+extern struct PROCESS_INFO * scheduler_processCurrent;
+
+extern volatile DWORD scheduler_switch;
+
+DWORD interrupt_dispatcher( struct PROCESS_STACK * stack )
 {
-	DWORD ret;
+	DWORD ret = FALSE;
 	INTERRUPT_HANDLER handler;
 
-	handler = interrupt_handlers[ taskstack->intnumber ];
+	handler = interrupt_handlers[ stack->intnumber ];
 
 	if( handler != NULL )
 	{
-		ret = handler( taskstack );
+		ret = handler( stack );
 	}
 	else
 	{
-		ret = (DWORD)NULL;
-		
-		if( taskstack->intnumber <= INT31 )
+		// if its an exception we must do something by default if their is no appropriate handler
+		if( stack->intnumber <= INT31 )
 		{
-			kernel_printf( "\n%s\n", interrupt_messages[ taskstack->intnumber ] );
-			kernel_printf( "\tCS:%x EIP:%x\n", taskstack->cs, taskstack->eip );
-			kernel_printf( "\tDS:%x ES:%x FS:%x GS:%x\n", taskstack->ds, taskstack->es, taskstack->fs, taskstack->gs );
-			kernel_printf( "\tEDI:%x ESI:%x EBP:%x ESP:%x\n", taskstack->edi, taskstack->esi, taskstack->ebp, taskstack->esp );
-			kernel_printf( "\tEBX:%x EDX:%x ECX:%x EAX:%x\n", taskstack->ebx, taskstack->edx, taskstack->ecx, taskstack->eax );
-			kernel_printf( "\tEFLAGS:%x  SS0:%x ESP0:%x\n", taskstack->eflags, taskstack->ss0, taskstack->esp0 );
-			
-			kernel_panic();
+			if( scheduler_processCurrent == NULL )
+			{
+				kernel_printf("An exception has occurred in an unknown process\n\t- %s\n", interrupt_messages[stack->intnumber] );
+			} else {
+				// if the process that caused the exception is the kernel, we must kernel panic
+				if( scheduler_processCurrent->id == KERNEL_PID )
+					kernel_panic( stack, interrupt_messages[stack->intnumber] );
+				else {
+					kernel_printf("EXCEPTION: pid: %d %s\n", scheduler_processCurrent->id, interrupt_messages[stack->intnumber] );
+				}
+			}
+			while(TRUE);
 		}
 	}
 	
 	// if this was an IRQ we must signal an EOI to the PIC
-	if( taskstack->intnumber >= IRQ8 && taskstack->intnumber <= IRQ15 )
+	if( stack->intnumber >= IRQ8 && stack->intnumber <= IRQ15 )
         outportb( INTERRUPT_PIC_2, INTERRUPT_EOI );
-	else if( taskstack->intnumber >= IRQ0 && taskstack->intnumber <= IRQ15 )
+	else if( stack->intnumber >= IRQ0 && stack->intnumber <= IRQ15 )
 		outportb( INTERRUPT_PIC_1, INTERRUPT_EOI );
 
-	return (DWORD)ret;
+	if( ret == TRUE )
+		scheduler_switch = TRUE;
+	return scheduler_switch;
 }
 
 BOOL interrupt_setHandler( int index, INTERRUPT_HANDLER handler )
@@ -194,8 +203,6 @@ void interrupt_init()
     interrupt_ptable.base = (DWORD)&interrupt_table;
 	// clear the interrupt descriptor table
     memset( (void *)&interrupt_table, 0x00, sizeof(struct INTERRUPT_TABLE_ENTRY) * INTERRUPT_TABLE_ENTRYS );
-	// remap the programable interrupt controller
-	interrupt_remapPIC();
 	// initially we clear all are interrupt handlers
 	for( index=0 ; index<INTERRUPT_TABLE_ENTRYS ; index++ )
 		interrupt_handlers[index] = NULL;
@@ -205,6 +212,8 @@ void interrupt_init()
 	// disable all IRQ's for now
 	for( index=IRQ0 ; index<=IRQ15 ; index++ )
 		interrupt_disable( index );
+	// remap the Programable Interrupt Controller
+	interrupt_remapPIC();
 	// load the interrupt descriptor table (interrupt_ptable pointer to a linear address of the interrupt_table)
 	ASM( "lidt (%0)" : : "r" ( &interrupt_ptable) );
 }

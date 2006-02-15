@@ -6,13 +6,17 @@
 
 #define MAX_TASKS	255
 
+void scheduler_printProcessTable( void );
+
 struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * );
+
+struct PROCESS_INFO * scheduler_findProcesss( int );
+
+DWORD scheduler_select( void );
 
 struct PROCESS_INFO * scheduler_removeProcesss( int );
 
 void scheduler_enable();
-
-void scheduler_idle( void );
 
 void scheduler_init();
 

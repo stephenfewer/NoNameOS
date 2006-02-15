@@ -16,9 +16,9 @@
 
 #define INTERRUPT_EOI				0x20
 
-#define sti() __asm__ __volatile__ ("sti")
+#define interrupt_enableAll()		ASM("sti")
 
-#define cli() __asm__ __volatile__ ("cli")
+#define interrupt_disableAll()		ASM("cli")
 
 struct INTERRUPT_TABLE_ENTRY
 {

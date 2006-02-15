@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <kernel/pm/elf.h>
+#include <kernel/pm/process.h>
 
 #define AMOS_VERSION_MAJOR			0
 #define AMOS_VERSION_MINOR			5
@@ -47,13 +48,13 @@ BYTE inportb( WORD );
 
 void outportb( WORD, BYTE );
 
-void kernel_lock();
+//void kernel_lock();
 
-void kernel_unlock();
+//void kernel_unlock();
 
 void kernel_printf( char *, ... );
 
-void kernel_panic( void );
+void kernel_panic( struct PROCESS_STACK *, char * );
 
 #endif
 

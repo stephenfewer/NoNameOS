@@ -119,7 +119,7 @@ DWORD floppy_handler( struct PROCESS_STACK * taskstack )
 {
 	// set the donewait flag to signal a floppy_wait() to finish
 	floppy_donewait = TRUE;
-	return (DWORD)NULL;
+	return FALSE;
 }
 
 int floppy_wait( struct FLOPPY_DRIVE * floppy, BYTE sence )
@@ -129,7 +129,6 @@ int floppy_wait( struct FLOPPY_DRIVE * floppy, BYTE sence )
     {
     	if( floppy_donewait == TRUE )
     		break;
-    	scheduler_idle();
     }
     // reset the donewait flag
     floppy_donewait = FALSE;
@@ -406,8 +405,6 @@ int floppy_init()
 	calltable->write = floppy_write;
     calltable->seek = floppy_seek;
     calltable->control = NULL;
-    // setup the floppy handler
-	interrupt_enable( IRQ6, floppy_handler );
     // ask the CMOS if we have any floppy drives
     // location 0x10 has the floppy info
 	outportb( 0x70, 0x10 );
@@ -444,5 +441,8 @@ int floppy_init()
 		// add it to the DFS via the IO sub system
 		io_add( floppy2->name, calltable, IO_BLOCK );
 	}
+    // setup the floppy handler
+	interrupt_enable( IRQ6, floppy_handler );
+	// return success
 	return IO_SUCCESS;
 }

@@ -257,7 +257,6 @@ int console_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 		{
 			if( console->in_break == TRUE )
 				break;
-			scheduler_idle();
 		}
 		
 		console->in_buff = NULL;

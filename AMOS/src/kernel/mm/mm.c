@@ -69,7 +69,6 @@ void * mm_morecore( struct PROCESS_INFO * process, DWORD size )
 // free a previously allocated item from the kernel heap
 void mm_free( void * address )
 {
-	kernel_lock();
 	struct MM_HEAPITEM * tmp_item;
 	struct MM_HEAPITEM * item = (struct MM_HEAPITEM *)( address - sizeof(struct MM_HEAPITEM) );
 	// find it
@@ -81,7 +80,6 @@ void mm_free( void * address )
 	// not found
 	if( tmp_item == NULL )
 	{
-		kernel_unlock();
 		return;
 	}
 	// free it
@@ -95,19 +93,16 @@ void mm_free( void * address )
 			tmp_item->next = tmp_item->next->next;
 		}
 	}
-	kernel_unlock();
 }
 
 // allocates an arbiturary size of memory (via first fit) from the kernel heap
 void * mm_malloc( DWORD size )
 {
-	kernel_lock();
 	struct MM_HEAPITEM * new_item, * tmp_item;
 	int total_size;
 	// sanity check
 	if( size == 0 )
 	{
-		kernel_unlock();
 		return NULL;
 	}
 	// round up by 8 bytes and add header size
@@ -136,7 +131,6 @@ void * mm_malloc( DWORD size )
 		new_item = mm_morecore( &kernel_process, total_size );
 		if( new_item == NULL )
 		{
-			kernel_unlock();
 			return NULL;	
 		}
 		// create an empty item for the extra space mm_morecore() gave us
@@ -151,6 +145,5 @@ void * mm_malloc( DWORD size )
 		new_item->next = tmp_item;
 	}
 	// return the newly allocated memory location
-	kernel_unlock();
 	return (void *)( (int)new_item + sizeof(struct MM_HEAPITEM) );
 }

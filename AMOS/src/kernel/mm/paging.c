@@ -61,8 +61,9 @@ void paging_setPageDirectoryEntry( struct PAGE_DIRECTORY * pd, void * linearAddr
 {
 	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( pd, linearAddress );
 	
-	if( clear )
-		memset( ptAddress, 0x00, sizeof(struct PAGE_TABLE) );
+	//this is causing some page faults, only seems to be noticeably if we disable the paging_pageFaultHandler
+	//if( clear )
+	//	memset( ptAddress, 0x00, sizeof(struct PAGE_TABLE) );
 	
 	pde->present = TRUE;
 	pde->readwrite = READWRITE;
@@ -108,21 +109,26 @@ void paging_setPageTableEntry( struct PAGE_DIRECTORY * pd, void * linearAddress,
 	pte->globalpage = 0;
 	pte->available = 0;
 	pte->address = TABLE_SHIFT_R( PAGE_ALIGN( physicalAddress ) );
-	
-	// Flush the TLB... invlpg is more efficent to use here
-	//ASM( "movl %cr3, %eax" );
-	//ASM( "movl %eax, %cr3" );
 }
 
+extern struct PROCESS_INFO * scheduler_processCurrent;
+
 // See page 5-43
-DWORD paging_pageFaultHandler( struct PROCESS_STACK * taskstack )
+DWORD paging_pageFaultHandler( struct PROCESS_STACK * stack )
 {
 	void * linearAddress;
+	//kernel_lock();
+	
 	ASM( "movl %%cr2, %0" : "=r" (linearAddress) );
-	kernel_printf( "Page Fault at CS:EIP %d:%x Address %x\n", taskstack->cs, taskstack->eip, linearAddress );
+	kernel_printf( "Page Fault at CS:EIP %d:%x Address %x\n", stack->cs, stack->eip, linearAddress );
+
 	// we must hang untill we can fix the page fault
 	while(TRUE);
-	return (DWORD)NULL;
+
+	//process_kill( scheduler_processCurrent->id );
+	
+	//kernel_unlock();
+	return TRUE;
 }
 
 struct PAGE_DIRECTORY * paging_createDirectory()
@@ -136,7 +142,7 @@ struct PAGE_DIRECTORY * paging_createDirectory()
 	return pd;
 }
 
-// not tested but will be used to destroy a tasks page directory when it terminates
+// not tested but will be used to destroy a processes page directory when it terminates
 void paging_destroyDirectory( struct PAGE_DIRECTORY * pd )
 {
 	struct PAGE_DIRECTORY_ENTRY * pde;
@@ -184,6 +190,13 @@ void paging_mapKernel( struct PAGE_DIRECTORY * pd )
 	paging_setPageDirectoryEntry( pd, KERNEL_HEAP_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	
 }
 
+void paging_enable( void )
+{
+	ASM( "movl %cr0, %eax" );
+	ASM( "orl $0x80000000, %eax" );
+	ASM( "movl %eax, %cr0" );	
+}
+
 void paging_init()
 {
 	void * physicalAddress;
@@ -209,10 +222,8 @@ void paging_init()
 		linearAddress += PAGE_SIZE;		
 	}
 	
-	// enable paging
+	// set the system to use the kernels page directory
 	paging_setCurrentPageDir( kernel_process.page_dir );
-	
-	ASM( "movl %cr0, %eax" );
-	ASM( "orl $0x80000000, %eax" );
-	ASM( "movl %eax, %cr0" );
+	// enable paging on the system
+	paging_enable();
 }

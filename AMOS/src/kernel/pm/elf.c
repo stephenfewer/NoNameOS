@@ -13,6 +13,7 @@
 
 #include <kernel/pm/elf.h>
 #include <kernel/fs/vfs.h>
+#include <kernel/kernel.h>
 
 int elf_load( struct VFS_HANDLE * handle )
 {

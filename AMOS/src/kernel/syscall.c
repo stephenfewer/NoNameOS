@@ -87,8 +87,9 @@ void syscall_init( void )
 	// process operations
 	//syscall_add( SYSCALL_SPAWN,  process_spawn, 1 );
 	//syscall_add( SYSCALL_KILL,   process_kill,  1 );
-	//syscall_add( SYSCALL_SLEEP,  process_sleep, 1 );
-	//syscall_add( SYSCALL_WAIT,   process_wait,  1 )
+	//syscall_add( SYSCALL_SLEEP,  process_sleep, 0 );
+	//syscall_add( SYSCALL_WAKE,   process_wake,  1 );
+	//syscall_add( SYSCALL_WAIT,   process_wait,  1 );
 	
 	// enable the system call interrupt
 	// we will need to set the DPL TO RING3 so it may be accessed from user mode

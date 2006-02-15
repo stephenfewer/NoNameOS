@@ -92,9 +92,6 @@ int io_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 
 void io_init()
 {
-	// we unlock here as the driver init routines may need to use interrupts to setup
-	kernel_unlock();
-	
 	// init the console driver
 	console_init();
 
@@ -106,7 +103,4 @@ void io_init()
 
 	// init the bit bucket driver
 	bitbucket_init();
-	
-	// lock again
-	kernel_lock();
 }

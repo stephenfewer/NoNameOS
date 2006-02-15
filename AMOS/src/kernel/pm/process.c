@@ -22,10 +22,15 @@
 #include <kernel/lib/string.h>
 #include <kernel/fs/vfs.h>
 #include <kernel/pm/elf.h>
+#include <kernel/pm/scheduler.h>
 
 int process_total = 0;
 
+BYTE kstacks[8][PROCESS_STACKSIZE];
+
 extern struct PROCESS_INFO kernel_process;
+
+extern struct PROCESS_INFO * scheduler_processCurrent;
 
 int process_spawn( char * filename, struct VFS_HANDLE * console )
 {
@@ -71,49 +76,67 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	return 0;
 }
 
-/*
-extern DWORD scheduler_ticks;
-
-void process_sleep( int ticks )
+int process_sleep()
 {
-    unsigned long tickend;
-
-    tickend = scheduler_ticks + ticks;
-    
-    while( scheduler_ticks < tickend );
+	// force the current process into a BLOCKED state
+	scheduler_processCurrent->state = BLOCKED;
+	// select a new process to run
+	scheduler_select();
+	return 0;
 }
 
-void process_wait( int id )
+int process_wake( int id )
+{
+	struct PROCESS_INFO * process;
+	// find the requested process
+	process = scheduler_findProcesss( id );
+	if( process == NULL )
+	{
+		return -1;
+	}
+	// force the process into a READY state
+	process->state = READY;
+	return 0;
+}
+
+/*
+int process_wait( int id )
 {
 	//wait for the process of id to terminate...
-}
-*/
+	return 0;
+}*/
 
 int process_kill( int id )
 {
 	struct PROCESS_INFO * process;
+
 	// cant kill the kernel ...we'd get court marshelled! :)
 	if( id == KERNEL_PID )
+	{
 		return -1;
+	}
+	scheduler_printProcessTable();
+	kernel_printf("Killing process %d... ", id );
 	// remove the process from the scheduler so it cant be switched back in
 	process = scheduler_removeProcesss( id );
 	if( process == NULL )
+	{
 		return -1;
+	}
 	// destroy the process's page directory, inturn destroying the stack
-	paging_destroyDirectory( process->page_dir );
+	//paging_destroyDirectory( process->page_dir );
 	
-	// destroy he user & kernel stacks, user heap, ...
-	physical_pageFree( process->user_stack );
+	// destroy the user & kernel stacks, user heap, ...
 	
 	// destroy the process info structure
-	mm_free( process );
+	//mm_free( process );
 	
-	process_total--;
-	
+	//process_total--;
+	kernel_printf("Done.\n" );
+	scheduler_printProcessTable();
+
 	return 0;
 }
-
-BYTE kstacks[8][PROCESS_STACKSIZE];
 
 struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 {
@@ -126,6 +149,8 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 		return NULL;
 	// assign a process id
 	process->id = ++process_total;
+	// set its privilege to USER as it is a user process
+	process->privilege = USER;
 	// setup the initial user heap, mm_morecore() will take care of the rest
 	process->heap.heap_base = PROCESS_USER_HEAP_ADDRESS;
 	process->heap.heap_bottom = NULL;
@@ -159,7 +184,6 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 	kernel_stack->gs = KERNEL_DATA_SEL;
 	// set the eflags register
 	kernel_stack->eflags = 0x0202;
-	// set our initial entrypoint
 	
 	int i=0;
 	// copy the code segment from kernel space to user space
@@ -170,13 +194,14 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 		physicalAddress = physical_pageAlloc();
 		
 		paging_setPageTableEntry( kernel_process.page_dir, linearAddress, physicalAddress, TRUE );
+		
 		paging_setPageTableEntry( process->page_dir, linearAddress, physicalAddress, TRUE );
 		
 		memcpy( linearAddress, entrypoint+(i*PAGE_SIZE), PAGE_SIZE );
 		
 		paging_setPageTableEntry( kernel_process.page_dir, linearAddress, NULL, FALSE );
 	}
-	
+	// set our initial entrypoint
 	kernel_stack->eip = (DWORD)PROCESS_USER_CODE_ADDRESS;//(DWORD)entrypoint;
 	// set the interrupt number we will return from
 	kernel_stack->intnumber = IRQ0;

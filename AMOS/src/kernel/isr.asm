@@ -13,9 +13,9 @@ BITS 32
 
 KERNEL_DATA_SEL			equ	0x10
 
-EXTERN _interrupt_dispatcher, _scheduler_handler, _current_esp, _current_cr3
+EXTERN _interrupt_dispatcher, _scheduler_processCurrent
 
-GLOBAL _disable_int, _disable_irqA, _disable_irqB, _isr32
+GLOBAL _disable_int, _disable_irqA, _disable_irqB
 
 %IMACRO ISR_A 1
 GLOBAL	_isr%1
@@ -23,7 +23,7 @@ ALIGN	4
 _isr%1:
 	push byte 0
 	push byte %1
-	jmp isr_common_stub
+	jmp isr_common
 %ENDMACRO
 
 %IMACRO ISR_B 1
@@ -31,11 +31,12 @@ GLOBAL	_isr%1
 ALIGN	4
 _isr%1:
 	push byte %1
-	jmp isr_common_stub
+	jmp isr_common
 %ENDMACRO
 
 SECTION .kernel
-isr_common_stub:
+ALIGN	4
+isr_common:
     pushad					; push all general purpose registers
     push ds					; push al the segments
     push es
@@ -46,9 +47,18 @@ isr_common_stub:
     mov es, ax
     mov fs, ax
     mov gs, ax
-    push esp				; push current stack pointer
+    mov eax, [_scheduler_processCurrent] ; save the current processes esp
+    mov [eax], esp
+    push esp
     call _interrupt_dispatcher	; call out C interrupt_dispatcher() function
-	add esp, 4				; clean up the previously pushed stack pointer
+   	add esp, 4
+	test eax, eax				; if we return FALSE, perform no context switch
+	jz noswitch
+    mov eax, [_scheduler_processCurrent] ; restore processes esp (possibly a new one)
+    mov esp, [eax]
+    mov ebx, [eax+4]			; switch over to the processes address space
+    mov cr3, ebx
+noswitch:
     pop gs					; pop al the segments
     pop fs
     pop es
@@ -103,35 +113,7 @@ ISR_A 28
 ISR_A 29
 ISR_A 30
 ISR_A 31
-
-_isr32:
-    push byte 0					; we dont need these but push a dummy error code and int number so the PROCESS_STACK sructure fits properly
-    push byte 32
-    pushad						; push all general purpose registers
-    push ds						; push al the segments
-    push es
-    push fs
-    push gs  
-    mov ax, KERNEL_DATA_SEL		; set data segments for kernel
-    mov ds, ax
-    mov es, ax
-    mov fs, ax
-    mov gs, ax  
-	mov [_current_esp], esp		; save the current esp
-    call _scheduler_handler		; call out C scheduler_handler() function
-    mov eax, [_current_cr3]		; switch over to the tasks address space
-    mov cr3, eax
-	mov esp, [_current_esp]		; restore esp (possibly a new one)
-	mov al, 0x20
-	out 0x20, al
-    pop gs						; pop al the segments
-    pop fs
-    pop es
-    pop ds  
-    popad						; pop all general purpose registers
-    add esp, 8					; clear off the two bytes we pushed at the begining
-    iret						; iret back
-
+ISR_A 32
 ISR_A 33
 ISR_A 34
 ISR_A 35
