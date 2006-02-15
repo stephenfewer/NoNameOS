@@ -66,16 +66,22 @@ void segmentation_init()
 	memset( (void *)&segmentation_gdt, 0x00, sizeof(struct SEGMENTATION_GDT_ENTRY) * SEGMENTATION_GDT_ENTRYS );
 
     // NULL descriptor
-    segmentation_setEntry( KERNEL_NULL_SEL, 0L, 0L, 0x00, 0x00 );
+    segmentation_setEntry( KERNEL_NULL_SEL, 0x00000000, 0x00000000, 0x00, 0x00 );
 
-	// code segment
-    segmentation_setEntry( KERNEL_CODE_SEL, 0L, 0xFFFFFFFF, 0x9A, 0xCF );
+	// kernel code segment: ring0, read, execute
+    segmentation_setEntry( KERNEL_CODE_SEL, 0x00000000, 0xFFFFFFFF, 0x9A, 0xCF );
 
-	// data segment
-    segmentation_setEntry( KERNEL_DATA_SEL, 0L, 0xFFFFFFFF, 0x92, 0xCF );
+	// kernel data segment: ring0, read, write
+    segmentation_setEntry( KERNEL_DATA_SEL, 0x00000000, 0xFFFFFFFF, 0x92, 0xCF );
+
+	// user code segment: ring3, read, execute
+    segmentation_setEntry( USER_CODE_SEL, 0x00000000, 0xFFFFFFFF, 0xFA, 0xCF );
+
+	// user data segment: ring3, read, write
+    segmentation_setEntry( USER_DATA_SEL, 0x00000000, 0xFFFFFFFF, 0xF2, 0xCF );
     
     // empty descriptor, we fill it in with a TSS descriptor later in scheduler_init()
-    segmentation_setEntry( KERNEL_TSS_SEL, 0L, 0L, 0x00, 0x00 );
+    segmentation_setEntry( KERNEL_TSS_SEL, 0x00000000, 0x00000000, 0x00, 0x00 );
 	
 	// Enable flat segmentation...
 	segmentation_reload();

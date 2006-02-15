@@ -38,13 +38,13 @@ void mutex_lock( struct MUTEX * m )
 	while( !unlocked )
 	{
 		ASM( "lock" );
-		ASM( "bts $1, %1" : "=r" (unlocked) : "m" (m->lock) : "memory" );		
-		ASM( "sbbl %0, %0" : "=r" (unlocked) : "m" (m->lock) : "memory" );	
+		ASM( "bts $0x01, %1" : "=r" (unlocked) : "m" (m->lock) : "memory" );		
+		ASM( "sbbl %0, %0" : "=r" (unlocked) :: "memory" );	
 	}
 }
 
 void mutex_unlock( struct MUTEX * m )
 {
 	// reset the lock
-	ASM( "movb $0, %0" : "=m" (m->lock) :: "memory" );	
+	ASM( "movb $0x00, %0" : "=m" (m->lock) :: "memory" );	
 }

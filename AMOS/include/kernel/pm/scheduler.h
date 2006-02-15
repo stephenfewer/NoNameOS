@@ -6,6 +6,14 @@
 
 #define MAX_TASKS	255
 
+struct SCHEDULER_PROCESS_TABLE
+{
+	int total;
+	// the linked list of processes that defines the process table
+	struct PROCESS_INFO * top;
+	struct PROCESS_INFO * bottom;
+};
+
 void scheduler_printProcessTable( void );
 
 struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * );

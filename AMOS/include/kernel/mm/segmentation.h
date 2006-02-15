@@ -3,14 +3,16 @@
 
 #include <sys/types.h>
 
-#define SEGMENTATION_GDT_ENTRYS		4
+#define SEGMENTATION_GDT_ENTRYS		6
 
 #define SELECTOR_TO_INDEX(selector)	(selector/8)
 
 #define KERNEL_NULL_SEL				0x00
 #define KERNEL_CODE_SEL				0x08
 #define KERNEL_DATA_SEL				0x10
-#define KERNEL_TSS_SEL				0x18
+#define USER_CODE_SEL				0x18
+#define USER_DATA_SEL				0x20
+#define KERNEL_TSS_SEL				0x28
 
 struct SEGMENTATION_GDT_ENTRY
 {

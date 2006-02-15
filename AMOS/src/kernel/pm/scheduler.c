@@ -28,12 +28,11 @@ DWORD scheduler_ticks = 0;
 
 volatile DWORD scheduler_switch = FALSE;
 
-struct SEGMENTATION_TSS * scheduler_tss			= NULL;
+struct SEGMENTATION_TSS * scheduler_tss;
 
-struct PROCESS_INFO * scheduler_processCurrent	= NULL;
-// the linked list that defines the schedulers process table
-struct PROCESS_INFO * scheduler_processTop		= NULL;
-struct PROCESS_INFO * scheduler_processBottom	= NULL;
+struct PROCESS_INFO * scheduler_processCurrent;
+
+struct SCHEDULER_PROCESS_TABLE scheduler_processTable;
 
 struct MUTEX * scheduler_handlerLock;
 struct MUTEX * scheduler_processTableLock;
@@ -43,7 +42,7 @@ void scheduler_printProcessTable( void )
 {
 	struct PROCESS_INFO * process;
 	kernel_printf("[*] printing process table...\n" );
-	for( process=scheduler_processBottom ; process!=NULL ; process=process->next )
+	for( process=scheduler_processTable.bottom ; process!=NULL ; process=process->next )
 		kernel_printf("\tprocess %d %x -> %x\n", process->id, process, process->next );
 	kernel_printf("[*] done.\n" );
 }
@@ -52,23 +51,25 @@ struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * process )
 {
 	mutex_lock( scheduler_processTableLock );
 	
-	if( scheduler_processBottom == NULL )
-		scheduler_processBottom = process;
+	if( scheduler_processTable.bottom == NULL )
+		scheduler_processTable.bottom = process;
 	else
-		scheduler_processTop->next = process;
-	scheduler_processTop = process;
+		scheduler_processTable.top->next = process;
+	scheduler_processTable.top = process;
 
-	scheduler_processTop->next = NULL;
+	scheduler_processTable.top->next = NULL;
 
+	scheduler_processTable.total++;
+	
 	mutex_unlock( scheduler_processTableLock );
 	
-	return scheduler_processTop;
+	return process;
 }
 
 struct PROCESS_INFO * scheduler_findProcesss( int id )
 {
 	struct PROCESS_INFO * process;
-	for( process=scheduler_processBottom ; process!=NULL ; process=process->next )
+	for( process=scheduler_processTable.bottom ; process!=NULL ; process=process->next )
 	{
 		if( process->id == id )
 			break;
@@ -86,7 +87,7 @@ DWORD scheduler_select( void )
 	{
 		// lock critical section as we are about to modify scheduler_processCurrent
 		mutex_lock( scheduler_processCurrentLock );
-		scheduler_processCurrent = scheduler_processBottom;
+		scheduler_processCurrent = scheduler_processTable.bottom;
 		scheduler_processCurrent->tick_slice = PROCESS_TICKS_NORMAL;
 		scheduler_processCurrent->state = RUNNING;
 		scheduler_switch = TRUE;
@@ -100,7 +101,7 @@ DWORD scheduler_select( void )
 	{
 		// if we have come to the end of the queue, we start from the begining
 		if( processNext == NULL )
-			processNext = scheduler_processBottom;
+			processNext = scheduler_processTable.bottom;
 		// if we find one in a READY state we choose it
 		if( processNext->state == READY )
 			break;
@@ -143,13 +144,13 @@ struct PROCESS_INFO * scheduler_removeProcesss( int id )
 		return NULL;
 	mutex_lock( scheduler_processTableLock );
 	// remove the process from the schedulers process table
-	if( process == scheduler_processBottom )
+	if( process == scheduler_processTable.bottom )
 	{
-		scheduler_processBottom = process->next;
+		scheduler_processTable.bottom = process->next;
 	}
 	else
 	{
-		for( p=scheduler_processBottom ; p!=NULL ; p=p->next )
+		for( p=scheduler_processTable.bottom ; p!=NULL ; p=p->next )
 		{
 			if( p->next == process )
 			{
@@ -158,6 +159,7 @@ struct PROCESS_INFO * scheduler_removeProcesss( int id )
 			}
 		}
 	}
+	scheduler_processTable.total--;
 	// if we have removed the current process we will need to select a new one
 	if( process == scheduler_processCurrent )
 	{
@@ -182,16 +184,7 @@ DWORD scheduler_handler( struct PROCESS_STACK * stack )
 	scheduler_processCurrent->tick_slice--;
 	// if the current process has reached the end of its tick slice we must select a new process to run
 	if( scheduler_processCurrent->tick_slice <= 0 )
-	{
 		doswitch = scheduler_select();
-		if( doswitch )
-		{
-			// patch the TSS
-			//scheduler_tss->ss0 = KERNEL_DATA_SEL;
-			//scheduler_tss->cr3 = scheduler_currentProcess->page_dir;
-			//scheduler_tss->esp0 = scheduler_currentProcess->current_esp;
-		}
-	}
 	// unlock the critical section
 	mutex_unlock( scheduler_handlerLock );
 	// return TRUE if we are to perform a context switch or FALSE if not
@@ -215,6 +208,10 @@ void scheduler_enable()
 
 void scheduler_init()
 {
+	// initilize the process table
+	scheduler_processTable.total = 0;
+	scheduler_processTable.top = NULL;
+	scheduler_processTable.bottom = NULL;
 	// create the locks
 	scheduler_handlerLock = mutex_create();
 	scheduler_processTableLock = mutex_create();
@@ -228,13 +225,13 @@ void scheduler_init()
 	// add it to the scheduler and set it as the current process
 	scheduler_processCurrent = scheduler_addProcess( &kernel_process );
 	// create a TSS for our software task switching (6.2)
-	//scheduler_tss = (struct SEGMENTATION_TSS *)mm_malloc( sizeof(struct SEGMENTATION_TSS) );
+	scheduler_tss = (struct SEGMENTATION_TSS *)mm_malloc( sizeof(struct SEGMENTATION_TSS) );
 	// clear it
-	//memset( (void *)scheduler_tss, 0x00, sizeof(struct SEGMENTATION_TSS) );
+	memset( (void *)scheduler_tss, 0x00, sizeof(struct SEGMENTATION_TSS) );
 	// setup the TSS Descriptor (6.2.2)
-	//segmentation_setEntry( KERNEL_TSS_SEL, (DWORD)scheduler_tss, sizeof(struct SEGMENTATION_TSS)-1, 0x89, 0x00 );
+	segmentation_setEntry( KERNEL_TSS_SEL, (DWORD)scheduler_tss, sizeof(struct SEGMENTATION_TSS)-1, 0x89, 0x00 );
 	// reload GDT
-	//segmentation_reload();
+	segmentation_reload();
 	// load the task register with the TSS selector
-	//segmentation_ltr( KERNEL_TSS_SEL );
+	segmentation_ltr( KERNEL_TSS_SEL );
 }
