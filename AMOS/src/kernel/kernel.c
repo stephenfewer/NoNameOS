@@ -67,7 +67,7 @@ void task1()
 void task2()
 {
 	unsigned char* VidMemChar = (unsigned char*)0xB8002;
-	//unsigned char* crash = (unsigned char*)0xDEADC0DE;
+	unsigned char* crash = (unsigned char*)0xDEADC0DE;
 	*VidMemChar='a';
 	for(;;)
 	{
@@ -75,7 +75,7 @@ void task2()
 			*VidMemChar='b';
 		else{
 			*VidMemChar='a';	
-		//	*crash=0xDEADBEEF;
+			*crash=0xDEADBEEF;
 		}
 	}
 }

@@ -15,9 +15,12 @@
 #include <kernel/mm/paging.h>
 #include <kernel/kernel.h>
 #include <kernel/lib/string.h>
+#include <kernel/pm/sync/mutex.h>
 
 extern void start;
 extern void end;
+
+struct MUTEX physical_bitmapLock;
 
 char * physical_bitmap;
 
@@ -53,25 +56,38 @@ void * physical_pageAlloc()
 	// better to reserver the address 0x00000000 so we can better
 	// detect null pointer exceptions...
 	void * physicalAddress = (void *)0x00001000;
-
+	// lock this critical section so we cant allocate the smae page twice!
+	mutex_lock( &physical_bitmapLock );
+	
 	// linear search! ohh dear :)
 	while( !physical_isPageFree( physicalAddress ) )
 		physicalAddress += SIZE_4KB;
 
 	physicalAddress = physical_pageAllocAddress( physicalAddress );
-
+	// unlock the critical section
+	mutex_unlock( &physical_bitmapLock );
+	// return the physical address we just allocated
 	return physicalAddress;
 }
 
 void physical_pageFree( void * physicalAddress )
 {
+	// lock the critical section
+	mutex_lock( &physical_bitmapLock );
 	if( !physical_isPageFree( physicalAddress ) )
 		physical_bitmap[ BITMAP_BYTE_INDEX( physicalAddress ) ] &= ~( 1 << BITMAP_BIT_INDEX( physicalAddress ) );
+	// unlock the critical section
+	mutex_unlock( &physical_bitmapLock );
 }
 
 void physical_init( DWORD memUpper )
 {
 	void * physicalAddress;
+	
+	// we cant create the lock as we dont have access to mm_malloc() yet so we just init it
+	mutex_init( &physical_bitmapLock );
+	
+	mutex_lock( &physical_bitmapLock );
 	
 	// calculate the size of the bitmap so we have 1bit
 	// for every 4KB page in actual physical memory
@@ -92,4 +108,6 @@ void physical_init( DWORD memUpper )
 	// later on, lets hope it works :)
 	for( physicalAddress=V2P(&start) ; physicalAddress<V2P(&end)+physical_bitmapSize ; physicalAddress+=SIZE_4KB )
 		physical_pageAllocAddress( physicalAddress );
+		
+	mutex_unlock( &physical_bitmapLock );
 }

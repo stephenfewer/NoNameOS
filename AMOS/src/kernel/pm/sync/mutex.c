@@ -19,10 +19,15 @@ struct MUTEX * mutex_create()
 	struct MUTEX * m;
 	// create the MUTEX
 	m = (struct MUTEX *)mm_malloc( sizeof(struct MUTEX) );
-	// set the lock to zero
-	m->lock = 0;
+	mutex_init( m );
 	// return it to caller
 	return m;
+}
+
+void mutex_init( struct MUTEX * m )
+{
+	// set the lock to zero
+	m->lock = 0;	
 }
 
 void mutex_lock( struct MUTEX * m )

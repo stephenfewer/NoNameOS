@@ -123,9 +123,9 @@ DWORD paging_pageFaultHandler( struct PROCESS_STACK * stack )
 	kernel_printf( "Page Fault at CS:EIP %d:%x Address %x\n", stack->cs, stack->eip, linearAddress );
 
 	// we must hang untill we can fix the page fault
-	while(TRUE);
+	//while(TRUE);
 
-	//process_kill( scheduler_processCurrent->id );
+	process_kill( scheduler_processCurrent->id );
 	
 	//kernel_unlock();
 	return TRUE;

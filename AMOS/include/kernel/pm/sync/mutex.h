@@ -10,6 +10,8 @@ struct MUTEX
 
 struct MUTEX * mutex_create();
 
+void mutex_init( struct MUTEX * );
+
 void mutex_lock( struct MUTEX * );
 
 void mutex_unlock( struct MUTEX * );
