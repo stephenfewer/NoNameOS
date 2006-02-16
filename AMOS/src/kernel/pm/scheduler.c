@@ -30,7 +30,7 @@ volatile DWORD scheduler_switch = FALSE;
 
 struct SEGMENTATION_TSS * scheduler_tss;
 
-struct PROCESS_INFO * scheduler_processCurrent;
+struct PROCESS_INFO * scheduler_processCurrent = &kernel_process;
 
 struct SCHEDULER_PROCESS_TABLE scheduler_processTable;
 
@@ -218,9 +218,7 @@ void scheduler_init()
 	scheduler_processCurrentLock = mutex_create();
 	// set the initial values we need for the kernels process
 	kernel_process.tick_slice = PROCESS_TICKS_LOW;
-	// set its privilege to SUPERVISOR as this is the kernel
-	kernel_process.privilege = SUPERVISOR;
-	// we set the state to running as when the first context switch occurs it will be for the kernel process
+	// we set the state to ready so when the first context switch occurs it will be for the kernel process
 	kernel_process.state = READY;
 	// add it to the scheduler and set it as the current process
 	scheduler_processCurrent = scheduler_addProcess( &kernel_process );

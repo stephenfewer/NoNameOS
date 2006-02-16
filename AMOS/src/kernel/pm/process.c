@@ -160,15 +160,15 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 	// set the initial process state
 	process->state = READY;
 	// create the new process's page directory
-	process->page_dir = paging_createDirectory();
+	paging_createDirectory( process );
 	// map in the kernel including its heap and bottom 4 megs
-	paging_mapKernel( process->page_dir );
+	paging_mapKernel( process );
 	// allocate a page for the process's user stack
-	//physicalAddress = physical_pageAlloc();
+	physicalAddress = physical_pageAlloc();
 	//  map in the stack to the process's address space
-	//paging_setPageTableEntry( process->page_dir, PROCESS_USER_STACK_ADDRESS, physicalAddress, TRUE );
+	paging_setPageTableEntry( process, PROCESS_USER_STACK_ADDRESS, physicalAddress, TRUE );
 	// save the physical user stack address
-	//process->user_stack = physicalAddress;
+	process->user_stack = physicalAddress;
 	// create the process's initial kernel stack so we can perform a context switch
 	process->kernel_stack = (struct PROCESS_STACK *)kstacks[ process->id ];
 	// advance the pointer to the top of the stack, less the size of the stack structure, so we can begin filling it in
@@ -176,12 +176,12 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 	// clear the stack structure
 	memset( (void *)kernel_stack, 0x00, sizeof(struct PROCESS_STACK) );
 	// set the code segment
-	kernel_stack->cs = KERNEL_CODE_SEL;
+	kernel_stack->cs = USER_CODE_SEL | 3;
 	// set the data segments
-	kernel_stack->ds = KERNEL_DATA_SEL;
-	kernel_stack->es = KERNEL_DATA_SEL;
-	kernel_stack->fs = KERNEL_DATA_SEL;
-	kernel_stack->gs = KERNEL_DATA_SEL;
+	kernel_stack->ds = USER_DATA_SEL | 3;
+	kernel_stack->es = USER_DATA_SEL | 3;
+	kernel_stack->fs = USER_DATA_SEL | 3;
+	kernel_stack->gs = USER_DATA_SEL | 3;
 	// set the eflags register
 	kernel_stack->eflags = 0x0202;
 	
@@ -193,21 +193,22 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 		
 		physicalAddress = physical_pageAlloc();
 		
-		paging_setPageTableEntry( kernel_process.page_dir, linearAddress, physicalAddress, TRUE );
+		paging_setPageTableEntry( &kernel_process, linearAddress, physicalAddress, TRUE );
 		
-		paging_setPageTableEntry( process->page_dir, linearAddress, physicalAddress, TRUE );
+		paging_setPageTableEntry( process, linearAddress, physicalAddress, TRUE );
 		
 		memcpy( linearAddress, entrypoint+(i*PAGE_SIZE), PAGE_SIZE );
 		
-		paging_setPageTableEntry( kernel_process.page_dir, linearAddress, NULL, FALSE );
+		paging_setPageTableEntry( &kernel_process, linearAddress, NULL, FALSE );
 	}
 	// set our initial entrypoint
 	kernel_stack->eip = (DWORD)PROCESS_USER_CODE_ADDRESS;//(DWORD)entrypoint;
 	// set the interrupt number we will return from
 	kernel_stack->intnumber = IRQ0;
 	
-	//kernel_stack->ss0 = KERNEL_DATA_SEL;
-	//kernel_stack->esp0 = (DWORD)kernel_stack;
+//	kernel_stack->ss0 = USER_DATA_SEL | 3;
+//	kernel_stack->esp0 = (DWORD)(process->user_stack + PROCESS_STACKSIZE);
+	//(DWORD)kernel_stack;
 	
 	// set the processes initial esp to the top of its user stack, will get poped off its kernel stack
 	//kernel_stack->esp = (DWORD)(PROCESS_USER_STACK_ADDRESS + PROCESS_STACKSIZE);

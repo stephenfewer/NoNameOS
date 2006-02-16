@@ -57,7 +57,7 @@ struct PROCESS_INFO
 	DWORD current_esp;
 	struct PAGE_DIRECTORY * page_dir;
 	int id;
-	int privilege;
+    unsigned int privilege;
 	int tick_slice;
 	int state;
 	void * user_stack;

@@ -1,4 +1,4 @@
-floppya: 1_44=amos.ima, status=inserted
+floppya: 1_44=.\bin\amos.ima, status=inserted
 
 boot: floppy
 

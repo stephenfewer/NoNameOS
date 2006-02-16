@@ -42,24 +42,27 @@ struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( struct PAGE_DIRECTOR
 	return &pd->entry[ GET_DIRECTORY_INDEX(linearAddress) ];
 }
 
-void paging_clearDirectory( struct PAGE_DIRECTORY * pd )
+void paging_clearDirectory( struct PROCESS_INFO * p )
 {
 	int i=0;
+	struct PAGE_DIRECTORY * pd;
 	
-	memset( (void *)pd, 0x00, sizeof(struct PAGE_DIRECTORY) );
+	memset( (void *)p->page_dir, 0x00, sizeof(struct PAGE_DIRECTORY) );
+	
+	pd = p->page_dir;
 	
 	for( i=0 ; i<PAGE_ENTRYS; i++ )
 	{
 		struct PAGE_DIRECTORY_ENTRY * pde = &pd->entry[i];
 		pde->present = FALSE;
 		pde->readwrite = READWRITE;
-		pde->user = SUPERVISOR;
+		pde->user = p->privilege;
 	}
 }
 
-void paging_setPageDirectoryEntry( struct PAGE_DIRECTORY * pd, void * linearAddress, void * ptAddress, BOOL clear )
+void paging_setPageDirectoryEntry( struct PROCESS_INFO * p, void * linearAddress, void * ptAddress, BOOL clear )
 {
-	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( pd, linearAddress );
+	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( p->page_dir, linearAddress );
 	
 	//this is causing some page faults, only seems to be noticeably if we disable the paging_pageFaultHandler
 	//if( clear )
@@ -67,7 +70,7 @@ void paging_setPageDirectoryEntry( struct PAGE_DIRECTORY * pd, void * linearAddr
 	
 	pde->present = TRUE;
 	pde->readwrite = READWRITE;
-	pde->user = SUPERVISOR;
+	pde->user = p->privilege;
 	pde->writethrough = 0;
 	pde->cachedisabled = 0;
 	pde->accessed = 0;
@@ -78,29 +81,29 @@ void paging_setPageDirectoryEntry( struct PAGE_DIRECTORY * pd, void * linearAddr
 	pde->address = TABLE_SHIFT_R(ptAddress);
 }
 
-struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( struct PAGE_DIRECTORY * pd, void * linearAddress )
+struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( struct PROCESS_INFO * p, void * linearAddress )
 {
-	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( pd, linearAddress );
+	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( p->page_dir, linearAddress );
 	struct PAGE_TABLE * pt = (struct PAGE_TABLE *)( TABLE_SHIFT_L(pde->address) );
 	if( pt == NULL )
 	{
 		int i;
 		pt = (struct PAGE_TABLE *)physical_pageAlloc();
-		paging_setPageDirectoryEntry( pd, linearAddress, (void *)pt, TRUE );
+		paging_setPageDirectoryEntry( p, linearAddress, (void *)pt, TRUE );
 		for( i=0 ; i<PAGE_ENTRYS ; i++ )
-			paging_setPageTableEntry( pd, linearAddress+SIZE_4KB, 0L, FALSE );
+			paging_setPageTableEntry( p, linearAddress+SIZE_4KB, 0L, FALSE );
 	}
 	return (struct PAGE_TABLE_ENTRY *)&pt->entry[ GET_TABLE_INDEX(linearAddress) ];
 }
 
 // maps a linear address to a physical address
-void paging_setPageTableEntry( struct PAGE_DIRECTORY * pd, void * linearAddress, void * physicalAddress, BOOL present )
+void paging_setPageTableEntry( struct PROCESS_INFO * p, void * linearAddress, void * physicalAddress, BOOL present )
 {
-	struct PAGE_TABLE_ENTRY * pte = paging_getPageTableEntry( pd, PAGE_ALIGN( linearAddress ) );
+	struct PAGE_TABLE_ENTRY * pte = paging_getPageTableEntry( p, PAGE_ALIGN( linearAddress ) );
 
 	pte->present = present;
 	pte->readwrite = READWRITE;
-	pte->user = SUPERVISOR;
+	pte->user = p->privilege;
 	pte->writethrough = 0;
 	pte->cachedisabled = 0;
 	pte->accessed = 0;
@@ -131,15 +134,16 @@ DWORD paging_pageFaultHandler( struct PROCESS_STACK * stack )
 	return TRUE;
 }
 
-struct PAGE_DIRECTORY * paging_createDirectory()
+int paging_createDirectory( struct PROCESS_INFO * p )
 {
-	struct PAGE_DIRECTORY * pd;
 	// allocate some physical memory for the page directory
-	pd = (struct PAGE_DIRECTORY *)physical_pageAlloc();
+	p->page_dir = (struct PAGE_DIRECTORY *)physical_pageAlloc();
+	if( p->page_dir == NULL )
+		return FALSE;
 	// clear out the page directory
-	paging_clearDirectory( pd );
-	// return the new page directory
-	return pd;
+	paging_clearDirectory( p );
+	// return success
+	return TRUE;
 }
 
 // not tested but will be used to destroy a processes page directory when it terminates
@@ -176,18 +180,18 @@ void paging_destroyDirectory( struct PAGE_DIRECTORY * pd )
 }
 
 // map the kernel's virtual address to its physical memory location into pd
-void paging_mapKernel( struct PAGE_DIRECTORY * pd )
+void paging_mapKernel( struct PROCESS_INFO * p )
 {
 	struct PAGE_DIRECTORY_ENTRY * pde;
 	// map in the bottom 4MB's ( which are identity mapped, see paging_init() )
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, NULL );
-	paging_setPageDirectoryEntry( pd, NULL, (void *)TABLE_SHIFT_L(pde->address), FALSE );
+	paging_setPageDirectoryEntry( p, NULL, (void *)TABLE_SHIFT_L(pde->address), FALSE );
 	// map in the kernel
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_CODE_VADDRESS );
-	paging_setPageDirectoryEntry( pd, KERNEL_CODE_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	
+	paging_setPageDirectoryEntry( p, KERNEL_CODE_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	
 	// map in the kernel's heap
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_HEAP_VADDRESS );
-	paging_setPageDirectoryEntry( pd, KERNEL_HEAP_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	
+	paging_setPageDirectoryEntry( p, KERNEL_HEAP_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	
 }
 
 void paging_enable( void )
@@ -202,15 +206,13 @@ void paging_init()
 	void * physicalAddress;
 	void * linearAddress;
 
-	// install the page fault handler
-	interrupt_enable( INT14, paging_pageFaultHandler );
-
 	// create the kernels page directory
-	kernel_process.page_dir = paging_createDirectory();
+	if( !paging_createDirectory( &kernel_process ) )
+		kernel_panic( NULL, "Failed to create the kernels page directory." );
 
 	// identity map bottom 4MB's
 	for( physicalAddress=0L ; physicalAddress<(void *)(1024*PAGE_SIZE) ; physicalAddress+=PAGE_SIZE )
-		paging_setPageTableEntry( kernel_process.page_dir, physicalAddress, physicalAddress, TRUE );		
+		paging_setPageTableEntry( &kernel_process, physicalAddress, physicalAddress, TRUE );		
 
 	// map in the kernel
 	physicalAddress = V2P( &start );
@@ -218,12 +220,16 @@ void paging_init()
 	
 	for( ; physicalAddress<V2P(&end)+physical_getBitmapSize() ; physicalAddress+=PAGE_SIZE )
 	{
-		paging_setPageTableEntry( kernel_process.page_dir, linearAddress, physicalAddress, TRUE );
+		paging_setPageTableEntry( &kernel_process, linearAddress, physicalAddress, TRUE );
 		linearAddress += PAGE_SIZE;		
 	}
 	
 	// set the system to use the kernels page directory
 	paging_setCurrentPageDir( kernel_process.page_dir );
+	
+	// install the page fault handler
+	interrupt_enable( INT14, paging_pageFaultHandler );
+
 	// enable paging on the system
 	paging_enable();
 }

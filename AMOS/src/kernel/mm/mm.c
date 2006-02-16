@@ -58,7 +58,7 @@ void * mm_morecore( struct PROCESS_INFO * process, DWORD size )
 		if( physicalAddress == 0L )
 			return NULL;
 		// map it onto the end of the processes heap
-		paging_setPageTableEntry( process->page_dir, process->heap.heap_top, physicalAddress, TRUE );
+		paging_setPageTableEntry( process, process->heap.heap_top, physicalAddress, TRUE );
 		// clear it for safety
 		memset( process->heap.heap_top, 0x00, PAGE_SIZE );
 	}

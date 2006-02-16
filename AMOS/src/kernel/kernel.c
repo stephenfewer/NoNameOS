@@ -53,30 +53,32 @@ void task0()
 
 void task1()
 {
+	while(TRUE);
+/*
 	unsigned char* VidMemChar = (unsigned char*)0xB8000;
-	*VidMemChar='1';
+	//*VidMemChar='1';
 	for(;;)
 	{
 		if( *VidMemChar=='1' )
 			*VidMemChar='2';
 		else
 			*VidMemChar='1';
-	}
+	}*/
 }
 
 void task2()
 {
 	unsigned char* VidMemChar = (unsigned char*)0xB8002;
-	unsigned char* crash = (unsigned char*)0xDEADC0DE;
-	*VidMemChar='a';
+	//unsigned char* crash = (unsigned char*)0xDEADC0DE;
+	//*VidMemChar='a';
 	for(;;)
 	{
-		if( *VidMemChar=='a' )
+	/*	if( *VidMemChar=='a' )
 			*VidMemChar='b';
 		else{
 			*VidMemChar='a';	
 			*crash=0xDEADBEEF;
-		}
+		}*/
 	}
 }
 
@@ -138,6 +140,8 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 	memset( &kernel_process, 0x00, sizeof(struct PROCESS_INFO) );
 	// set its default id
 	kernel_process.id = KERNEL_PID;
+	// set its privilege to SUPERVISOR as this is the kernel
+	kernel_process.privilege = SUPERVISOR;
 	// setup interrupts
 	interrupt_init();
 	// setup our memory manager
@@ -172,8 +176,8 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	//vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
 	//kernel_printf( "done.\n" );
 	
-	scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
-	scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
+	//scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
+	//scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
 	
 	//scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
 	/*		
