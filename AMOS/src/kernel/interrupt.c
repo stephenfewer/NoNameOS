@@ -113,12 +113,12 @@ DWORD interrupt_dispatcher( struct PROCESS_STACK * stack )
 	if( ret == TRUE )
 		scheduler_switch = TRUE;
 	// if we have selected to switch into a USER mode process we should update the TSS
-	/*if( scheduler_switch && scheduler_processCurrent->privilege == USER )
+	if( scheduler_switch && scheduler_processCurrent->privilege == USER )
 	{
 		// patch the TSS
 		scheduler_tss->ss0 = KERNEL_DATA_SEL;
-		scheduler_tss->esp0 = scheduler_processCurrent->current_esp;
-	}*/
+		scheduler_tss->esp0 = scheduler_processCurrent->current_kesp;
+	}
 	return scheduler_switch;
 }
 

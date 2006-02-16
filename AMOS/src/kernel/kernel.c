@@ -53,32 +53,33 @@ void task0()
 
 void task1()
 {
-	while(TRUE);
-/*
 	unsigned char* VidMemChar = (unsigned char*)0xB8000;
-	//*VidMemChar='1';
+	unsigned char* crash = (unsigned char*)0xDEADC0DE;
+	*VidMemChar='1';
 	for(;;)
 	{
 		if( *VidMemChar=='1' )
 			*VidMemChar='2';
-		else
+		else {
 			*VidMemChar='1';
-	}*/
+			*crash=0xDEADBEEF;
+		}
+	}
 }
 
 void task2()
 {
 	unsigned char* VidMemChar = (unsigned char*)0xB8002;
 	//unsigned char* crash = (unsigned char*)0xDEADC0DE;
-	//*VidMemChar='a';
+	*VidMemChar='a';
 	for(;;)
 	{
-	/*	if( *VidMemChar=='a' )
+		if( *VidMemChar=='a' )
 			*VidMemChar='b';
 		else{
 			*VidMemChar='a';	
-			*crash=0xDEADBEEF;
-		}*/
+			//*crash=0xDEADBEEF;
+		}
 	}
 }
 
@@ -176,8 +177,8 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	//vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
 	//kernel_printf( "done.\n" );
 	
-	//scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
-	//scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
+	scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
+	scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
 	
 	//scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
 	/*		

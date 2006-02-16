@@ -30,7 +30,7 @@ volatile DWORD scheduler_switch = FALSE;
 
 struct SEGMENTATION_TSS * scheduler_tss;
 
-struct PROCESS_INFO * scheduler_processCurrent = &kernel_process;
+struct PROCESS_INFO * scheduler_processCurrent;
 
 struct SCHEDULER_PROCESS_TABLE scheduler_processTable;
 

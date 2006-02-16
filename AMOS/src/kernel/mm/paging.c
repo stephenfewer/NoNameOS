@@ -120,18 +120,19 @@ extern struct PROCESS_INFO * scheduler_processCurrent;
 DWORD paging_pageFaultHandler( struct PROCESS_STACK * stack )
 {
 	void * linearAddress;
-	//kernel_lock();
-	
+
 	ASM( "movl %%cr2, %0" : "=r" (linearAddress) );
 	kernel_printf( "Page Fault at CS:EIP %d:%x Address %x\n", stack->cs, stack->eip, linearAddress );
 
-	// we must hang untill we can fix the page fault
-	//while(TRUE);
-
-	process_kill( scheduler_processCurrent->id );
+	kernel_printf( "\tCS:%x EIP:%x\n", stack->cs, stack->eip );
+	kernel_printf( "\tDS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );
+	kernel_printf( "\tEDI:%x ESI:%x EBP:%x ESP:%x\n", stack->edi, stack->esi, stack->ebp, stack->esp );
+	kernel_printf( "\tEBX:%x EDX:%x ECX:%x EAX:%x\n", stack->ebx, stack->edx, stack->ecx, stack->eax );
+	kernel_printf( "\tEFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );
 	
-	//kernel_unlock();
-	return TRUE;
+	if( process_kill( scheduler_processCurrent->id ) == 0 )
+		return TRUE;
+	return FALSE;
 }
 
 int paging_createDirectory( struct PROCESS_INFO * p )
@@ -184,8 +185,8 @@ void paging_mapKernel( struct PROCESS_INFO * p )
 {
 	struct PAGE_DIRECTORY_ENTRY * pde;
 	// map in the bottom 4MB's ( which are identity mapped, see paging_init() )
-	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, NULL );
-	paging_setPageDirectoryEntry( p, NULL, (void *)TABLE_SHIFT_L(pde->address), FALSE );
+	//pde = paging_getPageDirectoryEntry( kernel_process.page_dir, NULL );
+	//paging_setPageDirectoryEntry( p, NULL, (void *)TABLE_SHIFT_L(pde->address), FALSE );
 	// map in the kernel
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_CODE_VADDRESS );
 	paging_setPageDirectoryEntry( p, KERNEL_CODE_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	

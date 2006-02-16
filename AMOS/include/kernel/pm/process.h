@@ -63,6 +63,7 @@ struct PROCESS_INFO
 	void * user_stack;
 	void * user_heap;
 	void * kernel_stack;
+	DWORD current_kesp;
 	struct VFS_HANDLE * console;
 	struct PROCESS_HEAP heap;
 	struct PROCESS_INFO * next;
