@@ -222,7 +222,7 @@ void paging_init()
 	paging_setCurrentPageDir( kernel_process.page_dir );
 	
 	// install the page fault handler
-	interrupt_enable( INT14, paging_pageFaultHandler );
+	interrupt_enable( INT14, paging_pageFaultHandler, SUPERVISOR );
 
 	// enable paging on the system
 	paging_enable();

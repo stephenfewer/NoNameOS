@@ -131,7 +131,7 @@ int keyboard_init()
 	// add the keyboard device
 	io_add( "keyboard1", calltable, IO_CHAR );
 	// setup the keyboard handler
-	interrupt_enable( IRQ1, keyboard_handler );
+	interrupt_enable( IRQ1, keyboard_handler, SUPERVISOR );
 	// return success
 	return IO_SUCCESS;
 }

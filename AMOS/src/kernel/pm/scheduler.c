@@ -223,5 +223,5 @@ void scheduler_init()
 	// set the high interval for timer 0
 	outportb( INTERRUPT_PIT_TIMER_0, interval >> 8 );
 	// enable the timer interrupt
-	interrupt_enable( IRQ0, scheduler_handler );
+	interrupt_enable( IRQ0, scheduler_handler, SUPERVISOR );
 }

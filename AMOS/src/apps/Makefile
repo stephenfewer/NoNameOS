@@ -1,16 +1,16 @@
 MAKEFILE=Makefile
 
-TARGET_ELF=test.elf
+TARGET_ELF=test.bin
 
 TARGET_DIR=../../bin/apps/
 
 INCLUDE_DIR=../../include/
 
 CC=gcc
-LD=ld-elf
+LD=ld
 RM=del
 
-LDFLAGS=--oformat elf32-i386 -nostdlib
+LDFLAGS=--oformat binary -Ttext 0x10000000
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
 
 OBJ=test.o

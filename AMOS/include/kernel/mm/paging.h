@@ -16,6 +16,11 @@
 #define SUPERVISOR	0x00
 #define USER		0x01
 
+#define RING0		0
+#define RING1		1
+#define RING2		2
+#define RING3		3
+
 #define READONLY	0x00
 #define READWRITE	0x01
 

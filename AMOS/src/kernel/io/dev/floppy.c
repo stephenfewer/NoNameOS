@@ -442,7 +442,7 @@ int floppy_init()
 		io_add( floppy2->name, calltable, IO_BLOCK );
 	}
     // setup the floppy handler
-	interrupt_enable( IRQ6, floppy_handler );
+	interrupt_enable( IRQ6, floppy_handler, SUPERVISOR );
 	// return success
 	return IO_SUCCESS;
 }

@@ -160,7 +160,7 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 		process_spawn( "/fat/BOOT/TEST.BIN", console );
 	else
 		kernel_printf( "failed to open /device/console1\n" );
-	
+
 	kernel_printf( "About to hang the kernel process.\n" );	
 	while( TRUE );
 

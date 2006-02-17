@@ -148,7 +148,7 @@ extern void isr47();
 
 DWORD interrupt_dispatcher( struct PROCESS_STACK * );
 
-BOOL interrupt_enable( int, INTERRUPT_HANDLER );
+BOOL interrupt_enable( int, INTERRUPT_HANDLER, BYTE );
 
 BOOL interrupt_disable( int );
 

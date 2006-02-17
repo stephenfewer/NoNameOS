@@ -99,6 +99,11 @@ DWORD interrupt_dispatcher( struct PROCESS_STACK * stack )
 					kernel_panic( stack, interrupt_messages[stack->intnumber] );
 				else {
 					kernel_printf("EXCEPTION: pid: %d %s\n", scheduler_processCurrent->id, interrupt_messages[stack->intnumber] );
+					kernel_printf( "\tCS:%x EIP:%x\n", stack->cs, stack->eip );
+					kernel_printf( "\tDS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );
+					kernel_printf( "\tEDI:%x ESI:%x EBP:%x ESP:%x\n", stack->edi, stack->esi, stack->ebp, stack->esp );
+					kernel_printf( "\tEBX:%x EDX:%x ECX:%x EAX:%x\n", stack->ebx, stack->edx, stack->ecx, stack->eax );
+					kernel_printf( "\tEFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );
 					if( process_kill( scheduler_processCurrent->id ) == 0 )
 						ret = TRUE;
 				}
@@ -135,23 +140,27 @@ BOOL interrupt_setHandler( int index, INTERRUPT_HANDLER handler )
 	return FALSE;
 }
 
-void interrupt_setTableEntry( BYTE index, INTERRUPT_SERVICE_ROUTINE routine, WORD selector, BYTE privilege )
+void interrupt_setTableEntry( BYTE index, INTERRUPT_SERVICE_ROUTINE routine, BYTE privilege, BYTE present )
 {
 	interrupt_table[index].base_high = ((DWORD)routine & 0xFFFF0000) >> 16;
 	
 	interrupt_table[index].base_low  = ((DWORD)routine & 0xFFFF);
 
-	interrupt_table[index].present = TRUE;
+	interrupt_table[index].present = present;
 	
-	interrupt_table[index].DPL = privilege;
+	if( privilege == USER )
+		interrupt_table[index].DPL = RING3;
+	else
+		interrupt_table[index].DPL = RING0;
 	
 	// this is slightly innacurate, we need to set the D bit here to 1 for the size of the gate (32bit in our case)
 	// while also setting two other bits, so we shortcut and just set it to 14decimal which is 01110 binary
+
 	interrupt_table[index].size = 14;
-	
+		
 	interrupt_table[index].reserved = 0;
 	
-	interrupt_table[index].selector = selector;
+	interrupt_table[index].selector = KERNEL_CODE_SEL;
 }
 
 void interrupt_remapPIC( void )
@@ -172,11 +181,11 @@ void interrupt_remapPIC( void )
     outportb( 0xA1, 0x00 );
 }
 
-BOOL interrupt_enable( int index, INTERRUPT_HANDLER handler )
+BOOL interrupt_enable( int index, INTERRUPT_HANDLER handler, BYTE privilege )
 {
 	if( index < INTERRUPT_TABLE_ENTRYS && index >= 0 )
 	{
-		interrupt_setTableEntry( index, interrupt_stubs[index], KERNEL_CODE_SEL, SUPERVISOR );
+		interrupt_setTableEntry( index, interrupt_stubs[index], privilege, TRUE );
 		if( handler != NULL )
 			return interrupt_setHandler( index, handler );
 		return TRUE;
@@ -197,7 +206,7 @@ BOOL interrupt_disable( int index )
 		else
 			stub = disable_int;
 		
-		interrupt_setTableEntry( index, stub, KERNEL_CODE_SEL, SUPERVISOR );
+		interrupt_setTableEntry( index, stub, SUPERVISOR, TRUE );
 		// return success
 		return TRUE;
 	}
@@ -213,12 +222,15 @@ void interrupt_init()
     interrupt_ptable.base = (DWORD)&interrupt_table;
 	// clear the interrupt descriptor table
     memset( (void *)&interrupt_table, 0x00, sizeof(struct INTERRUPT_TABLE_ENTRY) * INTERRUPT_TABLE_ENTRYS );
-	// initially we clear all are interrupt handlers
+	// initially we clear all are interrupt handlers and table entrys
 	for( index=0 ; index<INTERRUPT_TABLE_ENTRYS ; index++ )
+	{
 		interrupt_handlers[index] = NULL;
+		interrupt_setTableEntry( index, NULL, SUPERVISOR, FALSE );
+	}
 	// enable the first 32 interrupts but dont set a handler
 	for( index=INT0 ; index<=INT31 ; index++ )
-		interrupt_enable( index, NULL );
+		interrupt_enable( index, NULL, SUPERVISOR );
 	// disable all IRQ's for now
 	for( index=IRQ0 ; index<=IRQ15 ; index++ )
 		interrupt_disable( index );

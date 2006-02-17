@@ -2,25 +2,20 @@
 #define _KERNEL_SYSCALL_H_
 
 #include <sys/types.h>
+#include <kernel/pm/process.h>
 
-#define SYSCALL_INTERRUPT		255
+#define SYSCALL_INTERRUPT		0x90
 
-typedef int (*syscall0)( void );
-typedef int (*syscall1)( void * );
-typedef int (*syscall2)( void *, void * );
-typedef int (*syscall3)( void *, void *, void * );
-
-struct SYSCALL_ENTRY
-{
-	syscall0 function;
-	int parameters;
-};
+typedef int (*SYSCALL)( struct PROCESS_STACK * );
 
 enum
 {
 	SYSCALL_MININDEX=0,
 	
 	SYSCALL_OPEN=0,
+	
+SYSCALL_TEST,
+	
 	SYSCALL_CLOSE,
 	SYSCALL_READ,
 	SYSCALL_WRITE,
