@@ -71,19 +71,11 @@ struct PAGE_TABLE
     struct PAGE_TABLE_ENTRY entry[PAGE_ENTRYS];
 };
 
-struct PAGE_DIRECTORY * paging_getCurrentPageDir();
-
 void paging_setCurrentPageDir( struct PAGE_DIRECTORY * );
 
-struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( struct PAGE_DIRECTORY *, void * );
-
-void paging_clearDirectory( struct PROCESS_INFO * );
-
-struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( struct PROCESS_INFO *, void * );
+struct PROCESS_INFO;
 
 void paging_setPageTableEntry( struct PROCESS_INFO *, void *, void *, BOOL );
-
-void paging_setPageDirectoryEntry( struct PROCESS_INFO *, void *, void *, BOOL );
 
 int paging_createDirectory( struct PROCESS_INFO * );
 

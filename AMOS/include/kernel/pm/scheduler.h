@@ -4,8 +4,6 @@
 #include <sys/types.h>
 #include <kernel/pm/process.h>
 
-#define MAX_TASKS	255
-
 struct SCHEDULER_PROCESS_TABLE
 {
 	int total;
@@ -23,8 +21,6 @@ struct PROCESS_INFO * scheduler_findProcesss( int );
 DWORD scheduler_select( void );
 
 struct PROCESS_INFO * scheduler_removeProcesss( int );
-
-void scheduler_enable();
 
 void scheduler_init();
 

@@ -24,13 +24,6 @@ extern void end;
 
 extern struct PROCESS_INFO kernel_process;
 
-struct PAGE_DIRECTORY * paging_getCurrentPageDir()
-{
-	struct PAGE_DIRECTORY * pd;
-	ASM( "movl %%cr3, %0" : "=r" ( pd ) );
-	return pd;
-}
-
 void paging_setCurrentPageDir( struct PAGE_DIRECTORY * pd )
 {
 	// set cr3 to the physical address of the page directory
@@ -122,7 +115,7 @@ DWORD paging_pageFaultHandler( struct PROCESS_STACK * stack )
 	void * linearAddress;
 
 	ASM( "movl %%cr2, %0" : "=r" (linearAddress) );
-	kernel_printf( "Page Fault at CS:EIP %d:%x Address %x\n", stack->cs, stack->eip, linearAddress );
+	kernel_printf( "Page Fault at CS:EIP %x:%x Address %x\n", stack->cs, stack->eip, linearAddress );
 
 	kernel_printf( "\tCS:%x EIP:%x\n", stack->cs, stack->eip );
 	kernel_printf( "\tDS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );

@@ -5,9 +5,9 @@
 #include <kernel/fs/vfs.h>
 #include <kernel/mm/paging.h>
 
-#define PROCESS_TICKS_LOW				1//64
-#define PROCESS_TICKS_NORMAL			1//256
-#define PROCESS_TICKS_HIGH				1//512
+#define PROCESS_TICKS_LOW				2
+#define PROCESS_TICKS_NORMAL			12
+#define PROCESS_TICKS_HIGH				24
 
 #define PROCESS_USER_CODE_ADDRESS		(void *)0x10000000
 #define PROCESS_USER_STACK_ADDRESS		(void *)0x20000000
@@ -43,6 +43,7 @@ enum
 	READY=0,
 	RUNNING,
 	BLOCKED,
+	TERMINATED
 };
 
 struct PROCESS_HEAP
@@ -73,7 +74,7 @@ int process_spawn( char *, struct VFS_HANDLE * );
 
 int process_kill( int );
 
-int process_sleep();
+int process_yield( void );
 
 int process_wake( int );
 

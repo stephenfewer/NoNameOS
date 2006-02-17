@@ -11,7 +11,7 @@
  *    License: GNU General Public License (GPL)
  */
 
-//#include <kernel/pm/process.h>
+#include <kernel/pm/process.h>
 #include <kernel/pm/scheduler.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/segmentation.h>
@@ -76,7 +76,7 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	return 0;
 }
 
-int process_sleep()
+int process_yield( void )
 {
 	// force the current process into a BLOCKED state
 	scheduler_processCurrent->state = BLOCKED;

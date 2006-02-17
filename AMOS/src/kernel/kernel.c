@@ -26,35 +26,10 @@
 
 struct PROCESS_INFO kernel_process;
 
-int kernel_lockCount = 0;
-
-void kernel_shell( struct VFS_HANDLE * c )
-{
-	struct VFS_HANDLE * console;
-	char buffer[128];
-	
-	console = c;
-	
-	while( TRUE )
-	{
-		print( console, "[AMOS]>" );
-		
-		get( console, (char *)&buffer, 128 );
-
-		print( console, "got: %s\n", (char *)&buffer );
-	}	
-}
-
-void task0()
-{
-	struct VFS_HANDLE * console = vfs_open( "/device/console2", VFS_MODE_READWRITE );
-	kernel_shell( console );
-}
-
 void task1()
 {
 	unsigned char* VidMemChar = (unsigned char*)0xB8000;
-	unsigned char* crash = (unsigned char*)0xDEADC0DE;
+	//unsigned char* crash = (unsigned char*)0xDEADC0DE;
 	*VidMemChar='1';
 	for(;;)
 	{
@@ -62,7 +37,8 @@ void task1()
 			*VidMemChar='2';
 		else {
 			*VidMemChar='1';
-			*crash=0xDEADBEEF;
+		//	ASM("cli");
+		//	*crash=0xDEADBEEF;
 		}
 	}
 }
@@ -111,6 +87,7 @@ void kernel_printf( char * text, ... )
 // ..."this is the end. beautiful friend, the end."
 void kernel_panic( struct PROCESS_STACK * stack, char * message )
 {
+	// disable interrupts as we can go no further
 	interrupt_disableAll();
 	// attempt to print out some info
 	kernel_printf( "AMOS Kernel Panic! " );
@@ -130,12 +107,10 @@ void kernel_panic( struct PROCESS_STACK * stack, char * message )
 	while( TRUE );
 }
 
-extern struct PROCESS_INFO * scheduler_processCurrent;
-
 // initilize the kernel and bring up all the subsystems
 void kernel_init( struct MULTIBOOT_INFO * m )
 {
-	// lock protected code
+	// we disable interrupts forthe duration of the kernels initilization
 	interrupt_disableAll();
 	// clear the kernels process structure
 	memset( &kernel_process, 0x00, sizeof(struct PROCESS_INFO) );
@@ -159,43 +134,36 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 	syscall_init();
 	// setup scheduling
 	scheduler_init();
-	// unlock protected code
+	// enable interrutps
 	interrupt_enableAll();
 }
 
 void kernel_main( struct MULTIBOOT_INFO * m )
 {
-	//struct VFS_HANDLE * console;
+	struct VFS_HANDLE * console;
 	
-	// initilize the kernel
+	// initilize the kernel, when we return we will executing as the kernel process
 	kernel_init( m );
 	
 	kernel_printf( "Welcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
 
 	// mount the root file system
-	//kernel_printf( "mounting device /device/floppy1 to /fat/ as a FAT file system. " );
-	//vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
-	//kernel_printf( "done.\n" );
-	
-	scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
-	scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
+	kernel_printf( "mounting device /device/floppy1 to /fat/ as a FAT file system. " );
+	vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
+	kernel_printf( "done.\n" );
 	
 	//scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
-	/*		
+	scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
+	
 	console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
 	if( console != NULL )
 		process_spawn( "/fat/BOOT/TEST.BIN", console );
 	else
 		kernel_printf( "failed to open /device/console1\n" );
-	*/
-	scheduler_enable();
-		
-	//kernel_shell( console );
-		
-	kernel_printf( "About to hang the kernel process.\n" );
-	while( TRUE );
-	//	process_sleep();
 	
+	kernel_printf( "About to hang the kernel process.\n" );	
+	while( TRUE );
+
 	// after scheduling is enabled we should never reach here
 	kernel_panic( NULL, "Kernel trying to exit." );
 }

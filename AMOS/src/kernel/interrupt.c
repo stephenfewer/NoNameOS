@@ -92,15 +92,18 @@ DWORD interrupt_dispatcher( struct PROCESS_STACK * stack )
 			if( scheduler_processCurrent == NULL )
 			{
 				kernel_printf("An exception has occurred in an unknown process\n\t- %s\n", interrupt_messages[stack->intnumber] );
+				while(TRUE);
 			} else {
 				// if the process that caused the exception is the kernel, we must kernel panic
 				if( scheduler_processCurrent->id == KERNEL_PID )
 					kernel_panic( stack, interrupt_messages[stack->intnumber] );
 				else {
 					kernel_printf("EXCEPTION: pid: %d %s\n", scheduler_processCurrent->id, interrupt_messages[stack->intnumber] );
+					if( process_kill( scheduler_processCurrent->id ) == 0 )
+						ret = TRUE;
 				}
 			}
-			while(TRUE);
+			
 		}
 	}
 	
