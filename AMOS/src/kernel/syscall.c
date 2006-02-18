@@ -23,24 +23,22 @@ int syscall_test( struct PROCESS_STACK * stack )
 {
 	char * message = (char *)stack->ebx;
 	if( message == NULL )
-		return -1;
+		return FAIL;
 	kernel_printf("SYSCALL TEST!!!\n" );
-	return 0;
+	return SUCCESS;
 }
 
 DWORD syscall_handler( struct PROCESS_STACK * stack )
 {
-	int index = 0;//(int)stack->eax;
+	int index = (int)stack->eax;
 	// default return value is a fail
-	//stack->eax = (DWORD)-1;
-kernel_printf("syscall handler, number %d\n", index );
-/*	// make sure our syscall index into the syscall table is in range
+	stack->eax = (DWORD)FAIL;
+	// make sure our syscall index into the syscall table is in range
 	if( index < SYSCALL_MININDEX || index > SYSCALL_MAXINDEX )
 		return FALSE;
 	// make sure the syscall function has been set
 	if( syscall_table[ index ] != NULL )
 		stack->eax = (DWORD)syscall_table[ index ]( stack );
-*/
 	// return to caller
 	return FALSE;
 }
@@ -55,7 +53,7 @@ BOOL syscall_add( int index, SYSCALL function )
 	return TRUE;
 }
 
-void syscall_init( void )
+int syscall_init( void )
 {
 	int index;
 	// clear the system call table
@@ -91,4 +89,5 @@ void syscall_init( void )
 	// enable the system call interrupt
 	// we need to set the privilage to USER (DPL = RING3) so it may be accessed from user mode
 	interrupt_enable( SYSCALL_INTERRUPT, syscall_handler, USER );
+	return SUCCESS;
 }

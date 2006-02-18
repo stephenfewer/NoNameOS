@@ -68,7 +68,7 @@ struct IO_HANDLE * keyboard_open( struct IO_HANDLE * handle, char * filename )
 
 int keyboard_close( struct IO_HANDLE * handle )
 {
-	return IO_SUCCESS;
+	return SUCCESS;
 }
 
 DWORD keyboard_handler( struct PROCESS_STACK * taskstack )
@@ -113,7 +113,7 @@ DWORD keyboard_handler( struct PROCESS_STACK * taskstack )
 	return FALSE;
 }
 
-int keyboard_init()
+int keyboard_init( void )
 {
 	struct IO_CALLTABLE * calltable;
 	
@@ -127,11 +127,11 @@ int keyboard_init()
 	
 	keyboard_output = vfs_open( "/device/console0", VFS_MODE_WRITE );
 	if( keyboard_output == NULL )
-		return IO_FAIL;
+		return FAIL;
 	// add the keyboard device
 	io_add( "keyboard1", calltable, IO_CHAR );
 	// setup the keyboard handler
 	interrupt_enable( IRQ1, keyboard_handler, SUPERVISOR );
 	// return success
-	return IO_SUCCESS;
+	return SUCCESS;
 }

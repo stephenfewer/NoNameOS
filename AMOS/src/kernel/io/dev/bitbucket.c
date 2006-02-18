@@ -26,7 +26,7 @@ struct IO_HANDLE * bitbucket_open( struct IO_HANDLE * handle, char * filename )
 int bitbucket_close( struct IO_HANDLE * handle )
 {
 	// return success
-	return IO_SUCCESS;
+	return SUCCESS;
 }
 
 int bitbucket_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
@@ -35,7 +35,7 @@ int bitbucket_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 	return size;
 }
 
-int bitbucket_init()
+int bitbucket_init( void )
 {
     struct IO_CALLTABLE * calltable;
 	// setup the calltable for this driver
@@ -48,5 +48,5 @@ int bitbucket_init()
 	calltable->control = NULL;
 	// add the bitbucket device
 	io_add( "bitbucket", calltable, IO_CHAR );
-	return IO_SUCCESS;
+	return SUCCESS;
 }

@@ -57,7 +57,7 @@ void segmentation_reload( void )
 	ASM( "flush:" );
 }
 
-void segmentation_init()
+int segmentation_init( void )
 {
     segmentation_gdtp.limit = ( sizeof(struct SEGMENTATION_GDT_ENTRY) * SEGMENTATION_GDT_ENTRYS ) - 1;
     // linear address, should be aligned on an 8byte boundry for best performance (3.5.1)
@@ -85,4 +85,6 @@ void segmentation_init()
 	
 	// Enable flat segmentation...
 	segmentation_reload();
+	
+	return SUCCESS;
 }

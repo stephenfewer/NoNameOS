@@ -109,6 +109,6 @@ struct FLOPPY_DRIVE
 	struct FLOPPY_GEOMETRY * geometry;
 };
 
-int floppy_init();
+int floppy_init( void );
 
 #endif

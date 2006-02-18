@@ -6,11 +6,11 @@ int foo( char c );
 int main( void )
 {
 	unsigned char * VidMemChar = (unsigned char *)0xB8000;
-	int ret=SYSCALL_TEST, num=SYSCALL_TEST;
+	int ret, num=1;
 	
 	foo( '9' );
 	
-	ASM( "int $0x90" : "=a" (ret) : "a" (num) );
+	ASM( "int $0x30" : "=a" (ret) : "a" (num) );
 
 	foo( '8' );
 	

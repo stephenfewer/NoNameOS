@@ -8,9 +8,6 @@
 #define IO_BLOCK		0x01
 #define IO_CHAR			0x02
 
-#define IO_SUCCESS		VFS_SUCCESS
-#define IO_FAIL			VFS_FAIL
-
 struct IO_CALLTABLE
 {
 	struct IO_HANDLE * (*open)(struct IO_HANDLE *, char *);
@@ -44,7 +41,7 @@ int io_seek( struct IO_HANDLE *, DWORD, BYTE );
 
 int io_control( struct IO_HANDLE *, DWORD, DWORD );
 
-void io_init();
+int io_init( void );
 
 #endif
 

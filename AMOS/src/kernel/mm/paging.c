@@ -195,7 +195,7 @@ void paging_enable( void )
 	ASM( "movl %eax, %cr0" );	
 }
 
-void paging_init()
+int paging_init( void )
 {
 	void * physicalAddress;
 	void * linearAddress;
@@ -226,4 +226,6 @@ void paging_init()
 
 	// enable paging on the system
 	paging_enable();
+	
+	return SUCCESS;
 }

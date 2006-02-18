@@ -18,6 +18,6 @@ struct DFS_ENTRY * dfs_add( char *, struct IO_CALLTABLE *, int );
 
 int dfs_remove( char * );
 
-int dfs_init();
+int dfs_init( void );
 
 #endif

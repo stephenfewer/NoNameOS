@@ -231,7 +231,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
     		kernel_printf("floppy: read seek failed, block %d\n", floppy->current_block );
     		// turn off the floppy motor
     		floppy_off( floppy );
-    		return IO_FAIL;	
+    		return FAIL;	
     	}
 		if( mode == FLOPPY_READBLOCK )
 		{
@@ -264,7 +264,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
 			floppy_reset( floppy );
 			// turn off the floppy motor
     		floppy_off( floppy );
-			return IO_FAIL;
+			return FAIL;
 		}
 		// read in the result phase of the read command
 		// we dont need the bytes we just need to clear the FIFO queue
@@ -284,7 +284,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
 			if( mode == FLOPPY_READBLOCK )
 				memcpy( buffer, dma_address, floppy->geometry->blocksize );
 			// return sucess :)
-			return IO_SUCCESS;
+			return SUCCESS;
 		}
     	// recalibrate the drive
 		floppy_recalibrate( floppy );
@@ -293,23 +293,23 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
 	// we fail if we cant read in three tries
 	// turn off the floppy motor
     floppy_off( floppy );
-	return IO_FAIL;
+	return FAIL;
 }
 
 int floppy_rw( struct IO_HANDLE * handle, BYTE * buffer, DWORD size, int mode  )
 {
-	int bytes_rw=IO_FAIL, blocks=0;
+	int bytes_rw=FAIL, blocks=0;
 	struct FLOPPY_DRIVE * floppy = (struct FLOPPY_DRIVE *)handle->data_ptr;
 	// we can only write block alligned buffers of data
 	if( size < floppy->geometry->blocksize || size % floppy->geometry->blocksize != 0 )
-		return IO_FAIL;
+		return FAIL;
 	// calculate how many blocks we need to read or write
 	blocks = size / floppy->geometry->blocksize;
 	// while we still have blocks to read or write, loop...
 	while( blocks-- > 0 )
 	{
 		// try to read or write the next block
-		if( floppy_rwBlock( floppy, buffer, mode ) == IO_FAIL )
+		if( floppy_rwBlock( floppy, buffer, mode ) == FAIL )
 			break;
 		// update the buffer pointer
 		buffer += floppy->geometry->blocksize;
@@ -364,7 +364,7 @@ int floppy_close( struct IO_HANDLE * handle)
 	floppy->current_block = 0;
 	// unlock the drive
 	floppy->locked = FALSE;
-	return IO_SUCCESS;	
+	return SUCCESS;	
 }
 
 int floppy_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
@@ -388,12 +388,12 @@ int floppy_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin )
 	//else if( origin == VFS_SEEK_END )
 	//	floppy->current_block = TOTAL_FLOPPY_BLOCKS - ( offset / floppy->geometry->blocksize );
 	else
-		return VFS_FAIL;
+		return FAIL;
 	// returnt the current offset to the caller
 	return floppy->current_block * floppy->geometry->blocksize;	
 }
 
-int floppy_init()
+int floppy_init( void )
 {
 	BYTE i, floppy_type;
 	struct IO_CALLTABLE * calltable;
@@ -444,5 +444,5 @@ int floppy_init()
     // setup the floppy handler
 	interrupt_enable( IRQ6, floppy_handler, SUPERVISOR );
 	// return success
-	return IO_SUCCESS;
+	return SUCCESS;
 }

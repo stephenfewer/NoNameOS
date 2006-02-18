@@ -88,7 +88,7 @@ void paging_destroyDirectory( struct PAGE_DIRECTORY * );
 
 void paging_mapKernel( struct PROCESS_INFO * );
 
-void paging_init();
+int paging_init( void );
 
 #endif
 

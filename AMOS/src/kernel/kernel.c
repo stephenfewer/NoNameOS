@@ -108,7 +108,7 @@ void kernel_panic( struct PROCESS_STACK * stack, char * message )
 }
 
 // initilize the kernel and bring up all the subsystems
-void kernel_init( struct MULTIBOOT_INFO * m )
+int kernel_init( struct MULTIBOOT_INFO * m )
 {
 	// we disable interrupts forthe duration of the kernels initilization
 	interrupt_disableAll();
@@ -136,6 +136,8 @@ void kernel_init( struct MULTIBOOT_INFO * m )
 	scheduler_init();
 	// enable interrutps
 	interrupt_enableAll();
+	// return success
+	return SUCCESS;
 }
 
 void kernel_main( struct MULTIBOOT_INFO * m )

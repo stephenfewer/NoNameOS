@@ -3,9 +3,6 @@
 
 #include <sys/types.h>
 
-#define VFS_SUCCESS			0
-#define VFS_FAIL			-1
-
 #define VFS_MAXFILENAME		256
 
 #define VFS_FILE			0
@@ -78,7 +75,7 @@ struct VFS_DIRLIST_ENTRY
 	int size;
 };
 
-int vfs_init();
+int vfs_init( void );
 
 int vfs_register( struct VFS_FILESYSTEM * );
 

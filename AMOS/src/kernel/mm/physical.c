@@ -80,7 +80,7 @@ void physical_pageFree( void * physicalAddress )
 	mutex_unlock( &physical_bitmapLock );
 }
 
-void physical_init( DWORD memUpper )
+int physical_init( DWORD memUpper )
 {
 	void * physicalAddress;
 	
@@ -110,4 +110,6 @@ void physical_init( DWORD memUpper )
 		physical_pageAllocAddress( physicalAddress );
 		
 	mutex_unlock( &physical_bitmapLock );
+	
+	return SUCCESS;
 }

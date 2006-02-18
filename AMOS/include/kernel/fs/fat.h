@@ -150,6 +150,6 @@ struct FAT_FILE
 
 typedef int (*processEntry)( struct FAT_MOUNTPOINT *, struct FAT_ENTRY *, int, char *, char * );
 
-int fat_init();
+int fat_init( void );
 
 #endif

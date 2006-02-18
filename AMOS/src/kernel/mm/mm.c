@@ -21,7 +21,7 @@
 
 extern struct PROCESS_INFO kernel_process;
 
-void mm_init( DWORD memUpper )
+int mm_init( DWORD memUpper )
 {	
 	// setup the physical memory manager, after this we can use physical_pageAlloc()
 	physical_init( memUpper );
@@ -38,6 +38,7 @@ void mm_init( DWORD memUpper )
 	kernel_process.heap.heap_bottom = NULL;
 	
 	// from here on in we can use mm_malloc() & mm_free()
+	return SUCCESS;
 }
 
 // increase the processes heap by some amount, this will be rounded up by the page size 

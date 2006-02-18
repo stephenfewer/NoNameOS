@@ -22,7 +22,7 @@ int elf_load( struct VFS_HANDLE * handle )
 	int i;
 	
 	// read in the file header
-	if( vfs_read( handle, (void *)&hdr, sizeof(struct ELF_HDR) ) == VFS_FAIL )
+	if( vfs_read( handle, (void *)&hdr, sizeof(struct ELF_HDR) ) == FAIL )
 		return -1;
 	
 	// make sure we are dealing with an ELF file
@@ -42,7 +42,7 @@ int elf_load( struct VFS_HANDLE * handle )
 	vfs_seek( handle, hdr.e_shoff, VFS_SEEK_START );
 	for( i=0 ; i<hdr.e_shnum ; i++)
 	{
-		if( vfs_read( handle, (void *)&section_hdr, hdr.e_phentsize ) == VFS_FAIL )
+		if( vfs_read( handle, (void *)&section_hdr, hdr.e_phentsize ) == FAIL )
 			return -4-i;
 		
 		kernel_printf("[%d] name index: %d addr: %x\n", i, section_hdr.sh_name, section_hdr.sh_addr );

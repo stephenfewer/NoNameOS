@@ -33,13 +33,13 @@ int vfs_register( struct VFS_FILESYSTEM * fs )
 		vfs_fsTop->next = fs;
 	vfs_fsTop = fs;
 	// we can now mount volumes of this file system type
-	return VFS_SUCCESS;
+	return SUCCESS;
 }
 
 // unregister a file system driver from the VFS
 int vfs_unregister( int fstype )
 {
-	return VFS_FAIL;
+	return FAIL;
 }
 
 // find a file system driver of specified type
@@ -68,7 +68,7 @@ int vfs_mount( char * device, char * mountpoint, int fstype )
 	{
 		// failed to find it
 		mm_free( mount );
-		return VFS_FAIL;	
+		return FAIL;	
 	}
 	mount->mountpoint = (char *)mm_malloc( strlen(mountpoint)+1 );
 	strcpy( mount->mountpoint, mountpoint );
@@ -82,7 +82,7 @@ int vfs_mount( char * device, char * mountpoint, int fstype )
 	vfs_mpTop = mount;
 	// call the file system driver to mount
 	if( mount->fs->calltable.mount == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	return mount->fs->calltable.mount( device, mountpoint, fstype );
 }
 
@@ -102,10 +102,10 @@ int vfs_unmount( char * mountpoint )
 	}
 	// fail if we cant find it
 	if( mount == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	// call the file system driver to unmount
 	if( mount->fs->calltable.unmount == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	mount->fs->calltable.unmount( name_ptr );
 	// remove the mount point from the VFS
 	if( mount == vfs_mpBottom )
@@ -130,7 +130,7 @@ int vfs_unmount( char * mountpoint )
 	mm_free( mount->mountpoint );
 	mm_free( mount->device );
 	mm_free( mount );
-	return VFS_SUCCESS;	
+	return SUCCESS;	
 }
 
 struct VFS_MOUNTPOINT * vfs_file2mountpoint( char * filename )
@@ -189,10 +189,10 @@ struct VFS_HANDLE * vfs_open( char * filename, int mode )
 			if( mount->fs->calltable.create != NULL )
 			{
 				// try to create it
-				if( mount->fs->calltable.create( name_ptr ) != VFS_FAIL )
+				if( mount->fs->calltable.create( name_ptr ) != FAIL )
 				{
 					if( mount->fs->calltable.open( handle, name_ptr ) != NULL )
-						return VFS_SUCCESS;
+						return handle;
 				}
 			}
 		}		
@@ -205,7 +205,7 @@ struct VFS_HANDLE * vfs_open( char * filename, int mode )
 int vfs_close( struct VFS_HANDLE * handle )
 {
 	if( handle == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	if( handle->mount->fs->calltable.close != NULL )
 	{
 		int ret;
@@ -213,36 +213,36 @@ int vfs_close( struct VFS_HANDLE * handle )
 		mm_free( handle );
 		return ret;
 	}
-	return VFS_FAIL;	
+	return FAIL;	
 }
 
 int vfs_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	if( handle == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	// test if the file has been opened in read mode first
 	if( (handle->mode & VFS_MODE_READ) != VFS_MODE_READ )
-		return VFS_FAIL;
+		return FAIL;
 	// try to call the file system driver to read
 	if( handle->mount->fs->calltable.read != NULL )
 		return handle->mount->fs->calltable.read( handle, buffer, size  );
 	// if we get here we have failed
-	return VFS_FAIL;
+	return FAIL;
 }
 
 int vfs_write( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size )
 {
 	int ret;
 	if( handle == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	// test if the file ha been opened in read mode first
 	if( (handle->mode & VFS_MODE_WRITE) != VFS_MODE_WRITE )
-		return VFS_FAIL;
+		return FAIL;
 	// try to call the file system driver to write
 	if( handle->mount->fs->calltable.write != NULL )
 	{
 		ret = handle->mount->fs->calltable.write( handle, buffer, size );
-		if( ret != VFS_FAIL )
+		if( ret != FAIL )
 		{
 			// set the file position to the end of the file if in append mode
 			if( (handle->mode & VFS_MODE_APPEND) == VFS_MODE_APPEND )
@@ -252,25 +252,25 @@ int vfs_write( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size )
 		}
 	}
 	// if we get here we have failed
-	return VFS_FAIL;
+	return FAIL;
 }
 
 int vfs_seek( struct VFS_HANDLE * handle, DWORD offset, BYTE origin )
 {
 	if( handle == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	if( handle->mount->fs->calltable.seek != NULL )
 		return handle->mount->fs->calltable.seek( handle, offset, origin  );
-	return VFS_FAIL;
+	return FAIL;
 }
 
 int vfs_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 {
 	if( handle == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	if( handle->mount->fs->calltable.control != NULL )
 		return handle->mount->fs->calltable.control( handle, request, arg  );
-	return VFS_FAIL;
+	return FAIL;
 }
 
 int vfs_create( char * filename )
@@ -283,14 +283,14 @@ int vfs_create( char * filename )
 	// find the correct mountpoint for this file
 	mount = vfs_file2mountpoint( name_ptr );
 	if( mount == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	// advance the filname past the mount point
 	name_ptr = (char *)( name_ptr + strlen(mount->mountpoint) );
 	// try to create the file on the mounted file system
 	if( mount->fs->calltable.create != NULL )
 		return mount->fs->calltable.create( name_ptr );
 	// return fail
-	return VFS_FAIL;	
+	return FAIL;	
 }
 
 int vfs_delete( char * filename )
@@ -303,14 +303,14 @@ int vfs_delete( char * filename )
 	// find the correct mountpoint for this file
 	mount = vfs_file2mountpoint( name_ptr );
 	if( mount == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	// advance the filname past the mount point
 	name_ptr = (char *)( name_ptr + strlen(mount->mountpoint) );
 	// try to delete the file on the mounted file system
 	if( mount->fs->calltable.delete != NULL )
 		return mount->fs->calltable.delete( name_ptr );
 	// return fail
-	return VFS_FAIL;		
+	return FAIL;		
 }
 
 int vfs_rename( char * src, char * dest )
@@ -326,7 +326,7 @@ int vfs_rename( char * src, char * dest )
 	// find the correct mountpoint for this file
 	mount = vfs_file2mountpoint( srcname_ptr );
 	if( mount == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	// advance the filnames past the mount point, we should sanity check this better
 	srcname_ptr = (char *)( srcname_ptr + strlen(mount->mountpoint) );
 	destname_ptr = (char *)( destname_ptr + strlen(mount->mountpoint) );
@@ -334,7 +334,7 @@ int vfs_rename( char * src, char * dest )
 	if( mount->fs->calltable.rename != NULL )
 		return mount->fs->calltable.rename( srcname_ptr, destname_ptr );
 	// return fail
-	return VFS_FAIL;
+	return FAIL;
 }
 
 int vfs_copy( char * src, char * dest )
@@ -350,7 +350,7 @@ int vfs_copy( char * src, char * dest )
 	// find the correct mountpoint for this file
 	mount = vfs_file2mountpoint( srcname_ptr );
 	if( mount == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	// advance the filnames past the mount point, we should sanity check this better
 	// also dest may be on another mountpoint
 	srcname_ptr = (char *)( srcname_ptr + strlen(mount->mountpoint) );
@@ -359,7 +359,7 @@ int vfs_copy( char * src, char * dest )
 	if( mount->fs->calltable.copy != NULL )
 		return mount->fs->calltable.copy( srcname_ptr, destname_ptr );
 	// return fail
-	return VFS_FAIL;	
+	return FAIL;	
 }
 
 struct VFS_DIRLIST_ENTRY * vfs_list( char * dir )
@@ -410,7 +410,7 @@ struct VFS_DIRLIST_ENTRY * vfs_list( char * dir )
 	return NULL;
 }
 
-int vfs_init()
+int vfs_init( void )
 {
 	// initilize Device File System driver
 	dfs_init();
@@ -420,5 +420,5 @@ int vfs_init()
 	// initilize FAT File System driver
 	fat_init();
 
-	return VFS_SUCCESS;
+	return SUCCESS;
 }

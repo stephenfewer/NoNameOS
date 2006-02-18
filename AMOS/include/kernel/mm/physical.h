@@ -14,7 +14,7 @@ void * physical_pageAlloc();
 
 void physical_pageFree( void * );
 
-void physical_init( DWORD );
+int physical_init( DWORD );
 
 int physical_getBitmapSize();
 

@@ -60,7 +60,7 @@ int dfs_remove( char * name  )
 	// find the device
 	device = dfs_find( name );
 	if( device == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	// To Do: test for any open file handles of the requested device
 	
 	// remove from linked list
@@ -84,19 +84,19 @@ int dfs_remove( char * name  )
 	mm_free( device->name );
 	mm_free( device );
 	// return success
-	return VFS_SUCCESS;
+	return SUCCESS;
 }
 
 int dfs_mount( char * device, char * mountpoint, int fstype )
 {
 	if( fstype == DFS_TYPE )
-		return VFS_SUCCESS;
-	return VFS_FAIL;
+		return SUCCESS;
+	return FAIL;
 }
 
 int dfs_unmount( char * mountpoint )
 {
-	return VFS_FAIL;	
+	return FAIL;	
 }
 
 struct VFS_HANDLE * dfs_open( struct VFS_HANDLE * handle, char * filename )
@@ -143,7 +143,7 @@ int dfs_create( char * filename )
 {
 	// we cant create a new file here. new devices are to be loaded
 	// into the system with the IO Subsystems load() system call.
-	return VFS_FAIL;	
+	return FAIL;	
 }
 
 int dfs_delete( char * filename )
@@ -158,19 +158,19 @@ int dfs_copy( char * src, char * dest )
 	// find the source device
 	device = dfs_find( src );
 	if( device == NULL )
-		return VFS_FAIL;
+		return FAIL;
 	// copy the calltable
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
 	memcpy( calltable, device->calltable, sizeof(struct IO_CALLTABLE) );
 	// add a new device with the source devices calltable
 	dfs_add( dest, calltable, device->type );
-	return VFS_SUCCESS;	
+	return SUCCESS;	
 }
 
 int dfs_rename( char * src, char * dest )
 {
-	if( dfs_copy( src, dest ) == VFS_FAIL )
-		return VFS_FAIL;
+	if( dfs_copy( src, dest ) == FAIL )
+		return FAIL;
 	return dfs_delete( src );
 }
 
@@ -202,7 +202,7 @@ struct VFS_DIRLIST_ENTRY * dfs_list( char * dir )
 	return entry;
 }
 
-int dfs_init()
+int dfs_init( void )
 {
 	struct VFS_FILESYSTEM * fs;
 	// create the file system structure

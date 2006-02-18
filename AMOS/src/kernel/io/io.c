@@ -24,8 +24,8 @@
 int io_add( char * name, struct IO_CALLTABLE * calltable, int type )
 {
 	if( dfs_add( name, calltable, type ) == NULL )
-		return IO_FAIL;
-	return IO_SUCCESS;
+		return FAIL;
+	return SUCCESS;
 }
 
 int io_remove( char * name )
@@ -59,38 +59,38 @@ int io_close( struct IO_HANDLE * handle )
 		mm_free( handle );
 		return ret;
 	}
-	return IO_FAIL;
+	return FAIL;
 }
 
 int io_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	if( handle->device->calltable->read != NULL )
 		return handle->device->calltable->read( handle, buffer, size  );
-	return IO_FAIL;
+	return FAIL;
 }
 
 int io_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size )
 {
 	if( handle->device->calltable->write != NULL )
 		return handle->device->calltable->write( handle, buffer, size );
-	return IO_FAIL;
+	return FAIL;
 }
 
 int io_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin )
 {
 	if( handle->device->calltable->seek != NULL )
 		return handle->device->calltable->seek( handle, offset, origin );
-	return IO_FAIL;	
+	return FAIL;	
 }
 
 int io_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 {
 	if( handle->device->calltable->control != NULL )
 		return handle->device->calltable->control( handle, request, arg );
-	return IO_FAIL;	
+	return FAIL;	
 }
 
-void io_init()
+int io_init( void )
 {
 	// init the console driver
 	console_init();
@@ -103,4 +103,6 @@ void io_init()
 
 	// init the bit bucket driver
 	bitbucket_init();
+	
+	return SUCCESS;
 }

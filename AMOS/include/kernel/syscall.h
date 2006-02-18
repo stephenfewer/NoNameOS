@@ -4,8 +4,6 @@
 #include <sys/types.h>
 #include <kernel/pm/process.h>
 
-#define SYSCALL_INTERRUPT		0x90
-
 typedef int (*SYSCALL)( struct PROCESS_STACK * );
 
 enum
@@ -40,6 +38,6 @@ SYSCALL_TEST,
 	SYSCALL_MAXCALLS
 };
 
-void syscall_init( void );
+int syscall_init( void );
 
 #endif

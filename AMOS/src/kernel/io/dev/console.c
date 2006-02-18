@@ -169,7 +169,7 @@ int console_activate(  struct CONSOLE_DATA * console )
 		// dont do anything if we are trying to set an allready active
 		// console active
 		if( (*console0)->number == console->number )
-			return IO_FAIL;
+			return FAIL;
 		// set the current virtual console not active
 		(*console0)->active = FALSE;
 	}
@@ -182,7 +182,7 @@ int console_activate(  struct CONSOLE_DATA * console )
 	// set the currenty active virtual console to the one we just changed to
 	*console0 = console;
 	// return success
-	return IO_SUCCESS;
+	return SUCCESS;
 }
 
 struct CONSOLE_DATA * console_create( char * name, int number )
@@ -233,7 +233,7 @@ struct IO_HANDLE * console_open( struct IO_HANDLE * handle, char * filename )
 
 int console_close( struct IO_HANDLE * handle )
 {
-	return IO_SUCCESS;
+	return SUCCESS;
 }
 
 int console_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
@@ -245,7 +245,7 @@ int console_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 	else if( handle->data_arg == CONSOLE_DATA_PTR )
 		console = (struct CONSOLE_DATA *)handle->data_ptr;
 	else
-		return IO_FAIL;
+		return FAIL;
 	
 	if(	console->in_buff == NULL )
 	{
@@ -267,7 +267,7 @@ int console_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 		return console->in_buffIndex;
 	}
 	
-	return IO_FAIL;
+	return FAIL;
 }
 
 int console_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
@@ -280,7 +280,7 @@ int console_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 	else if( handle->data_arg == CONSOLE_DATA_PTR )
 		console = (struct CONSOLE_DATA *)handle->data_ptr;
 	else
-		return IO_FAIL;
+		return FAIL;
 	// print all the charachters in the buffer to the virtual console
 	while( i < size )
 		console_putch( console, buffer[i++] );
@@ -297,7 +297,7 @@ int console_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 	else if( handle->data_arg == CONSOLE_DATA_PTR )
 		console = (struct CONSOLE_DATA *)handle->data_ptr;
 	else
-		return IO_FAIL;
+		return FAIL;
 	// switch the request
 	switch( request )
 	{
@@ -306,7 +306,7 @@ int console_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 				console->echo = TRUE;
 			else
 				console->echo = FALSE;
-			return IO_SUCCESS;
+			return SUCCESS;
 			break;
 		// we want to set this virtual console as active
 		case CONSOLE_SETACTIVE:
@@ -327,14 +327,13 @@ int console_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 				if( console->in_buffIndex < console->in_buffSize )
 					console->in_buff[ console->in_buffIndex++ ] = (BYTE)arg;	
 			}
-			return IO_SUCCESS;
+			return SUCCESS;
 		case CONSOLE_SETBREAK:
 			console->in_breakByte = (BYTE)arg;
-			return IO_SUCCESS;
-			break;
+			return SUCCESS;
 	}
 	// return fail
-	return IO_FAIL;
+	return FAIL;
 }
 
 int console_init( void )
@@ -366,5 +365,5 @@ int console_init( void )
 	// add the currently active console
 	io_add( "console0", calltable, IO_CHAR );
 	
-	return IO_SUCCESS;
+	return SUCCESS;
 }

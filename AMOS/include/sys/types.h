@@ -4,6 +4,9 @@
 #define TRUE				0x01
 #define FALSE				0x00
 
+#define SUCCESS				0
+#define FAIL				-1
+
 #define ASM					__asm__ __volatile__
 #define PACKED				__attribute__( (packed) )
 

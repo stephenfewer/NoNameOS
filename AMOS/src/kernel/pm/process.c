@@ -53,7 +53,7 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	buffer = (BYTE *)mm_malloc( size );
 	
 	vfs_seek( handle, 0, VFS_SEEK_START );
-	if( vfs_read( handle, buffer, size ) == VFS_FAIL )
+	if( vfs_read( handle, buffer, size ) == FAIL )
 		return -1;
 		
 	kernel_printf("read in buffer\n" );

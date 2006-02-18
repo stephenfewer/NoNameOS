@@ -30,7 +30,8 @@ INTERRUPT_SERVICE_ROUTINE interrupt_stubs[] =
 	isr16, isr17, isr18, isr19, isr20, isr21, isr22, isr23,
 	isr24, isr25, isr26, isr27, isr28, isr29, isr30, isr31,
     isr32, isr33, isr34, isr35, isr36, isr37, isr38, isr39,
-	isr40, isr41, isr42, isr43, isr44, isr45, isr46, isr47
+	isr40, isr41, isr42, isr43, isr44, isr45, isr46, isr47,
+	isr48
 };
 
 char * interrupt_messages[] =
@@ -155,7 +156,6 @@ void interrupt_setTableEntry( BYTE index, INTERRUPT_SERVICE_ROUTINE routine, BYT
 	
 	// this is slightly innacurate, we need to set the D bit here to 1 for the size of the gate (32bit in our case)
 	// while also setting two other bits, so we shortcut and just set it to 14decimal which is 01110 binary
-
 	interrupt_table[index].size = 14;
 		
 	interrupt_table[index].reserved = 0;
@@ -214,7 +214,7 @@ BOOL interrupt_disable( int index )
 	return FALSE;
 }
 
-void interrupt_init()
+int interrupt_init( void )
 {
 	int index;
 	// patch in the values for the IDT pointer
@@ -226,7 +226,8 @@ void interrupt_init()
 	for( index=0 ; index<INTERRUPT_TABLE_ENTRYS ; index++ )
 	{
 		interrupt_handlers[index] = NULL;
-		interrupt_setTableEntry( index, NULL, SUPERVISOR, FALSE );
+		// the disable_int routine will not work for IRQ's but we fix that up below when we disable them
+		interrupt_setTableEntry( index, disable_int, SUPERVISOR, FALSE );
 	}
 	// enable the first 32 interrupts but dont set a handler
 	for( index=INT0 ; index<=INT31 ; index++ )
@@ -238,4 +239,5 @@ void interrupt_init()
 	interrupt_remapPIC();
 	// load the interrupt descriptor table (interrupt_ptable pointer to a linear address of the interrupt_table)
 	ASM( "lidt (%0)" : : "r" ( &interrupt_ptable) );
+	return SUCCESS;
 }

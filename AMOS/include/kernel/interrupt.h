@@ -90,7 +90,8 @@ enum {
 	IRQ12,
 	IRQ13,
 	IRQ14,
-	IRQ15
+	IRQ15,
+	SYSCALL_INTERRUPT
 };
 
 extern void disable_int();
@@ -145,6 +146,7 @@ extern void isr44();
 extern void isr45();
 extern void isr46();
 extern void isr47();
+extern void isr48();
 
 DWORD interrupt_dispatcher( struct PROCESS_STACK * );
 
@@ -152,7 +154,7 @@ BOOL interrupt_enable( int, INTERRUPT_HANDLER, BYTE );
 
 BOOL interrupt_disable( int );
 
-void interrupt_init();
+int interrupt_init( void );
 
 #endif
 

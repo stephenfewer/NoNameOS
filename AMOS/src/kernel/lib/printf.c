@@ -147,7 +147,7 @@ int get( struct VFS_HANDLE * h, char * buffer, int size )
 	// stop echoing charachters to screen
 	vfs_control( h, CONSOLE_SETECHO, FALSE );
 	// add an end of line char if we did not fail
-	if( size != VFS_FAIL )
+	if( size != FAIL )
 		buffer[size] = 0x00;
 	// return the amount of bytes we read in
 	return size;

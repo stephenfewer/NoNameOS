@@ -12,7 +12,7 @@ struct MM_HEAPITEM
 	//unsigned int available:7;
 } PACKED;
 
-void mm_init( DWORD );
+int mm_init( DWORD );
 
 void * mm_morecore( struct PROCESS_INFO *, DWORD );
 
