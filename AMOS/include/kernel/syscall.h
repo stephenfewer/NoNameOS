@@ -4,7 +4,34 @@
 #include <sys/types.h>
 #include <kernel/pm/process.h>
 
-typedef int (*SYSCALL)( struct PROCESS_STACK * );
+#define SYSTEM_CALL0( function ) function.function0()
+#define SYSTEM_CALL1( function, stack ) function.function1( (void *)stack->ebx )
+#define SYSTEM_CALL2( function, stack ) function.function2( (void *)stack->ebx, (void *)stack->ecx )
+#define SYSTEM_CALL3( function, stack ) function.function3( (void *)stack->ebx, (void *)stack->ecx, (void *)stack->edx )
+
+
+typedef int (*syscall0)( void );
+typedef int (*syscall1)( void * );
+typedef int (*syscall2)( void *, void * );
+typedef int (*syscall3)( void *, void *, void * );
+
+struct SYSCALL_FUNCTION
+{
+	union
+	{
+		void * function;
+		syscall0 function0;
+		syscall1 function1;
+		syscall2 function2;
+		syscall3 function3;
+	};
+};
+
+struct SYSCALL
+{
+	int parameters;
+	struct SYSCALL_FUNCTION function;
+};
 
 enum
 {

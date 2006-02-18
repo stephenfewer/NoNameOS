@@ -148,8 +148,6 @@ struct VFS_MOUNTPOINT * vfs_file2mountpoint( char * filename )
 	return mount;
 }
 
-
-
 struct VFS_HANDLE * vfs_open( char * filename, int mode )
 {
 	struct VFS_HANDLE * handle;

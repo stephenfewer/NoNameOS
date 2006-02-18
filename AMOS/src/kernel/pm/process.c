@@ -47,7 +47,6 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	// determine what type: elf/coff/flat/...
 
 	size = vfs_seek( handle, 0, VFS_SEEK_END );
-	kernel_printf("size = %d\n", size );
 	
 	// we will need to free this at some point? ...process_destroy()
 	buffer = (BYTE *)mm_malloc( size );
@@ -55,9 +54,7 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	vfs_seek( handle, 0, VFS_SEEK_START );
 	if( vfs_read( handle, buffer, size ) == FAIL )
 		return -1;
-		
-	kernel_printf("read in buffer\n" );
-	
+
 	//if( (i=elf_load( handle )) < 0 )
 	//	kernel_printf("Failed to load ELF [%d]: %s\n", i, filename );
 	
@@ -65,7 +62,6 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	if( process != NULL )
 	{
 		process->console = console;
-		kernel_printf( "adding process %d to the scheduler\n", process->id );
 		// add the process to the scheduler
 		scheduler_addProcess( process );
 	}

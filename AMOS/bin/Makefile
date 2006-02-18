@@ -17,11 +17,11 @@ OBJDUMP=objdump-elf
 
 all: $(TARGET)
 	$(MCOPY) -o $(KERNEL_ELF) $(IMAGE_DIR)
+	$(MCOPY) -o .\apps\test.bin $(IMAGE_DIR)
 	
 $(TARGET):
 	$(COPY) .\$(IMAGE) .\$(TARGET)
 	$(MCOPY) -o .\$(IMAGE_MENU) $(IMAGE_DIR)
-	$(MCOPY) -o .\apps\test.bin $(IMAGE_DIR)
 
 clean:
 	$(RM) $(TARGET)

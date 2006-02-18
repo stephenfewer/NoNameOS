@@ -1,6 +1,6 @@
 MAKEFILE=Makefile
 
-TARGET_ELF=test.bin
+TARGET_BIN=test.bin
 
 TARGET_DIR=../../bin/apps/
 
@@ -10,15 +10,17 @@ CC=gcc
 LD=ld
 RM=del
 
-LDFLAGS=--oformat binary -Ttext 0x10000000
-CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
+AMOS_LIB=../lib/amos.o
+
+LDFLAGS=-T test.ld -s  -nostdlib -Map $(TARGET_DIR)test.map
+CCFLAGS=-Wall -O -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
 
 OBJ=test.o
 	
-all: $(TARGET_ELF)
+all: $(TARGET_BIN)
 
-$(TARGET_ELF): $(OBJ)
-	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_ELF) $(OBJ)
+$(TARGET_BIN): $(OBJ)
+	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_BIN) $(OBJ) $(AMOS_LIB)
 
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<

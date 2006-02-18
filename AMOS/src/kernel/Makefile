@@ -18,7 +18,6 @@ CC=gcc
 LD=ld-elf
 AS=nasmw
 RM=del
-STRIP=strip
 
 ASFLAGS=-f elf
 LDFLAGS=-T kernel.ld -Map $(TARGET_DIR)kernel.map -nostdlib

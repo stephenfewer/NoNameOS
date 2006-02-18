@@ -1,33 +1,33 @@
-#include <sys/types.h>
-#include <kernel/syscall.h>
+#include <lib/amos.h>
 
-int foo( char c );
+int realmain( void );
 
 int main( void )
 {
-	unsigned char * VidMemChar = (unsigned char *)0xB8000;
-	int ret, num=1;
-	
-	foo( '9' );
-	
-	ASM( "int $0x30" : "=a" (ret) : "a" (num) );
-
-	foo( '8' );
-	
-	while( 1 )
-	{
-		if( *VidMemChar == '1' )
-			foo( '2' );
-		else
-			foo( '1' );
-	}
-	
-	return 0;
+	return realmain();
 }
 
-int foo( char c )
+int realmain( void )
 {
 	unsigned char * VidMemChar = (unsigned char *)0xB8000;
-	*VidMemChar = c;
+	int handle;
+	
+	handle = open( "/device/console2", READWRITE );
+	if( handle != 0 )
+	{
+		write( handle, "hello from test\n", 16 );
+		
+		close( handle );
+	}
+	
+	*VidMemChar = '1';
+	while( TRUE )
+	{
+		if( *VidMemChar == '1' )
+			*VidMemChar = '2';
+		else
+			*VidMemChar = '1';
+	}
+	
 	return 0;
 }
