@@ -50,13 +50,13 @@ void console_setCursor( struct CONSOLE_DATA * console, int x, int y )
 void console_putChar( struct CONSOLE_DATA * console, int x, int y, BYTE c )
 {
     console->mem[ (x + (y*CONSOLE_COLUMNS)) * 2 ] = c;
-    console->mem[ ((x + (y*CONSOLE_COLUMNS)) * 2) + 1 ] = GREEN | RED_BG;
+    console->mem[ ((x + (y*CONSOLE_COLUMNS)) * 2) + 1 ] = console->attributes;
     
     if( console->active )
     {
     	BYTE * mem = (BYTE *)VIDEOMEM_BASE;
     	mem[ (x + (y*CONSOLE_COLUMNS)) * 2 ] = c;
-    	mem[ ((x + (y*CONSOLE_COLUMNS)) * 2) + 1 ] = GREEN | RED_BG;
+    	mem[ ((x + (y*CONSOLE_COLUMNS)) * 2) + 1 ] = console->attributes;
     }
 }
 
@@ -143,17 +143,19 @@ void console_cls( struct CONSOLE_DATA * console )
     // display the banner on the top of the console
     console_setCursor( console, 0, 0 );
     
+    console->attributes = RED | BLACK_BG;
 	for( x=0 ; x<strlen( version ) ; x++ )
 		console_putch( console, version[x] );
+	console->attributes = WHITE | BLACK_BG;
 	console_setCursor( console, 0, 1 );
 	
     for( x=0 ; x<CONSOLE_COLUMNS-6 ; x++ )
 	    console_putch( console, '-' );
 	    
 	console_putch( console, '[' );
-	
+	console->attributes = RED | BLACK_BG;
 	console_putch( console, (BYTE)(console->number+'0') );
-	
+	console->attributes = WHITE | BLACK_BG;
 	console_putch( console, ']' );
 	
     for( x=0 ; x<3 ; x++ )
@@ -204,6 +206,8 @@ struct CONSOLE_DATA * console_create( char * name, int number )
 	console->in_break = FALSE;
 	// set no break byte
 	console->in_breakByte = 0x00;
+	// set the default attributes
+	console->attributes = WHITE | BLACK_BG;
 	// clear the new virtual console
 	console_cls( console );
 	// return it to caller

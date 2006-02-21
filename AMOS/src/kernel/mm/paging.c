@@ -107,10 +107,8 @@ void paging_setPageTableEntry( struct PROCESS_INFO * p, void * linearAddress, vo
 	pte->address = TABLE_SHIFT_R( PAGE_ALIGN( physicalAddress ) );
 }
 
-extern struct PROCESS_INFO * scheduler_processCurrent;
-
 // See page 5-43
-DWORD paging_pageFaultHandler( struct PROCESS_STACK * stack )
+DWORD paging_pageFaultHandler( struct PROCESS_INFO * process, struct PROCESS_STACK * stack )
 {
 	void * linearAddress;
 
@@ -123,7 +121,7 @@ DWORD paging_pageFaultHandler( struct PROCESS_STACK * stack )
 	kernel_printf( "\tEBX:%x EDX:%x ECX:%x EAX:%x\n", stack->ebx, stack->edx, stack->ecx, stack->eax );
 	kernel_printf( "\tEFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );
 	
-	if( process_kill( scheduler_processCurrent->id ) == 0 )
+	if( process_kill( process->id ) == 0 )
 		return TRUE;
 	return FALSE;
 }

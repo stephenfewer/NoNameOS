@@ -26,39 +26,6 @@
 
 struct PROCESS_INFO kernel_process;
 
-void task1()
-{
-	unsigned char* VidMemChar = (unsigned char*)0xB8000;
-	//unsigned char* crash = (unsigned char*)0xDEADC0DE;
-	*VidMemChar='1';
-	for(;;)
-	{
-		if( *VidMemChar=='1' )
-			*VidMemChar='2';
-		else {
-			*VidMemChar='1';
-		//	ASM("cli");
-		//	*crash=0xDEADBEEF;
-		}
-	}
-}
-
-void task2()
-{
-	unsigned char* VidMemChar = (unsigned char*)0xB8002;
-	//unsigned char* crash = (unsigned char*)0xDEADC0DE;
-	*VidMemChar='a';
-	for(;;)
-	{
-		if( *VidMemChar=='a' )
-			*VidMemChar='b';
-		else{
-			*VidMemChar='a';	
-			//*crash=0xDEADBEEF;
-		}
-	}
-}
-
 BYTE inportb( WORD port )
 {
     BYTE rv;
@@ -74,14 +41,10 @@ void outportb( WORD port, BYTE data )
 void kernel_printf( char * text, ... )
 {
 	va_list args;
-	// we can only kernel_printf() if we have a console to do it on
-	if( kernel_process.console != NULL )
-	{
-		// find the first argument
-		va_start( args, text );
-		// pass printf the kernels std output handle the format text and the first argument
-		printf( kernel_process.console, text, args );
-	}
+	// find the first argument
+	va_start( args, text );
+	// pass print the kernels std output handle the format text and the first argument
+	printf( kernel_process.handles[PROCESS_CONSOLEHANDLE], text, args );
 }
 
 // ..."this is the end. beautiful friend, the end."
@@ -127,8 +90,8 @@ int kernel_init( struct MULTIBOOT_INFO * m )
 	// setup the io subsystem
 	io_init();
 	// open the kernels console
-	kernel_process.console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
-	if( kernel_process.console == NULL )
+	kernel_process.handles[PROCESS_CONSOLEHANDLE] = vfs_open( "/device/console1", VFS_MODE_READWRITE );
+	if( kernel_process.handles[PROCESS_CONSOLEHANDLE] == NULL )
 		kernel_panic( NULL, "Failed to open the kernel console." );
 	// setup our system calls
 	syscall_init();
@@ -153,15 +116,12 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	kernel_printf( "mounting device /device/floppy1 to /fat/ as a FAT file system. " );
 	vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
 	kernel_printf( "done.\n" );
-	
-	//scheduler_addProcess( process_create( (void*)&task1, 4096 ) );
-	scheduler_addProcess( process_create( (void*)&task2, 4096 ) );
-	
-	console = vfs_open( "/device/console1", VFS_MODE_READWRITE );
+
+	console = vfs_open( "/device/console3", VFS_MODE_READWRITE );
 	if( console != NULL )
 		process_spawn( "/fat/BOOT/TEST.BIN", console );
 	else
-		kernel_printf( "failed to open /device/console1\n" );
+		kernel_printf( "failed to open /device/console3\n" );
 
 	kernel_printf( "About to hang the kernel process.\n" );	
 	while( TRUE );

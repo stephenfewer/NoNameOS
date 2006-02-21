@@ -40,7 +40,7 @@ struct INTERRUPT_TABLE_POINTER
 
 typedef void (* INTERRUPT_SERVICE_ROUTINE)();
 
-typedef DWORD (* INTERRUPT_HANDLER)( struct PROCESS_STACK * );
+typedef DWORD (* INTERRUPT_HANDLER)( struct PROCESS_INFO *, struct PROCESS_STACK * );
 
 enum { 
 	INT0 = 0,

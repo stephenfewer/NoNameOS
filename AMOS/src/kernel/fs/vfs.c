@@ -15,6 +15,7 @@
 #include <kernel/fs/fat.h>
 #include <kernel/mm/mm.h>
 #include <kernel/lib/string.h>
+#include <kernel/pm/process.h>
 
 struct VFS_FILESYSTEM * vfs_fsTop = NULL;
 struct VFS_FILESYSTEM * vfs_fsBottom = NULL;

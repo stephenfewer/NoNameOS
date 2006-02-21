@@ -30,8 +30,6 @@ BYTE kstacks[8][PROCESS_STACKSIZE];
 
 extern struct PROCESS_INFO kernel_process;
 
-extern struct PROCESS_INFO * scheduler_processCurrent;
-
 int process_spawn( char * filename, struct VFS_HANDLE * console )
 {
 	struct PROCESS_INFO * process;
@@ -61,7 +59,7 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	process = process_create( (void *)buffer, size );
 	if( process != NULL )
 	{
-		process->console = console;
+		process->handles[PROCESS_CONSOLEHANDLE] = console;
 		// add the process to the scheduler
 		scheduler_addProcess( process );
 	}
@@ -75,7 +73,7 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 int process_yield( void )
 {
 	// force the current process into a BLOCKED state
-	scheduler_processCurrent->state = BLOCKED;
+	scheduler_getCurrentProcess()->state = BLOCKED;
 	// select a new process to run
 	scheduler_select();
 	return 0;
@@ -104,6 +102,7 @@ int process_wait( int id )
 
 int process_kill( int id )
 {
+	int i;
 	struct PROCESS_INFO * process;
 
 	// cant kill the kernel ...we'd get court marshelled! :)
@@ -118,6 +117,12 @@ int process_kill( int id )
 	if( process == NULL )
 	{
 		return -1;
+	}
+	// close any open handles
+	for( i=0 ; i<PROCESS_MAXHANDLES ; i++ )
+	{
+		if( process->handles[i] != NULL )
+			vfs_close( process->handles[i] );
 	}
 	// destroy the process's page directory, inturn destroying the stack
 	//paging_destroyDirectory( process->page_dir );
@@ -148,6 +153,9 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 	process->id = ++process_total;
 	// set its privilege to USER as it is a user process
 	process->privilege = USER;
+	// clear the handles table
+	for( i=0 ; i<PROCESS_MAXHANDLES ; i++ )
+		process->handles[i] = NULL;
 	// setup the initial user heap, mm_morecore() will take care of the rest
 	process->heap.heap_base = PROCESS_USER_HEAP_ADDRESS;
 	process->heap.heap_bottom = NULL;
@@ -176,21 +184,7 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 		//  map in the stack to the process's address space
 		paging_setPageTableEntry( process, PROCESS_USER_STACK_ADDRESS+(i*PAGE_SIZE), physicalAddress, TRUE );
 	}
-	// create the process's initial kernel stack so we can perform a context switch
-	process->kernel_stack = (struct PROCESS_STACK *)kstacks[ process->id ];
-	// advance the pointer to the top of the stack, less the size of the stack structure, so we can begin filling it in
-	kernel_stack = ( process->kernel_stack + PROCESS_STACKSIZE - sizeof(struct PROCESS_STACK) );
-	// clear the stack structure
-	memset( (void *)kernel_stack, 0x00, sizeof(struct PROCESS_STACK) );
-	// set the code segment, the privilege is set in the low two bits
-	kernel_stack->cs = USER_CODE_SEL | RING3;
-	// set the data segments
-	kernel_stack->ds = USER_DATA_SEL | RING3;
-	kernel_stack->es = USER_DATA_SEL | RING3;
-	kernel_stack->fs = USER_DATA_SEL | RING3;
-	kernel_stack->gs = USER_DATA_SEL | RING3;
-	// set the eflags register with the IF bit set
-	kernel_stack->eflags = 0x0202;
+	
 	// copy the code segment from kernel space to user space
 	for( i=0 ; i<(size/PAGE_SIZE)+1 ; i++ )
 	{
@@ -204,36 +198,31 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 		
 		paging_setPageTableEntry( process, linearAddress, physicalAddress, TRUE );
 	}
-	// set our initial entrypoint
-	kernel_stack->eip = (DWORD)PROCESS_USER_CODE_ADDRESS;
+	
+	// create the process's initial kernel stack so we can perform a context switch
+	process->kernel_stack = (struct PROCESS_STACK *)kstacks[ process->id ];
+	// advance the pointer to the top of the stack, less the size of the stack structure, so we can begin filling it in
+	kernel_stack = ( process->kernel_stack + PROCESS_STACKSIZE - sizeof(struct PROCESS_STACK) );
+	// clear the stack structure
+	memset( (void *)kernel_stack, 0x00, sizeof(struct PROCESS_STACK) );
+	// set the data segments, the privilege is set in the low two bits
+	kernel_stack->ds = USER_DATA_SEL | RING3;
+	kernel_stack->es = USER_DATA_SEL | RING3;
+	kernel_stack->fs = USER_DATA_SEL | RING3;
+	kernel_stack->gs = USER_DATA_SEL | RING3;
 	// set the interrupt number we will return from
 	kernel_stack->intnumber = IRQ0;
-	
+	// set our initial entrypoint
+	kernel_stack->eip = (DWORD)PROCESS_USER_CODE_ADDRESS;
+	// set the code segment
+	kernel_stack->cs = USER_CODE_SEL | RING3;
+	// set the eflags register with the IF bit set
+	kernel_stack->eflags = 0x0202;	
 	// set up the initial user ss and esp for the iret to ring3
-	kernel_stack->ss0 = USER_DATA_SEL | RING3;
 	kernel_stack->esp0 = (DWORD)(PROCESS_USER_STACK_ADDRESS+PROCESS_STACKSIZE);
-
-	// should we set kernel_stack->ebp ?
-	
-	// we could pass in argc, *argv and *env here...
-	//kernel_stack->eax;
-	//kernel_stack->ebx;
-	//kernel_stack->ecx;
-	
+	kernel_stack->ss0 = USER_DATA_SEL | RING3;
 	// set the processes current esp to the top of its kernel stack
 	process->current_esp = process->current_kesp = (DWORD)kernel_stack;
-
-	/*
-	kernel_printf( "creating process -\n" );
-	kernel_printf( "                 - process->current_esp:%x\n", process->current_esp );
-	kernel_printf( "                 - process->page_dir:%x\n", process->page_dir );
-	kernel_printf( "                 - CS:%x EIP:%x\n", kernel_stack->cs, kernel_stack->eip );
-	kernel_printf( "                 - DS:%x ES:%x FS:%x GS:%x\n", kernel_stack->ds, kernel_stack->es, kernel_stack->fs, kernel_stack->gs );
-	kernel_printf( "                 - EDI:%x ESI:%x EBP:%x ESP:%x\n", kernel_stack->edi, kernel_stack->esi, kernel_stack->ebp, kernel_stack->esp );
-	kernel_printf( "                 - EBX:%x EDX:%x ECX:%x EAX:%x\n", kernel_stack->ebx, kernel_stack->edx, kernel_stack->ecx, kernel_stack->eax );
-	//kernel_printf( "                 - EFLAGS:%x  SS0:%x ESP0:%x\n", kstack->eflags, kstack->ss0, kstack->esp0 );		
-	kernel_printf( "\n" );
-*/
 	// return with new process info
 	return process;
 }

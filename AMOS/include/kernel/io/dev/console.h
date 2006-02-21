@@ -44,6 +44,7 @@ struct CONSOLE_DATA
 	char * name;
 	int number;
 	BYTE active;
+	BYTE attributes;
 	BYTE * mem;
 	int x;
 	int y;

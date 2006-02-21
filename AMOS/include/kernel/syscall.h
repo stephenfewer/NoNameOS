@@ -4,16 +4,15 @@
 #include <sys/types.h>
 #include <kernel/pm/process.h>
 
-#define SYSTEM_CALL0( function ) function.function0()
-#define SYSTEM_CALL1( function, stack ) function.function1( (void *)stack->ebx )
-#define SYSTEM_CALL2( function, stack ) function.function2( (void *)stack->ebx, (void *)stack->ecx )
-#define SYSTEM_CALL3( function, stack ) function.function3( (void *)stack->ebx, (void *)stack->ecx, (void *)stack->edx )
+#define SYSTEM_CALL0( function, process ) function.function0( process )
+#define SYSTEM_CALL1( function, process, stack ) function.function1( process, (void *)stack->ebx )
+#define SYSTEM_CALL2( function, process, stack ) function.function2( process, (void *)stack->ebx, (void *)stack->ecx )
+#define SYSTEM_CALL3( function, process, stack ) function.function3( process, (void *)stack->ebx, (void *)stack->ecx, (void *)stack->edx )
 
-
-typedef int (*syscall0)( void );
-typedef int (*syscall1)( void * );
-typedef int (*syscall2)( void *, void * );
-typedef int (*syscall3)( void *, void *, void * );
+typedef int (*syscall0)( struct PROCESS_INFO * );
+typedef int (*syscall1)( struct PROCESS_INFO *, void * );
+typedef int (*syscall2)( struct PROCESS_INFO *, void *, void * );
+typedef int (*syscall3)( struct PROCESS_INFO *, void *, void *, void * );
 
 struct SYSCALL_FUNCTION
 {
@@ -38,9 +37,6 @@ enum
 	SYSCALL_MININDEX=0,
 	
 	SYSCALL_OPEN=0,
-	
-SYSCALL_TEST,
-	
 	SYSCALL_CLOSE,
 	SYSCALL_READ,
 	SYSCALL_WRITE,
@@ -59,6 +55,7 @@ SYSCALL_TEST,
 	SYSCALL_WAKE,
 	SYSCALL_WAIT,
 	SYSCALL_LOAD,
+	SYSCALL_EXIT,
 	SYSCALL_MORECORE,
 	
 	SYSCALL_MAXINDEX=SYSCALL_MORECORE,

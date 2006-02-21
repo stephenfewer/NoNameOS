@@ -36,6 +36,15 @@ struct SCHEDULER_PROCESS_TABLE scheduler_processTable;
 struct MUTEX * scheduler_handlerLock;
 struct MUTEX * scheduler_processTableLock;
 
+struct PROCESS_INFO * scheduler_getCurrentProcess( void )
+{
+	struct PROCESS_INFO * process;
+	mutex_lock( scheduler_processTableLock );
+	process = scheduler_processCurrent;
+	mutex_unlock( scheduler_processTableLock );
+	return process;
+}
+
 void scheduler_printProcessTable( void )
 {
 	struct PROCESS_INFO * process;
@@ -170,7 +179,7 @@ struct PROCESS_INFO * scheduler_removeProcesss( int id )
 	return process;
 }
 
-DWORD scheduler_handler( struct PROCESS_STACK * stack )
+DWORD scheduler_handler( struct PROCESS_INFO * process, struct PROCESS_STACK * stack )
 {
 	DWORD doswitch = FALSE;
 	// lock this critical section so we are guaranteed mutual exclusion
@@ -178,9 +187,9 @@ DWORD scheduler_handler( struct PROCESS_STACK * stack )
 	// increment our tick counter
 	scheduler_ticks++;
 	// decrement the current processes time slice by one
-	scheduler_processCurrent->tick_slice--;
+	process->tick_slice--;
 	// if the current process has reached the end of its tick slice we must select a new process to run
-	if( scheduler_processCurrent->tick_slice <= 0 )
+	if( process->tick_slice <= 0 )
 		doswitch = scheduler_select();
 	// unlock the critical section
 	mutex_unlock( scheduler_handlerLock );

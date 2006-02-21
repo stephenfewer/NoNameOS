@@ -13,13 +13,96 @@
 
 #include <kernel/syscall.h>
 #include <kernel/mm/mm.h>
+#include <kernel/pm/scheduler.h>
 #include <kernel/fs/vfs.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 
 struct SYSCALL syscall_table[SYSCALL_MAXCALLS];
 
-DWORD syscall_handler( struct PROCESS_STACK * stack )
+int syscall_open( struct PROCESS_INFO * process, char * filename, int mode )
+{
+	int handleIndex;
+	// find a free handle entry
+	for( handleIndex=0; handleIndex<PROCESS_MAXHANDLES ; handleIndex++ )
+	{
+		if( process->handles[ handleIndex ] == NULL )
+			break;
+	}
+	// see if we have gone over the limit
+	if( handleIndex >= PROCESS_MAXHANDLES )
+		return FAIL;
+	// call the real function
+	process->handles[ handleIndex ] = vfs_open( filename, mode );
+	// check if the call failed
+	if( process->handles[ handleIndex ] == NULL )
+		return FAIL;
+	// return the handle index
+	return handleIndex;
+}
+
+int syscall_close( struct PROCESS_INFO * process, int handleIndex )
+{
+	// make sure the handle index is in range
+	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
+		return FAIL;
+	// call the real function
+	return vfs_close( process->handles[ handleIndex ] );	
+}
+
+int syscall_read( struct PROCESS_INFO * process, int handleIndex, BYTE * buffer, DWORD size )
+{
+	// make sure the handle index is in range
+	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
+		return FAIL;
+	// call the real function
+	return vfs_read( process->handles[ handleIndex ], buffer, size );	
+}
+
+int syscall_write( struct PROCESS_INFO * process, int handleIndex, BYTE * buffer, DWORD size  )
+{
+	// make sure the handle index is in range
+	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
+		return FAIL;
+	// call the real function
+	return vfs_write( process->handles[ handleIndex ], buffer, size );
+}
+
+int syscall_seek( struct PROCESS_INFO * process, int handleIndex, DWORD offset, BYTE origin )
+{
+	// make sure the handle index is in range
+	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
+		return FAIL;
+	// call the real function
+	return vfs_seek( process->handles[ handleIndex ], offset, origin );	
+}
+
+int syscall_control( struct PROCESS_INFO * process, int handleIndex, DWORD request, DWORD arg )
+{
+	// make sure the handle index is in range
+	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
+		return FAIL;
+	// call the real function
+	return vfs_control( process->handles[ handleIndex ], request, arg );		
+}
+
+void * syscall_morecore( struct PROCESS_INFO * process, DWORD size )
+{
+	// call the real function
+	return mm_morecore( process, size );
+}
+
+extern volatile DWORD scheduler_switch;
+
+int syscall_exit( struct PROCESS_INFO * process )
+{
+	// call the real function
+	if( process_kill( process->id ) == 0 )
+		scheduler_switch = TRUE;
+	return scheduler_switch;
+}
+
+DWORD syscall_handler( struct PROCESS_INFO * process, struct PROCESS_STACK * stack )
 {
 	int ret = FAIL;
 	int index = (int)stack->eax;
@@ -33,22 +116,22 @@ DWORD syscall_handler( struct PROCESS_STACK * stack )
 		switch( syscall_table[ index ].parameters  )
 		{
 			case 0:
-				ret = SYSTEM_CALL0( syscall_table[ index ].function );
+				ret = SYSTEM_CALL0( syscall_table[ index ].function, process );
 				break;
 			case 1:
-				ret = SYSTEM_CALL1( syscall_table[ index ].function, stack );
+				ret = SYSTEM_CALL1( syscall_table[ index ].function, process, stack );
 				break;
 			case 2:
-				ret = SYSTEM_CALL2( syscall_table[ index ].function, stack );
+				ret = SYSTEM_CALL2( syscall_table[ index ].function, process, stack );
 				break;	
 			case 3:
-				ret = SYSTEM_CALL3( syscall_table[ index ].function, stack );
+				ret = SYSTEM_CALL3( syscall_table[ index ].function, process, stack );
 				break;
 			default:
 				break;
 		}
 	}
-	// se return value
+	// set return value
 	stack->eax = (DWORD)ret;
 	// return to caller
 	return FALSE;
@@ -75,31 +158,32 @@ int syscall_init( void )
 		syscall_table[ index ].parameters = 0;
 	}
 	// add in all our system calls... file operations
-	syscall_add( SYSCALL_OPEN,     vfs_open,	  2 );
-	syscall_add( SYSCALL_CLOSE,    vfs_close,	  1 );
-	syscall_add( SYSCALL_READ,     vfs_read,      3 );
-	syscall_add( SYSCALL_WRITE,    vfs_write,     3 );
-	syscall_add( SYSCALL_SEEK,     vfs_seek,      3 );
-	syscall_add( SYSCALL_CONTROL,  vfs_control,   3 );	
+	syscall_add( SYSCALL_OPEN,     syscall_open,	   2 );
+	syscall_add( SYSCALL_CLOSE,    syscall_close,	   1 );
+	syscall_add( SYSCALL_READ,     syscall_read,       3 );
+	syscall_add( SYSCALL_WRITE,    syscall_write,      3 );
+	syscall_add( SYSCALL_SEEK,     syscall_seek,       3 );
+	syscall_add( SYSCALL_CONTROL,  syscall_control,    3 );	
 	// file system operations
-	syscall_add( SYSCALL_MOUNT,    vfs_mount,     3 );
-	syscall_add( SYSCALL_UNMOUNT,  vfs_unmount,   1 );
-	syscall_add( SYSCALL_CREATE,   vfs_create,    1 );
-	syscall_add( SYSCALL_DELETE,   vfs_delete,    1 );
-	syscall_add( SYSCALL_RENAME,   vfs_rename,    2 );
-	syscall_add( SYSCALL_COPY,     vfs_copy,      2 );
-	syscall_add( SYSCALL_LIST,     vfs_list,      1 );
+	syscall_add( SYSCALL_MOUNT,    vfs_mount,          3 );
+	syscall_add( SYSCALL_UNMOUNT,  vfs_unmount,        1 );
+	syscall_add( SYSCALL_CREATE,   vfs_create,         1 );
+	syscall_add( SYSCALL_DELETE,   vfs_delete,         1 );
+	syscall_add( SYSCALL_RENAME,   vfs_rename,         2 );
+	syscall_add( SYSCALL_COPY,     vfs_copy,           2 );
+	syscall_add( SYSCALL_LIST,     vfs_list,           1 );
 	// memory operations
-	syscall_add( SYSCALL_MORECORE, mm_morecore,   2 );
+	syscall_add( SYSCALL_MORECORE, syscall_morecore,   2 );
 	// process operations
 	//syscall_add( SYSCALL_SPAWN,  process_spawn, 1 );
 	//syscall_add( SYSCALL_KILL,   process_kill,  1 );
 	//syscall_add( SYSCALL_SLEEP,  process_sleep, 0 );
 	//syscall_add( SYSCALL_WAKE,   process_wake,  1 );
 	//syscall_add( SYSCALL_WAIT,   process_wait,  1 );
-
-	// enable the system call interrupt
-	// we need to set the privilage to USER (DPL = RING3) so it may be accessed from user mode
+	syscall_add( SYSCALL_EXIT,     syscall_exit,       0 );
+	
+	// enable the system call interrupt, we set the privilage to
+	// USER (DPL = RING3) so it may be accessed from user mode
 	interrupt_enable( SYSCALL_INTERRUPT, syscall_handler, USER );
 	return SUCCESS;
 }

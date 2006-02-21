@@ -71,7 +71,7 @@ int keyboard_close( struct IO_HANDLE * handle )
 	return SUCCESS;
 }
 
-DWORD keyboard_handler( struct PROCESS_STACK * taskstack )
+DWORD keyboard_handler( struct PROCESS_INFO * process, struct PROCESS_STACK * stack )
 {
 	BYTE scancode;
 	

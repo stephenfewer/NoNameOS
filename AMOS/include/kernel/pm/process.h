@@ -5,6 +5,9 @@
 #include <kernel/fs/vfs.h>
 #include <kernel/mm/paging.h>
 
+#define PROCESS_CONSOLEHANDLE			0
+#define PROCESS_MAXHANDLES				256
+
 #define PROCESS_TICKS_LOW				2
 #define PROCESS_TICKS_NORMAL			12
 #define PROCESS_TICKS_HIGH				24
@@ -65,7 +68,9 @@ struct PROCESS_INFO
 	void * user_heap;
 	void * kernel_stack;
 	DWORD current_kesp;
-	struct VFS_HANDLE * console;
+	
+	struct VFS_HANDLE * handles[PROCESS_MAXHANDLES];
+	
 	struct PROCESS_HEAP heap;
 	struct PROCESS_INFO * next;
 };

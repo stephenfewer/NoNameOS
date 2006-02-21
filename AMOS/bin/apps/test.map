@@ -9,30 +9,39 @@ Linker script and memory map
                 0x00000000                phys = 0x0
                 0x10000000                virt = 0x10000000
 
-.text           0x10000000      0x170 load address 0x00000000
+.text           0x10000000      0x250 load address 0x00000000
  *(.text)
- .text          0x10000000       0x90 test.o
-                0x10000035                _realmain
+ .text          0x10000000       0x50 test.o
+                0x1000002d                _realmain
                 0x10000000                _main
- .text          0x10000090       0xe0 ../lib/amos.o
-                0x10000090                _open
-                0x1000012b                _seek
-                0x1000014b                _control
-                0x100000f9                _write
-                0x100000c7                _read
-                0x100000ad                _close
-                0x10000170                . = ALIGN (0x10)
+ .text          0x10000050      0x200 ../lib/amos.o
+                0x10000223                _morecore
+                0x100001d7                _mount
+                0x10000050                _open
+                0x100001bd                _list
+                0x1000018e                _copy
+                0x10000145                _delete
+                0x100000eb                _seek
+                0x1000015f                _rename
+                0x1000012b                _create
+                0x10000209                _unmount
+                0x1000010b                _control
+                0x100000b9                _write
+                0x10000087                _read
+                0x1000023d                _exit
+                0x1000006d                _close
+                0x10000250                . = ALIGN (0x10)
 
-.data           0x10000170        0x0 load address 0x10000170
+.data           0x10000250        0x0 load address 0x10000250
  *(.data)
-                0x10000170                . = ALIGN (0x10)
+                0x10000250                . = ALIGN (0x10)
 
-.bss            0x10000170        0x0 load address 0x10000170
-                0x10000170                bss = .
+.bss            0x10000250        0x0 load address 0x10000250
+                0x10000250                bss = .
  *(.bss)
-                0x10000170                . = ALIGN (0x10)
+                0x10000250                . = ALIGN (0x10)
  *(COMMON)
-                0x10000170                . = ALIGN (0x10)
+                0x10000250                . = ALIGN (0x10)
 LOAD test.o
 LOAD ../lib/amos.o
 OUTPUT(../../bin/apps/test.bin binary)

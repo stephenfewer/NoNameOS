@@ -15,6 +15,7 @@
 #include <kernel/kernel.h>
 #include <kernel/mm/segmentation.h>
 #include <kernel/mm/paging.h>
+#include <kernel/pm/scheduler.h>
 #include <kernel/lib/string.h>
 
 struct INTERRUPT_TABLE_ENTRY interrupt_table[INTERRUPT_TABLE_ENTRYS];
@@ -70,7 +71,6 @@ char * interrupt_messages[] =
     "Reserved"
 };
 
-extern struct PROCESS_INFO * scheduler_processCurrent;
 extern struct SEGMENTATION_TSS * scheduler_tss;
 extern volatile DWORD scheduler_switch;
 
@@ -78,34 +78,35 @@ DWORD interrupt_dispatcher( struct PROCESS_STACK * stack )
 {
 	DWORD ret = FALSE;
 	INTERRUPT_HANDLER handler;
-
+	struct PROCESS_INFO * process = scheduler_getCurrentProcess();
+	
 	handler = interrupt_handlers[ stack->intnumber ];
 
 	if( handler != NULL )
 	{
-		ret = handler( stack );
+		ret = handler( process, stack );
 	}
 	else
 	{
 		// if its an exception we must do something by default if their is no appropriate handler
 		if( stack->intnumber <= INT31 )
 		{
-			if( scheduler_processCurrent == NULL )
+			if( process == NULL )
 			{
 				kernel_printf("An exception has occurred in an unknown process\n\t- %s\n", interrupt_messages[stack->intnumber] );
 				while(TRUE);
 			} else {
 				// if the process that caused the exception is the kernel, we must kernel panic
-				if( scheduler_processCurrent->id == KERNEL_PID )
+				if( process->id == KERNEL_PID )
 					kernel_panic( stack, interrupt_messages[stack->intnumber] );
 				else {
-					kernel_printf("EXCEPTION: pid: %d %s\n", scheduler_processCurrent->id, interrupt_messages[stack->intnumber] );
+					kernel_printf("EXCEPTION: pid: %d %s\n", process->id, interrupt_messages[stack->intnumber] );
 					kernel_printf( "\tCS:%x EIP:%x\n", stack->cs, stack->eip );
 					kernel_printf( "\tDS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );
 					kernel_printf( "\tEDI:%x ESI:%x EBP:%x ESP:%x\n", stack->edi, stack->esi, stack->ebp, stack->esp );
 					kernel_printf( "\tEBX:%x EDX:%x ECX:%x EAX:%x\n", stack->ebx, stack->edx, stack->ecx, stack->eax );
 					kernel_printf( "\tEFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );
-					if( process_kill( scheduler_processCurrent->id ) == 0 )
+					if( process_kill( process->id ) == 0 )
 						ret = TRUE;
 				}
 			}
@@ -122,11 +123,15 @@ DWORD interrupt_dispatcher( struct PROCESS_STACK * stack )
 	if( ret == TRUE )
 		scheduler_switch = TRUE;
 	// if we have selected to switch into a USER mode process we should update the TSS
-	if( scheduler_switch && scheduler_processCurrent->privilege == USER )
+	if( scheduler_switch )
 	{
-		// patch the TSS
-		scheduler_tss->ss0 = KERNEL_DATA_SEL;
-		scheduler_tss->esp0 = scheduler_processCurrent->current_kesp;
+		process = scheduler_getCurrentProcess();
+		if( process->privilege == USER )
+		{
+			// patch the TSS
+			scheduler_tss->ss0 = KERNEL_DATA_SEL;
+			scheduler_tss->esp0 = process->current_kesp;
+		}
 	}
 	return scheduler_switch;
 }

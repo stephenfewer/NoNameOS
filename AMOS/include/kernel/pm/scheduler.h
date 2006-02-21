@@ -12,6 +12,8 @@ struct SCHEDULER_PROCESS_TABLE
 	struct PROCESS_INFO * bottom;
 };
 
+struct PROCESS_INFO * scheduler_getCurrentProcess( void );
+
 void scheduler_printProcessTable( void );
 
 struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * );
