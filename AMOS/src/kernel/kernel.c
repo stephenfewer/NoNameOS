@@ -59,13 +59,7 @@ void kernel_panic( struct PROCESS_STACK * stack, char * message )
 		kernel_printf( "%s\n", message );
 	// print out the stack contents
 	if( stack != NULL )
-	{
-		kernel_printf( "\tCS:%x EIP:%x\n", stack->cs, stack->eip );
-		kernel_printf( "\tDS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );
-		kernel_printf( "\tEDI:%x ESI:%x EBP:%x ESP:%x\n", stack->edi, stack->esi, stack->ebp, stack->esp );
-		kernel_printf( "\tEBX:%x EDX:%x ECX:%x EAX:%x\n", stack->ebx, stack->edx, stack->ecx, stack->eax );
-		kernel_printf( "\tEFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );
-	}
+		process_printStack( stack );
 	// hang the system
 	while( TRUE );
 }

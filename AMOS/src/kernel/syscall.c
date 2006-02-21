@@ -102,10 +102,10 @@ int syscall_exit( struct PROCESS_INFO * process )
 	return scheduler_switch;
 }
 
-DWORD syscall_handler( struct PROCESS_INFO * process, struct PROCESS_STACK * stack )
+DWORD syscall_handler( struct PROCESS_INFO * process )
 {
 	int ret = FAIL;
-	int index = (int)stack->eax;
+	int index = (int)process->kstack->eax;
 	
 	// make sure our syscall index into the syscall table is in range
 	if( index < SYSCALL_MININDEX || index > SYSCALL_MAXINDEX )
@@ -119,20 +119,20 @@ DWORD syscall_handler( struct PROCESS_INFO * process, struct PROCESS_STACK * sta
 				ret = SYSTEM_CALL0( syscall_table[ index ].function, process );
 				break;
 			case 1:
-				ret = SYSTEM_CALL1( syscall_table[ index ].function, process, stack );
+				ret = SYSTEM_CALL1( syscall_table[ index ].function, process );
 				break;
 			case 2:
-				ret = SYSTEM_CALL2( syscall_table[ index ].function, process, stack );
+				ret = SYSTEM_CALL2( syscall_table[ index ].function, process );
 				break;	
 			case 3:
-				ret = SYSTEM_CALL3( syscall_table[ index ].function, process, stack );
+				ret = SYSTEM_CALL3( syscall_table[ index ].function, process );
 				break;
 			default:
 				break;
 		}
 	}
 	// set return value
-	stack->eax = (DWORD)ret;
+	process->kstack->eax = (DWORD)ret;
 	// return to caller
 	return FALSE;
 }

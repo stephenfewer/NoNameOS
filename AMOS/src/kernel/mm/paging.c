@@ -107,22 +107,23 @@ void paging_setPageTableEntry( struct PROCESS_INFO * p, void * linearAddress, vo
 	pte->address = TABLE_SHIFT_R( PAGE_ALIGN( physicalAddress ) );
 }
 
+
 // See page 5-43
-DWORD paging_pageFaultHandler( struct PROCESS_INFO * process, struct PROCESS_STACK * stack )
+DWORD paging_pageFaultHandler( struct PROCESS_INFO * process )
 {
 	void * linearAddress;
-
+	// retrieve the linear address of the page fault stored in CR2
 	ASM( "movl %%cr2, %0" : "=r" (linearAddress) );
-	kernel_printf( "Page Fault at CS:EIP %x:%x Address %x\n", stack->cs, stack->eip, linearAddress );
-
-	kernel_printf( "\tCS:%x EIP:%x\n", stack->cs, stack->eip );
-	kernel_printf( "\tDS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );
-	kernel_printf( "\tEDI:%x ESI:%x EBP:%x ESP:%x\n", stack->edi, stack->esi, stack->ebp, stack->esp );
-	kernel_printf( "\tEBX:%x EDX:%x ECX:%x EAX:%x\n", stack->ebx, stack->edx, stack->ecx, stack->eax );
-	kernel_printf( "\tEFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );
-	
+	kernel_printf( "Page Fault at CS:EIP %x:%x Address %x\n", process->kstack->cs, process->kstack->eip, linearAddress );
+	// if the kernel caused the page fault we must kernel panic
+	if( process->id == 0 )
+		kernel_panic( process->kstack, "Kernel Page Fault." );
+	// print out the stack
+	process_printStack( process->kstack );
+	// try to kill the offending process
 	if( process_kill( process->id ) == 0 )
 		return TRUE;
+	// if we failed to kill the process we dont need to perform a context switch
 	return FALSE;
 }
 

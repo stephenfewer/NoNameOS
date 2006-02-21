@@ -47,11 +47,11 @@ isr_common:
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov eax, [_scheduler_processCurrent] ; save the current processes esp
-    mov [eax], esp
-    push esp
+    mov eax, [_scheduler_processCurrent] ; eax = the current process
+    mov [eax], esp				; save its current ESP
+	push eax					; push current process
     call _interrupt_dispatcher	; call out C interrupt_dispatcher() function
-   	add esp, 4
+   	add esp, 4					; clear the dword we pushed
 	test eax, eax				; if we return FALSE, perform no context switch
 	jz noswitch
     mov eax, [_scheduler_processCurrent] ; restore processes esp (possibly a new one)

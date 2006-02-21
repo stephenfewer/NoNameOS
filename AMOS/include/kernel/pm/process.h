@@ -16,7 +16,7 @@
 #define PROCESS_USER_STACK_ADDRESS		(void *)0x20000000
 #define PROCESS_USER_HEAP_ADDRESS		(void *)0x30000000
 
-#define PROCESS_STACKSIZE				SIZE_4KB
+#define PROCESS_STACKSIZE				4096
 
 struct PROCESS_STACK
 {
@@ -58,22 +58,25 @@ struct PROCESS_HEAP
 
 struct PROCESS_INFO
 {
-	DWORD current_esp;
+	struct PROCESS_STACK * kstack;
 	struct PAGE_DIRECTORY * page_dir;
 	int id;
     unsigned int privilege;
 	int tick_slice;
 	int state;
-	void * user_stack;
-	void * user_heap;
-	void * kernel_stack;
-	DWORD current_kesp;
+	
+	void * ustack_base;
+	void * kstack_base;
+	
+	//DWORD current_kesp;
 	
 	struct VFS_HANDLE * handles[PROCESS_MAXHANDLES];
 	
 	struct PROCESS_HEAP heap;
 	struct PROCESS_INFO * next;
 };
+
+void process_printStack( struct PROCESS_STACK * );
 
 int process_spawn( char *, struct VFS_HANDLE * );
 

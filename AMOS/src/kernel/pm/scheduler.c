@@ -179,7 +179,7 @@ struct PROCESS_INFO * scheduler_removeProcesss( int id )
 	return process;
 }
 
-DWORD scheduler_handler( struct PROCESS_INFO * process, struct PROCESS_STACK * stack )
+DWORD scheduler_handler( struct PROCESS_INFO * process )
 {
 	DWORD doswitch = FALSE;
 	// lock this critical section so we are guaranteed mutual exclusion

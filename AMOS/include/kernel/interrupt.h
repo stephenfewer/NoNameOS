@@ -40,7 +40,7 @@ struct INTERRUPT_TABLE_POINTER
 
 typedef void (* INTERRUPT_SERVICE_ROUTINE)();
 
-typedef DWORD (* INTERRUPT_HANDLER)( struct PROCESS_INFO *, struct PROCESS_STACK * );
+typedef DWORD (* INTERRUPT_HANDLER)( struct PROCESS_INFO * );
 
 enum { 
 	INT0 = 0,
@@ -148,7 +148,7 @@ extern void isr46();
 extern void isr47();
 extern void isr48();
 
-DWORD interrupt_dispatcher( struct PROCESS_STACK * );
+DWORD interrupt_dispatcher( struct PROCESS_INFO * process );
 
 BOOL interrupt_enable( int, INTERRUPT_HANDLER, BYTE );
 

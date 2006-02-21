@@ -10,7 +10,7 @@
 #define ASM					__asm__ __volatile__
 #define PACKED				__attribute__( (packed) )
 
-#define NULL				((void *)0)
+#define NULL				((void *)0x00000000)
 
 typedef int					BOOL;
 typedef unsigned char		BYTE;

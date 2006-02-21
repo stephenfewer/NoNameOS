@@ -74,38 +74,33 @@ char * interrupt_messages[] =
 extern struct SEGMENTATION_TSS * scheduler_tss;
 extern volatile DWORD scheduler_switch;
 
-DWORD interrupt_dispatcher( struct PROCESS_STACK * stack )
+DWORD interrupt_dispatcher( struct PROCESS_INFO * process )
 {
 	DWORD ret = FALSE;
 	INTERRUPT_HANDLER handler;
-	struct PROCESS_INFO * process = scheduler_getCurrentProcess();
-	
-	handler = interrupt_handlers[ stack->intnumber ];
+
+	handler = interrupt_handlers[ process->kstack->intnumber ];
 
 	if( handler != NULL )
 	{
-		ret = handler( process, stack );
+		ret = handler( process );
 	}
 	else
 	{
 		// if its an exception we must do something by default if their is no appropriate handler
-		if( stack->intnumber <= INT31 )
+		if( process->kstack->intnumber <= INT31 )
 		{
 			if( process == NULL )
 			{
-				kernel_printf("An exception has occurred in an unknown process\n\t- %s\n", interrupt_messages[stack->intnumber] );
+				kernel_printf("An exception has occurred in an unknown process\n\t- %s\n", interrupt_messages[process->kstack->intnumber] );
 				while(TRUE);
 			} else {
 				// if the process that caused the exception is the kernel, we must kernel panic
 				if( process->id == KERNEL_PID )
-					kernel_panic( stack, interrupt_messages[stack->intnumber] );
+					kernel_panic( process->kstack, interrupt_messages[process->kstack->intnumber] );
 				else {
-					kernel_printf("EXCEPTION: pid: %d %s\n", process->id, interrupt_messages[stack->intnumber] );
-					kernel_printf( "\tCS:%x EIP:%x\n", stack->cs, stack->eip );
-					kernel_printf( "\tDS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );
-					kernel_printf( "\tEDI:%x ESI:%x EBP:%x ESP:%x\n", stack->edi, stack->esi, stack->ebp, stack->esp );
-					kernel_printf( "\tEBX:%x EDX:%x ECX:%x EAX:%x\n", stack->ebx, stack->edx, stack->ecx, stack->eax );
-					kernel_printf( "\tEFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );
+					kernel_printf("Exception: pid: %d %s\n", process->id, interrupt_messages[process->kstack->intnumber] );
+					process_printStack( process->kstack );
 					if( process_kill( process->id ) == 0 )
 						ret = TRUE;
 				}
@@ -115,9 +110,9 @@ DWORD interrupt_dispatcher( struct PROCESS_STACK * stack )
 	}
 	
 	// if this was an IRQ we must signal an EOI to the PIC
-	if( stack->intnumber >= IRQ8 && stack->intnumber <= IRQ15 )
+	if( process->kstack->intnumber >= IRQ8 && process->kstack->intnumber <= IRQ15 )
         outportb( INTERRUPT_PIC_2, INTERRUPT_EOI );
-	else if( stack->intnumber >= IRQ0 && stack->intnumber <= IRQ15 )
+	else if( process->kstack->intnumber >= IRQ0 && process->kstack->intnumber <= IRQ15 )
 		outportb( INTERRUPT_PIC_1, INTERRUPT_EOI );
 
 	if( ret == TRUE )
@@ -130,7 +125,7 @@ DWORD interrupt_dispatcher( struct PROCESS_STACK * stack )
 		{
 			// patch the TSS
 			scheduler_tss->ss0 = KERNEL_DATA_SEL;
-			scheduler_tss->esp0 = process->current_kesp;
+			scheduler_tss->esp0 = process->kstack_base + PROCESS_STACKSIZE;//process->current_kesp;
 		}
 	}
 	return scheduler_switch;
