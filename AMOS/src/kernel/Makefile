@@ -6,11 +6,12 @@ TARGET_DIR=../../bin/kernel/
 
 INCLUDE_DIR=../../include/
 
+AMOS_LIB=../lib/
+
 MM=mm
 PM=pm
 IO=io
 FS=fs
-LIB=lib
 DEV=dev
 SYNC=sync
 
@@ -23,7 +24,7 @@ ASFLAGS=-f elf
 LDFLAGS=-T kernel.ld -Map $(TARGET_DIR)kernel.map -nostdlib
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
 
-OBJ=loader.o isr.o kernel.o interrupt.o syscall.o
+OBJ=loader.o isr.o kernel.o interrupt.o syscall.o kprintf.o
 	
 all: $(TARGET_ELF)
 
@@ -32,8 +33,7 @@ $(TARGET_ELF): $(OBJ)
 	$(MAKE) -C $(MM)
 	$(MAKE) -C $(PM)
 	$(MAKE) -C $(IO)
-	$(MAKE) -C $(LIB)
-	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_ELF) $(OBJ) ./$(MM)/*.o ./$(PM)/*.o ./$(PM)/$(SYNC)/*.o ./$(IO)/*.o ./$(IO)/$(DEV)/*.o ./$(FS)/*.o ./$(LIB)/*.o
+	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_ELF) $(AMOS_LIB)*.o $(OBJ) ./$(MM)/*.o ./$(PM)/*.o ./$(PM)/$(SYNC)/*.o ./$(IO)/*.o ./$(IO)/$(DEV)/*.o ./$(FS)/*.o
 	
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<
@@ -47,4 +47,3 @@ clean:
 	$(MAKE) -C $(PM) clean
 	$(MAKE) -C $(IO) clean
 	$(MAKE) -C $(FS) clean
-	$(MAKE) -C $(LIB) clean

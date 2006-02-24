@@ -3,13 +3,18 @@
 
 #include <sys/types.h>
 
+#define	CONSOLE_1				1
+#define	CONSOLE_2				2
+#define	CONSOLE_3				3
+#define	CONSOLE_4				4
+
 #define CONSOLE_SETACTIVE		1
 #define CONSOLE_SENDCHAR		2
 #define CONSOLE_SETBREAK		3
 #define CONSOLE_SETECHO			4
 
-#define CONSOLE_DATA_PTR		1
-#define CONSOLE_DATA_PTRPTR		2
+#define CONSOLE_PTR				1
+#define CONSOLE_PTRPTR			2
 
 #define CONSOLE_ROWS			25
 #define CONSOLE_COLUMNS			80
@@ -39,6 +44,19 @@ enum {
 	BLINK		= 0x80
 };
 
+struct CONSOLE_BUFFER
+{
+	int number;
+	
+	volatile BYTE * in_buff;
+	volatile int in_buffIndex;
+	volatile int in_buffSize;
+	volatile BYTE in_breakByte;
+	volatile BYTE in_break;
+
+	struct CONSOLE_BUFFER * next;
+};
+
 struct CONSOLE_DATA
 {
 	char * name;
@@ -49,12 +67,14 @@ struct CONSOLE_DATA
 	int x;
 	int y;
 	BYTE echo;
-	volatile BYTE * in_buff;
-	volatile int in_buffIndex;
-	volatile int in_buffSize;
-	volatile BYTE in_breakByte;
-	volatile BYTE in_break;
 };
+
+struct CONSOLE
+{
+	struct CONSOLE_DATA * data;
+	struct CONSOLE_BUFFER * buffer;
+};
+
 
 int console_init( void );
 

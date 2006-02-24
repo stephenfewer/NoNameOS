@@ -16,9 +16,9 @@
 #include <kernel/mm/mm.h>
 #include <kernel/io/io.h>
 #include <kernel/mm/dma.h>
-#include <kernel/lib/string.h>
 #include <kernel/interrupt.h>
 #include <kernel/pm/scheduler.h>
+#include <lib/string.h>
 
 struct FLOPPY_DRIVE * floppy1 = NULL;
 struct FLOPPY_DRIVE * floppy2 = NULL;

@@ -10,7 +10,7 @@ CC=gcc
 LD=ld
 RM=del
 
-AMOS_LIB=../lib/amos.o
+AMOS_LIB=../lib/*.o
 
 LDFLAGS=-T test.ld -s  -nostdlib -Map $(TARGET_DIR)test.map
 CCFLAGS=-Wall -O -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)

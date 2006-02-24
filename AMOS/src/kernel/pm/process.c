@@ -19,10 +19,10 @@
 #include <kernel/mm/mm.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <kernel/lib/string.h>
 #include <kernel/fs/vfs.h>
 #include <kernel/pm/elf.h>
 #include <kernel/pm/scheduler.h>
+#include <lib/string.h>
 
 int process_total = 0;
 
@@ -45,22 +45,31 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	struct VFS_HANDLE * handle;
 	BYTE * buffer;
 	int size;
-		
+	int r=0, msize;
+	
 	// open the process image
 	handle = vfs_open( filename, VFS_MODE_READ );
 	if( handle == NULL )
-		return -1;
+		return FAIL;
 		
 	// determine what type: elf/coff/flat/...
 
 	size = vfs_seek( handle, 0, VFS_SEEK_END );
 	
+	msize = size;
+	
+	r= msize % PAGE_SIZE;
+	
+	if(	r > 0 )
+	{
+		msize += ( PAGE_SIZE - r ) + 1;
+	}
 	// we will need to free this at some point? ...process_destroy()
-	buffer = (BYTE *)mm_malloc( size );
+	buffer = (BYTE *)mm_malloc( msize );
 	
 	vfs_seek( handle, 0, VFS_SEEK_START );
 	if( vfs_read( handle, buffer, size ) == FAIL )
-		return -1;
+		return FAIL;
 
 	//if( (i=elf_load( handle )) < 0 )
 	//	kernel_printf("Failed to load ELF [%d]: %s\n", i, filename );
@@ -75,17 +84,29 @@ int process_spawn( char * filename, struct VFS_HANDLE * console )
 	// close the process images handle
 	vfs_close( handle );
 
+	mm_free( buffer );
+	
 	// return success
-	return 0;
+	return SUCCESS;
 }
+
+extern void contextswitch( void );
+//extern struct PROCESS_INFO * scheduler_processCurrent;
 
 int process_yield( void )
 {
-	// force the current process into a BLOCKED state
-	scheduler_getCurrentProcess()->state = BLOCKED;
-	// select a new process to run
-	scheduler_select();
-	return 0;
+	struct PROCESS_INFO * process;
+	// TO-DO: force the current process into a BLOCKED state
+	process = scheduler_getCurrentProcess();
+	if( process == NULL )
+		return FAIL;
+	// for now we just force a new process to run
+	process->state = READY;
+	process->tick_slice = 0;
+	// force a context switch
+	ASM("int $32" );
+	// we return here next time the process runs
+	return SUCCESS;
 }
 
 int process_wake( int id )
@@ -94,19 +115,17 @@ int process_wake( int id )
 	// find the requested process
 	process = scheduler_findProcesss( id );
 	if( process == NULL )
-	{
-		return -1;
-	}
+		return FAIL;
 	// force the process into a READY state
 	process->state = READY;
-	return 0;
+	return SUCCESS;
 }
 
 /*
 int process_wait( int id )
 {
 	//wait for the process of id to terminate...
-	return 0;
+	return SUCCESS;
 }*/
 
 int process_kill( int id )
@@ -116,17 +135,15 @@ int process_kill( int id )
 
 	// cant kill the kernel ...we'd get court marshelled! :)
 	if( id == KERNEL_PID )
-	{
-		return -1;
-	}
+		return FAIL;
+
 	//scheduler_printProcessTable();
 	kernel_printf("Killing process %d... ", id );
 	// remove the process from the scheduler so it cant be switched back in
 	process = scheduler_removeProcesss( id );
 	if( process == NULL )
-	{
-		return -1;
-	}
+		return FAIL;
+
 	// close any open handles
 	for( i=0 ; i<PROCESS_MAXHANDLES ; i++ )
 	{
@@ -145,7 +162,7 @@ int process_kill( int id )
 	kernel_printf("Done.\n" );
 	//scheduler_printProcessTable();
 
-	return 0;
+	return SUCCESS;
 }
 
 struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )

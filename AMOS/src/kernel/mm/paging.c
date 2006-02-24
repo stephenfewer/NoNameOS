@@ -17,7 +17,7 @@
 #include <kernel/kernel.h>
 #include <kernel/interrupt.h>
 #include <kernel/pm/process.h>
-#include <kernel/lib/string.h>
+#include <lib/string.h>
 
 extern void start;
 extern void end;
@@ -106,7 +106,6 @@ void paging_setPageTableEntry( struct PROCESS_INFO * p, void * linearAddress, vo
 	pte->available = 0;
 	pte->address = TABLE_SHIFT_R( PAGE_ALIGN( physicalAddress ) );
 }
-
 
 // See page 5-43
 DWORD paging_pageFaultHandler( struct PROCESS_INFO * process )

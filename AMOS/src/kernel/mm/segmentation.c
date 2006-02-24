@@ -13,7 +13,7 @@
 
 #include <kernel/mm/segmentation.h>
 #include <kernel/kernel.h>
-#include <kernel/lib/string.h>
+#include <lib/string.h>
 
 struct SEGMENTATION_GDT_ENTRY segmentation_gdt[SEGMENTATION_GDT_ENTRYS];
 

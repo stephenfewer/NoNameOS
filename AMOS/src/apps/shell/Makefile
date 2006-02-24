@@ -1,6 +1,6 @@
 MAKEFILE=Makefile
 
-TARGET_ELF=shell.elf
+TARGET_BIN=shell.bin
 
 TARGET_DIR=../../../bin/apps/
 
@@ -10,15 +10,17 @@ CC=gcc
 LD=ld
 RM=del
 
-LDFLAGS=--oformat elf32-i386 -nostdlib
-CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
+AMOS_LIB=../../lib/*.o
 
-OBJ=shell.o tinysh.o
+LDFLAGS=-T shell.ld -s -nostdlib -Map $(TARGET_DIR)shell.map
+CCFLAGS=-Wall -O -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
+
+OBJ=main.o tinysh.o
 	
-all: $(TARGET_ELF)
+all: $(TARGET_BIN)
 
-$(TARGET_ELF): $(OBJ)
-	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_ELF) $(OBJ)
+$(TARGET_BIN): $(OBJ)
+	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_BIN) $(OBJ) $(AMOS_LIB)
 
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<

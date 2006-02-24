@@ -16,7 +16,7 @@
 #include <kernel/mm/segmentation.h>
 #include <kernel/mm/paging.h>
 #include <kernel/pm/scheduler.h>
-#include <kernel/lib/string.h>
+#include <lib/string.h>
 
 struct INTERRUPT_TABLE_ENTRY interrupt_table[INTERRUPT_TABLE_ENTRYS];
 
@@ -117,17 +117,7 @@ DWORD interrupt_dispatcher( struct PROCESS_INFO * process )
 
 	if( ret == TRUE )
 		scheduler_switch = TRUE;
-	// if we have selected to switch into a USER mode process we should update the TSS
-	if( scheduler_switch )
-	{
-		process = scheduler_getCurrentProcess();
-		if( process->privilege == USER )
-		{
-			// patch the TSS
-			scheduler_tss->ss0 = KERNEL_DATA_SEL;
-			scheduler_tss->esp0 = process->kstack_base + PROCESS_STACKSIZE;//process->current_kesp;
-		}
-	}
+
 	return scheduler_switch;
 }
 

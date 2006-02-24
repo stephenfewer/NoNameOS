@@ -1,5 +1,5 @@
-#ifndef _KERNEL_LIB_STRING_H_
-#define _KERNEL_LIB_STRING_H_
+#ifndef _LIB_STRING_H_
+#define _LIB_STRING_H_
 
 #include <sys/types.h>
 
@@ -24,3 +24,4 @@ void memcpy( void *, void *, int );
 int memcmp( void *, void *, int );
 
 #endif
+

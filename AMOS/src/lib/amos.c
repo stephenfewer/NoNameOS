@@ -135,7 +135,7 @@ int unmount( char * mountpoint )
 
 void * morecore( DWORD size )
 {
-	int num=SYSCALL_UNMOUNT;
+	int num=SYSCALL_MORECORE;
 	void * address = NULL;
 	if( size == 0 )
 		return NULL;

@@ -55,6 +55,7 @@ int syscall_read( struct PROCESS_INFO * process, int handleIndex, BYTE * buffer,
 	// make sure the handle index is in range
 	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
 		return FAIL;
+kernel_printf("[read] ID=%d handle=%d buffer=%x size=%d\n", process->id, handleIndex, buffer, size );
 	// call the real function
 	return vfs_read( process->handles[ handleIndex ], buffer, size );	
 }

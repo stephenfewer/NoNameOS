@@ -108,7 +108,7 @@ static int parse_command(tinysh_cmd_t **_cmd, uchar **_str)
 {
   uchar *str=*_str;
   tinysh_cmd_t *cmd;
-  int matched_len=0;
+  //int matched_len=0;
   tinysh_cmd_t *matched_cmd=0;
 
   /* first eliminate first blanks */
@@ -122,7 +122,7 @@ static int parse_command(tinysh_cmd_t **_cmd, uchar **_str)
   /* first pass: count matches */
   for(cmd=*_cmd;cmd;cmd=cmd->next)
     {
-      int ret=strstart(cmd->name,str);
+      int ret=strstart((uchar *)cmd->name,str);
 
       if(ret==FULLMATCH)
         {
@@ -296,8 +296,8 @@ static int help_command_line(tinysh_cmd_t *cmd, uchar *_str)
       ret=parse_command(&cmd,&str);
       if(ret==MATCH && *str==0) /* found unique match or empty line */
         {
-          tinysh_cmd_t *cm;
-          int len=0;
+          //tinysh_cmd_t *cm;
+         // int len=0;
               
           if(cmd->child) /* display sub-commands help */
             {
@@ -362,7 +362,7 @@ static int complete_command_line(tinysh_cmd_t *cmd, uchar *_str)
       int i;
       uchar *__str=str;
 
-      tinysh_cmd_t *_cmd=cmd;
+     // tinysh_cmd_t *_cmd=cmd;
       ret=parse_command(&cmd,&str);
       for(_str_len=0;__str[_str_len]&&__str[_str_len]!=' ';_str_len++);
       if(ret==MATCH && *str)
@@ -476,7 +476,7 @@ static void _tinysh_char_in(uchar c)
   if(c=='\n' || c=='\r') /* validate command */
     {
       tinysh_cmd_t *cmd;
-      int context=0;
+      //int context=0;
       
 /* first, echo the newline */
       if(echo)

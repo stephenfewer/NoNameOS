@@ -1,0 +1,81 @@
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+                0x00000000                phys = 0x0
+                0x10000000                virt = 0x10000000
+
+.text           0x10000000     0x3100 load address 0x00000000
+ *(.text)
+ .text          0x10000000      0x5c0 main.o
+                0x1000001f                _tinysh_char_out
+                0x10000486                _shell_init
+                0x10000406                _shell_args
+                0x1000052d                _realmain
+                0x10000000                _main
+                0x100003d2                _shell_exit
+ .text          0x100005c0      0xea0 tinysh.o
+                0x100013c4                _tinysh_atoxi
+                0x10000770                _strstart
+                0x1000136e                _tinysh_set_prompt
+                0x10001328                _tinysh_add_command
+                0x1000130f                _tinysh_char_in
+                0x100013ba                _tinysh_get_arg
+ .text          0x10001460      0x200 ../../lib/amos.o
+                0x10001633                _morecore
+                0x100015e7                _mount
+                0x10001460                _open
+                0x100015cd                _list
+                0x1000159e                _copy
+                0x10001555                _delete
+                0x100014fb                _seek
+                0x1000156f                _rename
+                0x1000153b                _create
+                0x10001619                _unmount
+                0x1000151b                _control
+                0x100014c9                _write
+                0x10001497                _read
+                0x1000164d                _exit
+                0x1000147d                _close
+ .text          0x10001660      0x410 ../../lib/printf.o
+                0x100019ea                _get
+                0x10001660                _printf_putuint
+                0x10001784                _printf_puthex
+                0x1000172a                _printf_putint
+                0x1000182c                _print
+                0x100019d1                _printf
+ .text          0x10001a70      0x200 ../../lib/string.o
+                0x10001ab2                _strcmp
+                0x10001b3c                _strncpy
+                0x10001bfe                _memcpy
+                0x10001bd7                _memset
+                0x10001b24                _strcpy
+                0x10001c24                _memcmp
+                0x10001ad2                _strncmp
+                0x10001a89                _strrchr
+                0x10001a70                _strlen
+                0x10001b7d                _strstr
+                0x10001c70                . = ALIGN (0x10)
+ *(.data)
+ .data          0x10001c70      0x160 main.o
+ .data          0x10001dd0       0xa0 tinysh.o
+                0x10001e70                . = ALIGN (0x10)
+                0x10001e70                bss = .
+ *(.bss)
+ .bss           0x10001e70       0x10 main.o
+ .bss           0x10001e80     0x1280 tinysh.o
+                0x10003100                . = ALIGN (0x10)
+ *(COMMON)
+                0x10003100                . = ALIGN (0x10)
+LOAD main.o
+LOAD tinysh.o
+LOAD ../../lib/amos.o
+LOAD ../../lib/printf.o
+LOAD ../../lib/string.o
+OUTPUT(../../../bin/apps/shell.bin binary)
+
+.comment

@@ -1,16 +1,42 @@
-#include <stdio.h>
-#include <string.h>
-
+#include <lib/amos.h>
+#include <lib/printf.h>
+#include <lib/string.h>
 #include <apps/shell/tinysh.h>
 
-static volatile int shell_canquit = 0;
+static volatile int shell_canquit = FALSE;
 
-static volatile char * shell_pworkingdir;
-char shell_workingdir[PROMPT_SIZE];
+//static volatile char * shell_pworkingdir;
+//char shell_workingdir[PROMPT_SIZE];
+
+void tinysh_char_out( unsigned char c );
+static void display_args(int argc, char **argv);
+static void shell_quit( int argc, char **argv );
+static void shell_create( int argc, char **argv );
+static void shell_delete( int argc, char **argv );
+static void shell_rename( int argc, char **argv );
+static void shell_copy( int argc, char **argv );
+static void shell_list( int argc, char **argv );
+static void shell_cd( int argc, char **argv );
+static void shell_mount( int argc, char **argv );
+static void shell_unmount( int argc, char **argv );
+static void shell_spawn( int argc, char **argv );
+static void shell_kill( int argc, char **argv );
+void shell_exit( void );
+void shell_args( int argc, char **argv );
+void shell_init( int argc, char **argv );
+int realmain(  int argc, char **argv );
+
+void main( void )
+{
+	realmain( 0, NULL );
+	
+	exit();
+}
 
 void tinysh_char_out( unsigned char c )
 {
-	putchar( (int)c );
+//	printf( "%c", c );
+	write( CONSOLE, &c, 1 );
 }
 
 static void display_args(int argc, char **argv)
@@ -25,7 +51,7 @@ static void display_args(int argc, char **argv)
 static void shell_quit( int argc, char **argv )
 {
 	printf( "quit: quitting...\n" );
-	shell_canquit = 1;
+	shell_canquit = TRUE;
 }
 
 static void shell_create( int argc, char **argv )
@@ -70,8 +96,8 @@ display_args(argc,argv);
 
 static void shell_spawn( int argc, char **argv )
 {
-	int wait = 1;
-	int pid = 0;
+	int wait = TRUE;
+	//int pid = 0;
 	
 	if( argc < 1 )
 	{
@@ -80,15 +106,11 @@ static void shell_spawn( int argc, char **argv )
 	}
 	
 	if( strcmp( argv[argc-1], "&" ) == 0 )
-		wait = 0;
-		
-	printf("spawn: amos_spawn( %s )\n", argv[1] );
+		wait = FALSE;
+
+	//pid = spawn( argv[1] );
 	
-	/*
-	pid = amos_spawn( argv[1] );
-	if( wait )
-		amos_wait( pid );
-	*/
+	//printf("spawn: spawn( %s ) = %d\n", argv[1], pid );
 }
 
 static void shell_kill( int argc, char **argv )
@@ -101,7 +123,8 @@ static void shell_kill( int argc, char **argv )
 		return;
 	}
 	
-	pid = atoi( argv[1] );
+	//unlucky for some
+	pid = 13;//atoi( argv[1] );
 	if( pid == 0 )
 	{
 		printf("kill: you must enter a valid process id.\n");
@@ -129,7 +152,7 @@ static tinysh_cmd_t killcmd    = { 0, "kill",    "kill a process",   "[process i
 void shell_exit( void )
 {
 	// perform any tidy up here
-	exit(0);
+	exit();
 }
 
 void shell_args( int argc, char **argv )
@@ -152,8 +175,8 @@ void shell_args( int argc, char **argv )
 
 void shell_init( int argc, char **argv )
 {
-	char * p;
-
+	//char * p;
+	
 	// add the default commands
 	tinysh_add_command( &quitcmd );    
 	tinysh_add_command( &createcmd );
@@ -166,38 +189,49 @@ void shell_init( int argc, char **argv )
 	tinysh_add_command( &unmountcmd );
 	tinysh_add_command( &spawncmd );
 	tinysh_add_command( &killcmd );
-	
-	// set the default working directory
-	// chomp off the end file name
-	p = strrchr( argv[0], '/' );
-	if( p != NULL )
-		*p = '\0';
-	strcpy( shell_workingdir, argv[0] );
-	shell_pworkingdir = &shell_workingdir;
-
-	// process the arguments
-	if( argc > 1 )
-		shell_args( argc, argv );
+	/*
+	if( argc > 0 )
+	{
+		// set the default working directory
+		// chomp off the end file name
+		//p = strrchr( argv[0], '/' );
+		//if( p != NULL )
+		//	*p = '\0';
+		//strcpy( shell_workingdir, argv[0] );
+		//shell_pworkingdir = &shell_workingdir;
+		
+		// process the arguments
+		if( argc > 1 )
+			shell_args( argc, argv );
+	}*/
 }
  
-int main( int argc, char **argv )
+int realmain( int argc, char **argv )
 {
-	char buffer[BUFFER_SIZE];
+	char buffer[32];
 	char * pbuff;
-	char prompt[PROMPT_SIZE];
-	
+	//char prompt[PROMPT_SIZE];
+	int ret=0;
 	shell_init( argc, argv );
 	
-	sprintf( prompt, "AMOS:%s>", shell_pworkingdir );
-	tinysh_set_prompt( prompt );
-		
+	//sprintf( prompt, "AMOS:%s>", shell_pworkingdir );
+	tinysh_set_prompt( "AMOS:>" );
+	
+	memset( &buffer, 0x00, 32 );
+	
 	while( !shell_canquit )
 	{
-		pbuff = &buffer;
-		fgets( pbuff, BUFFER_SIZE, stdin );
-		while( *pbuff )
-			tinysh_char_in( *pbuff++ );
+		//pbuff = (char *)&buffer;
+		ret = get( (char *)&buffer, 32 );
+		if( ret < 0 )
+		{
+			printf( "ret = %d\n", ret );
+			break;	
+		}
+		printf( "GOT: %s\n", buffer );
+		//while( *pbuff )
+		//	tinysh_char_in( *pbuff++ );
 	}
-	
-	shell_exit();
+
+	return 0;
 }

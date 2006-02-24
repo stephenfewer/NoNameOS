@@ -16,7 +16,7 @@
 #include <kernel/io/io.h>
 #include <kernel/mm/mm.h>
 #include <kernel/kernel.h>
-#include <kernel/lib/string.h>
+#include <lib/string.h>
 
 struct FAT_MOUNTPOINT * mount0;
 

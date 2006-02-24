@@ -21,8 +21,8 @@
 #include <kernel/fs/vfs.h>
 #include <kernel/fs/fat.h>
 #include <kernel/syscall.h>
-#include <kernel/lib/printf.h>
-#include <kernel/lib/string.h>
+#include <kernel/kprintf.h>
+#include <lib/string.h>
 
 struct PROCESS_INFO kernel_process;
 
@@ -44,7 +44,7 @@ void kernel_printf( char * text, ... )
 	// find the first argument
 	va_start( args, text );
 	// pass print the kernels std output handle the format text and the first argument
-	printf( kernel_process.handles[PROCESS_CONSOLEHANDLE], text, args );
+	kprintf( kernel_process.handles[PROCESS_CONSOLEHANDLE], text, args );
 }
 
 // ..."this is the end. beautiful friend, the end."
@@ -100,8 +100,8 @@ int kernel_init( struct MULTIBOOT_INFO * m )
 void kernel_main( struct MULTIBOOT_INFO * m )
 {
 	struct VFS_HANDLE * console;
-	
-	// initilize the kernel, when we return we will executing as the kernel process
+
+	// initilize the kernel, when we return we will be executing as the kernel process
 	kernel_init( m );
 	
 	kernel_printf( "Welcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
@@ -111,7 +111,7 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
 	kernel_printf( "done.\n" );
 
-	console = vfs_open( "/device/console3", VFS_MODE_READWRITE );
+	console = vfs_open( "/device/console2", VFS_MODE_READWRITE );
 	if( console != NULL )
 		process_spawn( "/fat/BOOT/TEST.BIN", console );
 	else

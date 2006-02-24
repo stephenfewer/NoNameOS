@@ -17,7 +17,7 @@
 #include <kernel/mm/paging.h>
 #include <kernel/pm/process.h>
 #include <kernel/kernel.h>
-#include <kernel/lib/string.h>
+#include <lib/string.h>
 
 extern struct PROCESS_INFO kernel_process;
 
@@ -72,6 +72,9 @@ void mm_free( void * address )
 {
 	struct MM_HEAPITEM * tmp_item;
 	struct MM_HEAPITEM * item = (struct MM_HEAPITEM *)( address - sizeof(struct MM_HEAPITEM) );
+	// sanity check
+	if( address == NULL )
+		return;
 	// find it
 	for( tmp_item=kernel_process.heap.heap_bottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
 	{

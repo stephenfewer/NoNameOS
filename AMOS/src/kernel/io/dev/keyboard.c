@@ -19,7 +19,7 @@
 #include <kernel/io/io.h>
 #include <kernel/fs/vfs.h>
 
-struct VFS_HANDLE * keyboard_output;
+struct VFS_HANDLE * keyboard_output = NULL;
 
 unsigned char keymap[128] =
 {
@@ -83,29 +83,13 @@ DWORD keyboard_handler( struct PROCESS_INFO * process )
 	}
 	else
 	{
+		// if an F1 to F4 key has been pressed
 		if( scancode >= 0x3B && scancode <= 0x3E )
 		{
-			struct VFS_HANDLE * console;
-			char * name = NULL;
-			
-			if( scancode == 0x3B )
-				name =  "/device/console1";
-			else if( scancode == 0x3C )
-				name =  "/device/console2";
-			else if( scancode == 0x3D )
-				name =  "/device/console3";
-			else if( scancode == 0x3E )
-				name =  "/device/console4";
-				
-			console = vfs_open( name, VFS_MODE_WRITE );
-			if( console != NULL )
-			{
-				vfs_control( console, CONSOLE_SETACTIVE, 0L );
-				vfs_close( console );
-			}
+			// set the appropriate console active
+			vfs_control( keyboard_output, CONSOLE_SETACTIVE, scancode - 0x3A );
 		} else {
-			if( keyboard_output != NULL )
-				vfs_control( keyboard_output, CONSOLE_SENDCHAR, keymap[scancode] );
+			vfs_control( keyboard_output, CONSOLE_SENDCHAR, keymap[scancode] );
 		}
 
 	}
@@ -131,7 +115,7 @@ int keyboard_init( void )
 	// add the keyboard device
 	io_add( "keyboard1", calltable, IO_CHAR );
 	// setup the keyboard handler
-	interrupt_enable( IRQ1, keyboard_handler, SUPERVISOR );
+	interrupt_enable( IRQ1, keyboard_handler, USER );
 	// return success
 	return SUCCESS;
 }

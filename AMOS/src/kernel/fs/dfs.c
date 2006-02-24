@@ -15,7 +15,7 @@
 #include <kernel/fs/vfs.h>
 #include <kernel/mm/mm.h>
 #include <kernel/io/io.h>
-#include <kernel/lib/string.h>
+#include <lib/string.h>
 
 struct DFS_ENTRY * dfs_deviceTop = NULL;
 struct DFS_ENTRY * dfs_deviceBottom = NULL;

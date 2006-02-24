@@ -9,7 +9,7 @@ Linker script and memory map
                 0x00000000                phys = 0x0
                 0x10000000                virt = 0x10000000
 
-.text           0x10000000      0x250 load address 0x00000000
+.text           0x10000000      0x860 load address 0x00000000
  *(.text)
  .text          0x10000000       0x50 test.o
                 0x1000002d                _realmain
@@ -30,20 +30,40 @@ Linker script and memory map
                 0x10000087                _read
                 0x1000023d                _exit
                 0x1000006d                _close
-                0x10000250                . = ALIGN (0x10)
+ .text          0x10000250      0x410 ../lib/printf.o
+                0x100005da                _get
+                0x10000250                _printf_putuint
+                0x10000374                _printf_puthex
+                0x1000031a                _printf_putint
+                0x1000041c                _print
+                0x100005c1                _printf
+ .text          0x10000660      0x200 ../lib/string.o
+                0x100006a2                _strcmp
+                0x1000072c                _strncpy
+                0x100007ee                _memcpy
+                0x100007c7                _memset
+                0x10000714                _strcpy
+                0x10000814                _memcmp
+                0x100006c2                _strncmp
+                0x10000679                _strrchr
+                0x10000660                _strlen
+                0x1000076d                _strstr
+                0x10000860                . = ALIGN (0x10)
 
-.data           0x10000250        0x0 load address 0x10000250
+.data           0x10000860        0x0 load address 0x10000860
  *(.data)
-                0x10000250                . = ALIGN (0x10)
+                0x10000860                . = ALIGN (0x10)
 
-.bss            0x10000250        0x0 load address 0x10000250
-                0x10000250                bss = .
+.bss            0x10000860        0x0 load address 0x10000860
+                0x10000860                bss = .
  *(.bss)
-                0x10000250                . = ALIGN (0x10)
+                0x10000860                . = ALIGN (0x10)
  *(COMMON)
-                0x10000250                . = ALIGN (0x10)
+                0x10000860                . = ALIGN (0x10)
 LOAD test.o
 LOAD ../lib/amos.o
+LOAD ../lib/printf.o
+LOAD ../lib/string.o
 OUTPUT(../../bin/apps/test.bin binary)
 
 .comment

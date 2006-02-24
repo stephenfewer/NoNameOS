@@ -13,7 +13,7 @@
 
 // these functions are from the linux-2.0.40 kernel libc (GNU GPL).
  
-#include <kernel/lib/string.h>
+#include <lib/string.h>
 
 int strlen( char * srs )
 {

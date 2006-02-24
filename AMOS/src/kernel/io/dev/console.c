@@ -17,27 +17,64 @@
 #include <kernel/mm/mm.h>
 #include <kernel/io/dev/console.h>
 #include <kernel/io/io.h>
-#include <kernel/lib/string.h>
 #include <kernel/pm/scheduler.h>
+#include <kernel/pm/process.h>
+#include <lib/string.h>
 
 // our currently active console will point to one of the four virtual consoles below
-struct CONSOLE_DATA ** console0 = NULL;
+struct CONSOLE ** console0 = NULL;
 // our four virtual consoles
-struct CONSOLE_DATA * console1;
-struct CONSOLE_DATA * console2;
-struct CONSOLE_DATA * console3;
-struct CONSOLE_DATA * console4;
+struct CONSOLE * console1;
+struct CONSOLE * console2;
+struct CONSOLE * console3;
+struct CONSOLE * console4;
 
-void console_cls( struct CONSOLE_DATA * );
+struct CONSOLE_BUFFER * console_bufferTop = NULL;
+struct CONSOLE_BUFFER * console_bufferBottom = NULL;
 
-void console_setCursor( struct CONSOLE_DATA * console, int x, int y )
+struct CONSOLE_BUFFER * console_addBuffer( struct CONSOLE_BUFFER * buffer )
+{
+	if( console_bufferBottom == NULL )
+		console_bufferBottom = buffer;
+	else
+		console_bufferTop->next = buffer;
+	console_bufferTop = buffer;
+	console_bufferTop->next = NULL;
+	return buffer;
+}
+
+int console_removeBuffer( struct CONSOLE_BUFFER * buffer )
+{
+	struct CONSOLE_BUFFER * b;
+
+	if( buffer == console_bufferBottom )
+	{
+		console_bufferBottom = buffer->next;
+	}
+	else
+	{
+		for( b=console_bufferBottom ; b!=NULL ; b=b->next )
+		{
+			if( b->next == buffer )
+			{
+				b->next = buffer->next;
+				return SUCCESS;
+			}
+		}
+	}
+	return FAIL;
+}
+
+void console_cls( struct CONSOLE * );
+
+void console_setCursor( struct CONSOLE * console, int x, int y )
 {
     WORD index;
     
-	console->x = x;
-    console->y = y;
+	console->data->x = x;
+    console->data->y = y;
 	
-	if( console->active )
+	if( console->data->active == TRUE )
 	{
 		index = (y * CONSOLE_COLUMNS) + x;
 		outportb( 0x3D4, 14 );
@@ -47,30 +84,30 @@ void console_setCursor( struct CONSOLE_DATA * console, int x, int y )
 	}
 }
 
-void console_putChar( struct CONSOLE_DATA * console, int x, int y, BYTE c )
+void console_putChar( struct CONSOLE * console, int x, int y, BYTE c )
 {
-    console->mem[ (x + (y*CONSOLE_COLUMNS)) * 2 ] = c;
-    console->mem[ ((x + (y*CONSOLE_COLUMNS)) * 2) + 1 ] = console->attributes;
+    console->data->mem[ (x + (y*CONSOLE_COLUMNS)) * 2 ] = c;
+    console->data->mem[ ((x + (y*CONSOLE_COLUMNS)) * 2) + 1 ] = console->data->attributes;
     
-    if( console->active )
+    if( console->data->active == TRUE )
     {
     	BYTE * mem = (BYTE *)VIDEOMEM_BASE;
     	mem[ (x + (y*CONSOLE_COLUMNS)) * 2 ] = c;
-    	mem[ ((x + (y*CONSOLE_COLUMNS)) * 2) + 1 ] = console->attributes;
+    	mem[ ((x + (y*CONSOLE_COLUMNS)) * 2) + 1 ] = console->data->attributes;
     }
 }
 
-void console_beep( struct CONSOLE_DATA * console )
+void console_beep( struct CONSOLE * console )
 {
 
 }
 
-BYTE console_getChar( struct CONSOLE_DATA * console, int x, int y )
+BYTE console_getChar( struct CONSOLE * console, int x, int y )
 {
-    return console->mem[ (x + (y*CONSOLE_COLUMNS)) * 2 ];
+    return console->data->mem[ (x + (y*CONSOLE_COLUMNS)) * 2 ];
 }
 
-void console_scrollup( struct CONSOLE_DATA * console )
+void console_scrollup( struct CONSOLE * console )
 {
 	int x, y;
 
@@ -85,17 +122,17 @@ void console_scrollup( struct CONSOLE_DATA * console )
 
 }
 
-void console_putch( struct CONSOLE_DATA * console, BYTE c )
+void console_putch( struct CONSOLE * console, BYTE c )
 {
 	switch( c )
 	{
 		case '\0':
 			break;
 		case '\n':
-			console_setCursor( console, 0, ++console->y );
+			console_setCursor( console, 0, ++console->data->y );
 			break;
 		case '\r':
-			console_setCursor( console, 0, console->y );
+			console_setCursor( console, 0, console->data->y );
 			break;
 		case '\t':
 			console_putch( console, ' ' );
@@ -110,27 +147,27 @@ void console_putch( struct CONSOLE_DATA * console, BYTE c )
 			console_cls( console );
 			break;
 		case '\b':
-			console_setCursor( console, --console->x, console->y );
+			console_setCursor( console, --console->data->x, console->data->y );
 			//console_putch( console, ' ' );
 			break;
 		default:
-			console_putChar( console, console->x, console->y, c );
-			console_setCursor( console, ++console->x, console->y );
+			console_putChar( console, console->data->x, console->data->y, c );
+			console_setCursor( console, ++console->data->x, console->data->y );
 			break;
 	}
 
 
-	if( console->x > CONSOLE_COLUMNS-1 )
-		console_setCursor( console, 0, ++console->y );
+	if( console->data->x > CONSOLE_COLUMNS-1 )
+		console_setCursor( console, 0, ++console->data->y );
 
-	if( console->y > CONSOLE_ROWS-1 )
+	if( console->data->y > CONSOLE_ROWS-1 )
 	{
 		console_scrollup( console );
-		console_setCursor( console, console->x, CONSOLE_ROWS-1 );
+		console_setCursor( console, console->data->x, CONSOLE_ROWS-1 );
 	}
 }
 
-void console_cls( struct CONSOLE_DATA * console )
+void console_cls( struct CONSOLE * console )
 {
 	int x, y;
 	char * version = AMOS_VERSION_STRING;
@@ -143,19 +180,19 @@ void console_cls( struct CONSOLE_DATA * console )
     // display the banner on the top of the console
     console_setCursor( console, 0, 0 );
     
-    console->attributes = RED | BLACK_BG;
+    console->data->attributes = RED | BLACK_BG;
 	for( x=0 ; x<strlen( version ) ; x++ )
 		console_putch( console, version[x] );
-	console->attributes = WHITE | BLACK_BG;
+	console->data->attributes = WHITE | BLACK_BG;
 	console_setCursor( console, 0, 1 );
 	
     for( x=0 ; x<CONSOLE_COLUMNS-6 ; x++ )
 	    console_putch( console, '-' );
 	    
 	console_putch( console, '[' );
-	console->attributes = RED | BLACK_BG;
-	console_putch( console, (BYTE)(console->number+'0') );
-	console->attributes = WHITE | BLACK_BG;
+	console->data->attributes = RED | BLACK_BG;
+	console_putch( console, (BYTE)(console->data->number+'0') );
+	console->data->attributes = WHITE | BLACK_BG;
 	console_putch( console, ']' );
 	
     for( x=0 ; x<3 ; x++ )
@@ -164,50 +201,62 @@ void console_cls( struct CONSOLE_DATA * console )
 	console_setCursor( console, 0, 2 );
 }
 
-int console_activate(  struct CONSOLE_DATA * console )
+int console_activate( DWORD number )
 {
+	struct CONSOLE * console;
+	
+	if( number == CONSOLE_1 )
+		console = console1;
+	else if( number == CONSOLE_2 )
+		console = console2;
+	else if( number == CONSOLE_3 )
+		console = console3;
+	else if( number == CONSOLE_4 )
+		console = console4;
+	else
+		return FAIL;
+	 
 	if( console0 != NULL )
 	{
 		// dont do anything if we are trying to set an allready active
 		// console active
-		if( (*console0)->number == console->number )
+		if( (*console0)->data->number == console->data->number )
 			return FAIL;
 		// set the current virtual console not active
-		(*console0)->active = FALSE;
+		(*console0)->data->active = FALSE;
 	}
 	// set the one we are changeing to as active
-	console->active = TRUE;
+	console->data->active = TRUE;
 	// copy in the new contents
-	memcpy( (BYTE *)VIDEOMEM_BASE, console->mem, CONSOLE_COLUMNS*CONSOLE_ROWS*2 );
+	memcpy( (BYTE *)VIDEOMEM_BASE, console->data->mem, CONSOLE_COLUMNS*CONSOLE_ROWS*2 );
 	// update the cursor to the correct new position
-	console_setCursor( console, console->x, console->y );
+	console_setCursor( console, console->data->x, console->data->y );
 	// set the currenty active virtual console to the one we just changed to
 	*console0 = console;
 	// return success
 	return SUCCESS;
 }
 
-struct CONSOLE_DATA * console_create( char * name, int number )
+struct CONSOLE * console_create( char * name, int number )
 {
-	struct CONSOLE_DATA * console;
+	struct CONSOLE * console;
 	// alloc memeory for the structure
-	console = (struct CONSOLE_DATA *)mm_malloc( sizeof(struct CONSOLE_DATA) );
+	console = (struct CONSOLE *)mm_malloc( sizeof(struct CONSOLE) );
+	console->data = (struct CONSOLE_DATA *)mm_malloc( sizeof(struct CONSOLE_DATA) );
 	// set the virtual console name
-	console->name = name;
+	console->data->name = name;
 	// set the virtual console number
-	console->number = number;
+	console->data->number = number;
 	// alloc some memory for the virtual console contents
-	console->mem = (BYTE *)mm_malloc( (CONSOLE_COLUMNS*CONSOLE_ROWS)*2 );
+	console->data->mem = (BYTE *)mm_malloc( (CONSOLE_COLUMNS*CONSOLE_ROWS)*2 );
 	// default to not being an active virtual console
-	console->active = FALSE;
+	console->data->active = FALSE;
 	// default to not echoing input to screen
-	console->echo = FALSE;
-	// set the break flag to false;
-	console->in_break = FALSE;
-	// set no break byte
-	console->in_breakByte = 0x00;
+	console->data->echo = FALSE;
 	// set the default attributes
-	console->attributes = WHITE | BLACK_BG;
+	console->data->attributes = WHITE | BLACK_BG;
+	// we dont create a buffer structure, we do this during calls to console_open()
+	console->buffer = NULL;
 	// clear the new virtual console
 	console_cls( console );
 	// return it to caller
@@ -216,60 +265,109 @@ struct CONSOLE_DATA * console_create( char * name, int number )
 
 struct IO_HANDLE * console_open( struct IO_HANDLE * handle, char * filename )
 {
-	handle->data_arg = CONSOLE_DATA_PTR;
+	struct CONSOLE * console;
+	
+	handle->data_arg = CONSOLE_PTR;
 	// associate the correct virtual console with the handle
-	if( strcmp( filename, "console0" ) == 0 ) {
+	if( strcmp( filename, "console0" ) == 0 )
+	{
 		handle->data_ptr = console0;
-		handle->data_arg = CONSOLE_DATA_PTRPTR;
-	} else if( strcmp( filename, console1->name ) == 0 )
-		handle->data_ptr = console1;
-	else if( strcmp( filename, console2->name ) == 0 )
-		handle->data_ptr = console2;
-	else if( strcmp( filename, console3->name ) == 0 )
-		handle->data_ptr = console3;
-	else if( strcmp( filename, console4->name ) == 0 )
-		handle->data_ptr = console4;
+		handle->data_arg = CONSOLE_PTRPTR;
+	}
 	else
-		return NULL;
+	{
+		console = (struct CONSOLE *)mm_malloc( sizeof(struct CONSOLE) );
+		
+		if( strcmp( filename, console1->data->name ) == 0 )
+			console->data = console1->data;
+		else if( strcmp( filename, console2->data->name ) == 0 )
+			console->data = console2->data;
+		else if( strcmp( filename, console3->data->name ) == 0 )
+			console->data = console3->data;
+		else if( strcmp( filename, console4->data->name ) == 0 )
+			console->data = console4->data;
+		else {
+			mm_free( console );
+			return NULL;
+		}
+		
+		console->buffer = (struct CONSOLE_BUFFER *)mm_malloc( sizeof(struct CONSOLE_BUFFER) );
+		memset( console->buffer, 0x00, sizeof(struct CONSOLE_BUFFER) );
+		
+		console->buffer->number = console->data->number;
+		
+		console_addBuffer( console->buffer );
+		
+		handle->data_ptr = console;
+	}
 	// return the virtual console handle
 	return handle;
 }
 
 int console_close( struct IO_HANDLE * handle )
 {
+	struct CONSOLE * console;
+	// get the virtual console we are operating on
+	if( handle->data_arg == CONSOLE_PTRPTR )
+		console = *(struct CONSOLE **)handle->data_ptr;
+	else if( handle->data_arg == CONSOLE_PTR )
+		console = (struct CONSOLE *)handle->data_ptr;
+	else
+		return FAIL;
+
+	handle->data_ptr = NULL;
+	handle->data_arg = 0;
+	
+	if( console->buffer != NULL )
+	{
+		console_removeBuffer( console->buffer );	
+		mm_free( console->buffer );
+	}
+	
+	mm_free( console );
+	
 	return SUCCESS;
 }
 
-int console_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
+int console_read( struct IO_HANDLE * handle, BYTE * user_buffer, DWORD size  )
 {
-	struct CONSOLE_DATA * console;
+	struct CONSOLE * console;
+	struct CONSOLE_BUFFER * buffer;
 	// get the virtual console we are operating on
-	if( handle->data_arg == CONSOLE_DATA_PTRPTR )
-		console = *(struct CONSOLE_DATA **)handle->data_ptr;
-	else if( handle->data_arg == CONSOLE_DATA_PTR )
-		console = (struct CONSOLE_DATA *)handle->data_ptr;
+	if( handle->data_arg == CONSOLE_PTRPTR )
+		console = *(struct CONSOLE **)handle->data_ptr;
+	else if( handle->data_arg == CONSOLE_PTR )
+		console = (struct CONSOLE *)handle->data_ptr;
 	else
 		return FAIL;
-	
-	if(	console->in_buff == NULL )
+
+	buffer = console->buffer;
+	if( buffer == NULL )
+		return FAIL;
+kernel_printf("[console read] handle=%x in_buff=%x buffer=%x size=%d\n", handle, console->buffer->in_buff, user_buffer, size );
+
+	if(	buffer->in_buff == NULL )
 	{
-		console->in_buffIndex = 0;
-		console->in_buffSize = size;
-		console->in_buff = buffer;
+		buffer->in_buffIndex = 0;
+		buffer->in_buffSize = size;
+		buffer->in_buff = user_buffer;
 		
-		while( console->in_buffIndex < console->in_buffSize  )
+		while( buffer->in_buffIndex < buffer->in_buffSize  )
 		{
-			if( console->in_break == TRUE )
+			if( buffer->in_break == TRUE )
 				break;
+			process_yield();
 		}
 		
-		console->in_buff = NULL;
-		console->in_break = FALSE;
-		if( console->in_breakByte != 0x00 )
-			console->in_breakByte = 0x00;
+		buffer->in_buff = NULL;
+		buffer->in_break = FALSE;
+		if( buffer->in_breakByte != 0x00 )
+			buffer->in_breakByte = 0x00;
 		
-		return console->in_buffIndex;
-	}
+		return buffer->in_buffIndex;
+	}/* else {
+		//kernel_printf("[console read] console->in_buff %x buffer = %x\n", console->in_buff, buffer );
+	}*/
 	
 	return FAIL;
 }
@@ -277,12 +375,12 @@ int console_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 int console_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	int i=0;
-	struct CONSOLE_DATA * console;
+	struct CONSOLE * console;
 	// get the virtual console we are operating on
-	if( handle->data_arg == CONSOLE_DATA_PTRPTR )
-		console = *(struct CONSOLE_DATA **)handle->data_ptr;
-	else if( handle->data_arg == CONSOLE_DATA_PTR )
-		console = (struct CONSOLE_DATA *)handle->data_ptr;
+	if( handle->data_arg == CONSOLE_PTRPTR )
+		console = *(struct CONSOLE **)handle->data_ptr;
+	else if( handle->data_arg == CONSOLE_PTR )
+		console = (struct CONSOLE *)handle->data_ptr;
 	else
 		return FAIL;
 	// print all the charachters in the buffer to the virtual console
@@ -292,14 +390,37 @@ int console_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 	return i;
 }
 
+int console_putchBuffer( int number, BYTE byte )
+{
+	struct CONSOLE_BUFFER * buffer;
+// we should probably lock this with a mutex?!?
+	for( buffer=console_bufferBottom ; buffer!=NULL ; buffer=buffer->next )
+	{
+		if( buffer->number == number )
+		{
+			if( buffer->in_breakByte != 0x00 )
+			{
+				if( buffer->in_breakByte == byte )
+				{
+					buffer->in_break = TRUE;
+					continue;
+				}
+			}
+			if( buffer->in_buffIndex < buffer->in_buffSize )
+				buffer->in_buff[ buffer->in_buffIndex++ ] = byte;				
+		}
+	}
+	return SUCCESS;	
+}
+
 int console_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 {
-	struct CONSOLE_DATA * console;
+	struct CONSOLE * console;
 	// get the virtual console we are operating on
-	if( handle->data_arg == CONSOLE_DATA_PTRPTR )
-		console = *(struct CONSOLE_DATA **)handle->data_ptr;
-	else if( handle->data_arg == CONSOLE_DATA_PTR )
-		console = (struct CONSOLE_DATA *)handle->data_ptr;
+	if( handle->data_arg == CONSOLE_PTRPTR )
+		console = *(struct CONSOLE **)handle->data_ptr;
+	else if( handle->data_arg == CONSOLE_PTR )
+		console = (struct CONSOLE *)handle->data_ptr;
 	else
 		return FAIL;
 	// switch the request
@@ -307,33 +428,44 @@ int console_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 	{
 		case CONSOLE_SETECHO:
 			if( (BYTE)arg == TRUE )
-				console->echo = TRUE;
+				console->data->echo = TRUE;
 			else
-				console->echo = FALSE;
+				console->data->echo = FALSE;
 			return SUCCESS;
-			break;
 		// we want to set this virtual console as active
 		case CONSOLE_SETACTIVE:
-			return console_activate( console );
+			return console_activate( arg );
 		case CONSOLE_SENDCHAR:
-			if( console->echo )
+			if( console->data->echo )
 				console_putch( console, arg );
-			if( console->in_buff != NULL )
+
+			console_putchBuffer( console->data->number, (BYTE)arg );
+/*
+kernel_printf("SENDCHAR: %c console->buffer=%x\n", (BYTE)arg, console->buffer );
+			if( console->buffer == NULL )
+				return FAIL;
+				
+			if( console->buffer->in_buff != NULL )
 			{
-				if( console->in_breakByte != 0x00 )
+kernel_printf("SENDCHAR: console->buffer->in_buff=%x\n", console->buffer->in_buff );
+				if( console->buffer->in_breakByte != 0x00 )
 				{
-					if( console->in_breakByte == (BYTE)arg )
+					if( console->buffer->in_breakByte == (BYTE)arg )
 					{
-						console->in_break = TRUE;
+						console->buffer->in_break = TRUE;
 						break;
 					}
 				}
-				if( console->in_buffIndex < console->in_buffSize )
-					console->in_buff[ console->in_buffIndex++ ] = (BYTE)arg;	
+				if( console->buffer->in_buffIndex < console->buffer->in_buffSize )
+				{
+kernel_printf("putting: %c in_buffIndex=%d in_buffSize=%d\n",(BYTE)arg,console->buffer->in_buffIndex,console->buffer->in_buffSize);
+					console->buffer->in_buff[ console->buffer->in_buffIndex++ ] = (BYTE)arg;	
+				}
 			}
+*/
 			return SUCCESS;
 		case CONSOLE_SETBREAK:
-			console->in_breakByte = (BYTE)arg;
+			console->buffer->in_breakByte = (BYTE)arg;
 			return SUCCESS;
 	}
 	// return fail
@@ -353,19 +485,19 @@ int console_init( void )
 	calltable->control = console_control;
 
 	// create the first virtual console
-	console1 = console_create( "console1", 1 );
-	io_add( console1->name, calltable, IO_CHAR );
+	console1 = console_create( "console1", CONSOLE_1 );
+	io_add( console1->data->name, calltable, IO_CHAR );
 	// create the second
-	console2 = console_create( "console2", 2 );
-	io_add( console2->name, calltable, IO_CHAR );
+	console2 = console_create( "console2", CONSOLE_2 );
+	io_add( console2->data->name, calltable, IO_CHAR );
 	// create the third
-	console3 = console_create( "console3", 3 );
-	io_add( console3->name, calltable, IO_CHAR );
+	console3 = console_create( "console3", CONSOLE_3 );
+	io_add( console3->data->name, calltable, IO_CHAR );
 	// create the fourth
-	console4 = console_create( "console4", 4 );
-	io_add( console4->name, calltable, IO_CHAR );	
+	console4 = console_create( "console4", CONSOLE_4 );
+	io_add( console4->data->name, calltable, IO_CHAR );	
 	// set the fist one active
-	console_activate( console1 );
+	console_activate( CONSOLE_1 );
 	// add the currently active console
 	io_add( "console0", calltable, IO_CHAR );
 	

@@ -18,6 +18,7 @@ OBJDUMP=objdump-elf
 all: $(TARGET)
 	$(MCOPY) -o $(KERNEL_ELF) $(IMAGE_DIR)
 	$(MCOPY) -o .\apps\test.bin $(IMAGE_DIR)
+	$(MCOPY) -o .\apps\shell.bin $(IMAGE_DIR)
 	
 $(TARGET):
 	$(COPY) .\$(IMAGE) .\$(TARGET)

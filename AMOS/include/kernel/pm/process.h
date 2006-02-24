@@ -60,8 +60,8 @@ struct PROCESS_INFO
 {
 	struct PROCESS_STACK * kstack;
 	struct PAGE_DIRECTORY * page_dir;
-	int id;
     unsigned int privilege;
+	int id;
 	int tick_slice;
 	int state;
 	

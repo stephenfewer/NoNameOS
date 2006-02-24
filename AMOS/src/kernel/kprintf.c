@@ -11,12 +11,12 @@
  *    License: GNU General Public License (GPL)
  */
 
-#include <kernel/lib/printf.h>
+#include <kernel/kprintf.h>
 #include <kernel/fs/vfs.h>
-#include <kernel/lib/string.h>
 #include <kernel/io/dev/console.h>
+#include <lib/string.h>
 
-void printf_putuint( struct VFS_HANDLE * h, int i )
+void kprintf_putuint( struct VFS_HANDLE * h, int i )
 {
     unsigned int n, d = 1000000000;
     char str[ 255 ];
@@ -40,18 +40,18 @@ void printf_putuint( struct VFS_HANDLE * h, int i )
 	vfs_write( h, (unsigned char *)&str, strlen(str) );
 }
 
-void printf_putint( struct VFS_HANDLE * h, int i )
+void kprintf_putint( struct VFS_HANDLE * h, int i )
 {
 	if( i >= 0 )
 	{
-		printf_putuint( h, i );
+		kprintf_putuint( h, i );
 	} else {
 		vfs_write( h, (BYTE*)&"-", 1 );
-		printf_putuint( h, -i );
+		kprintf_putuint( h, -i );
 	}
 }
 
-void printf_puthex( struct VFS_HANDLE * h, DWORD i )
+void kprintf_puthex( struct VFS_HANDLE * h, DWORD i )
 {
 	const unsigned char hex[ 16 ]  =	{ '0', '1', '2', '3', '4', '5', '6', '7',
                             			  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
@@ -75,7 +75,7 @@ void printf_puthex( struct VFS_HANDLE * h, DWORD i )
     vfs_write( h, (BYTE*)&hex[n], 1 );
 }
 
-void printf( struct VFS_HANDLE * h, char * text, va_list args )
+void kprintf( struct VFS_HANDLE * h, char * text, va_list args )
 {
 	int i=0;
 	BYTE * string;
@@ -101,16 +101,16 @@ void printf( struct VFS_HANDLE * h, char * text, va_list args )
 					vfs_write( h, (BYTE*)(va_arg( args, BYTE )), 1 );
 					break;
 				case 'd':
-					printf_putint( h, va_arg( args, int ) );
+					kprintf_putint( h, va_arg( args, int ) );
 					break;
 				case 'i':
-					printf_putint( h, va_arg( args, int ) );
+					kprintf_putint( h, va_arg( args, int ) );
 					break;
 				case 'u':
-					printf_putuint( h, va_arg( args, unsigned int ) );
+					kprintf_putuint( h, va_arg( args, unsigned int ) );
 					break;
 				case 'x':
-					printf_puthex( h, va_arg( args, DWORD ) );
+					kprintf_puthex( h, va_arg( args, DWORD ) );
 					break;
 				default:
 					vfs_write( h, (BYTE*)&text[i], 1 );
@@ -125,30 +125,4 @@ void printf( struct VFS_HANDLE * h, char * text, va_list args )
 		i++;
 	}
 
-}
-
-void print( struct VFS_HANDLE * h, char * text, ... )
-{
-	va_list args;
-	// find the first argument
-	va_start( args, text );
-	// pass printf the output handle the format text and the first argument
-	printf( h, text, args );
-}
-
-int get( struct VFS_HANDLE * h, char * buffer, int size )
-{
-	// we want to echo what the user types to screen
-	vfs_control( h, CONSOLE_SETECHO, TRUE );
-	// set the break charachter to new line
-	vfs_control( h, CONSOLE_SETBREAK, '\n' );
-	// read in size byte or untill we reach a new line
-	size = vfs_read( h, (BYTE *)buffer, size );
-	// stop echoing charachters to screen
-	vfs_control( h, CONSOLE_SETECHO, FALSE );
-	// add an end of line char if we did not fail
-	if( size != FAIL )
-		buffer[size] = 0x00;
-	// return the amount of bytes we read in
-	return size;
 }

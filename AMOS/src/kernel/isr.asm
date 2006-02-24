@@ -12,10 +12,11 @@
 BITS 32
 
 KERNEL_DATA_SEL			equ	0x10
+USER					equ	0x01
 
-EXTERN _interrupt_dispatcher, _scheduler_processCurrent
+EXTERN _interrupt_dispatcher, _scheduler_processCurrent, _scheduler_tss
 
-GLOBAL _disable_int, _disable_irqA, _disable_irqB
+GLOBAL _disable_int, _disable_irqA, _disable_irqB, _contextswitch
 
 %IMACRO ISR_A 1
 GLOBAL	_isr%1
@@ -37,35 +38,43 @@ _isr%1:
 SECTION .kernel
 ALIGN	4
 isr_common:
-    pushad					; push all general purpose registers
-    push ds					; push al the segments
+    pushad								; push all general purpose registers
+    push ds								; push al the segments
     push es
     push fs
     push gs 
-    mov ax, KERNEL_DATA_SEL	; set data segments for kernel
+    mov ax, KERNEL_DATA_SEL				; set data segments for kernel
     mov ds, ax
     mov es, ax
     mov fs, ax
     mov gs, ax
-    mov eax, [_scheduler_processCurrent] ; eax = the current process
-    mov [eax], esp				; save its current ESP
-	push eax					; push current process
-    call _interrupt_dispatcher	; call out C interrupt_dispatcher() function
-   	add esp, 4					; clear the dword we pushed
-	test eax, eax				; if we return FALSE, perform no context switch
+    mov eax, [_scheduler_processCurrent]; save the current processes esp
+    mov [eax], esp						; scheduler_processCurrent->current_esp = ESP
+    push eax
+    call _interrupt_dispatcher			; call out C interrupt_dispatcher() function
+   	add esp, 4							; clear the dword we pushed
+	test eax, eax						; if we return FALSE, perform no context switch
 	jz noswitch
-    mov eax, [_scheduler_processCurrent] ; restore processes esp (possibly a new one)
-    mov esp, [eax]
-    mov ebx, [eax+4]			; switch over to the processes address space
-    mov cr3, ebx
+_contextswitch:							; perform a context switch
+    mov eax, [_scheduler_processCurrent]; restore processes esp (possibly a new one)
+    cmp dword [eax+8], USER				; if( process->privilege == USER )
+    jne notss
+    mov ebx, [_scheduler_tss]			; EBX = &scheduler_tss
+    mov word [ebx+8], KERNEL_DATA_SEL	; scheduler_tss->ss0 = KERNEL_DATA_SEL;
+    mov ecx, [eax+36]					; ECX = process->current_kesp
+    mov dword [ebx+4], ecx				; scheduler_tss->esp0 = process->current_kesp;
+notss:
+    mov esp, [eax]						; esp = process->current_esp
+    mov ebx, [eax+4]					; switch over to the processes address space
+    mov cr3, ebx						; CR3 = process->page_dir
 noswitch:
-    pop gs					; pop al the segments
+    pop gs								; pop al the segments
     pop fs
     pop es
     pop ds
-    popad					; pop all general purpose registers
-    add esp, 8				; clean up the two bytes we pushed on via the _isrXX routine
-    iret					; iret back
+    popad								; pop all general purpose registers
+    add esp, 8							; clean up the two bytes we pushed on via the _isrXX routine
+    iret								; iret back
 
 _disable_int:
 	iret
