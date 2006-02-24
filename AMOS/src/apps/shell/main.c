@@ -54,6 +54,11 @@ static void shell_quit( int argc, char **argv )
 	shell_canquit = TRUE;
 }
 
+static void shell_clear( int argc, char **argv )
+{
+	printf( "\f" );
+}
+
 static void shell_create( int argc, char **argv )
 {
 display_args(argc,argv);
@@ -96,21 +101,26 @@ display_args(argc,argv);
 
 static void shell_spawn( int argc, char **argv )
 {
-	int wait = TRUE;
-	//int pid = 0;
+	char console_path[256];
+	//int wait = TRUE;
+	int pid;
 	
 	if( argc < 1 )
 	{
 		printf("spawn: you must enter an executable filename to spawn.\n");
 		return;
-	}
+	}/* else if( argc > 2 ) {
+		
+	} else {
+		memcpy( &console_path, "/device/console1", strlen("/device/console1")+1 );
+	}*/
 	
-	if( strcmp( argv[argc-1], "&" ) == 0 )
-		wait = FALSE;
+	//if( strcmp( argv[argc-1], "&" ) == SUCCESS )
+	//	wait = FALSE;
 
-	//pid = spawn( argv[1] );
+	pid = spawn( "/fat/BOOT/TEST.BIN", "/device/console2" );
 	
-	//printf("spawn: spawn( %s ) = %d\n", argv[1], pid );
+	printf("Spawned process %d\n", pid );
 }
 
 static void shell_kill( int argc, char **argv )
@@ -137,6 +147,7 @@ static void shell_kill( int argc, char **argv )
 
 // create a directory
 // delete a directory
+static tinysh_cmd_t clearcmd    = { 0, "clear",    "clear the console",       0, shell_clear,    0, 0, 0 };
 static tinysh_cmd_t quitcmd    = { 0, "quit",    "exit the shell",       0, shell_quit,    0, 0, 0 };
 static tinysh_cmd_t createcmd  = { 0, "create",  "create a file",    "[file]", shell_create,  0, 0, 0 };
 static tinysh_cmd_t deletecmd  = { 0, "delete",  "delete a file",    "[file]", shell_delete,  0, 0, 0 };
@@ -178,6 +189,7 @@ void shell_init( int argc, char **argv )
 	//char * p;
 	
 	// add the default commands
+	tinysh_add_command( &clearcmd );
 	tinysh_add_command( &quitcmd );    
 	tinysh_add_command( &createcmd );
 	tinysh_add_command( &deletecmd );
@@ -208,29 +220,14 @@ void shell_init( int argc, char **argv )
  
 int realmain( int argc, char **argv )
 {
-	char buffer[32];
-	char * pbuff;
-	//char prompt[PROMPT_SIZE];
-	int ret=0;
 	shell_init( argc, argv );
-	
-	//sprintf( prompt, "AMOS:%s>", shell_pworkingdir );
+	char c;
+
 	tinysh_set_prompt( "AMOS:>" );
-	
-	memset( &buffer, 0x00, 32 );
 	
 	while( !shell_canquit )
 	{
-		//pbuff = (char *)&buffer;
-		ret = get( (char *)&buffer, 32 );
-		if( ret < 0 )
-		{
-			printf( "ret = %d\n", ret );
-			break;	
-		}
-		printf( "GOT: %s\n", buffer );
-		//while( *pbuff )
-		//	tinysh_char_in( *pbuff++ );
+		tinysh_char_in( getch() );
 	}
 
 	return 0;

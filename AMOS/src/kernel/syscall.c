@@ -17,6 +17,7 @@
 #include <kernel/fs/vfs.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
+#include <lib/string.h>
 
 struct SYSCALL syscall_table[SYSCALL_MAXCALLS];
 
@@ -55,9 +56,8 @@ int syscall_read( struct PROCESS_INFO * process, int handleIndex, BYTE * buffer,
 	// make sure the handle index is in range
 	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
 		return FAIL;
-kernel_printf("[read] ID=%d handle=%d buffer=%x size=%d\n", process->id, handleIndex, buffer, size );
 	// call the real function
-	return vfs_read( process->handles[ handleIndex ], buffer, size );	
+	return vfs_read( process->handles[ handleIndex ], buffer, size );
 }
 
 int syscall_write( struct PROCESS_INFO * process, int handleIndex, BYTE * buffer, DWORD size  )
@@ -97,17 +97,42 @@ extern volatile DWORD scheduler_switch;
 
 int syscall_exit( struct PROCESS_INFO * process )
 {
-	// call the real function
-	if( process_kill( process->id ) == 0 )
+	if( process_kill( process->id ) == SUCCESS )
+	{
 		scheduler_switch = TRUE;
-	return scheduler_switch;
+		return SUCCESS;
+	}
+	return FAIL;
+}
+
+int syscall_spawn( struct PROCESS_INFO * process, char * filename, char * console_path )
+{
+	return process_spawn( filename, console_path );
+}
+
+int syscall_sleep( struct PROCESS_INFO * process )
+{
+	if( process_sleep( process ) == SUCCESS )
+	{
+		scheduler_switch = TRUE;
+		return SUCCESS;
+	}
+	return FAIL;
+}
+
+int syscall_wake( struct PROCESS_INFO * process, int id )
+{
+	return process_wake( id );
 }
 
 DWORD syscall_handler( struct PROCESS_INFO * process )
 {
 	int ret = FAIL;
 	int index = (int)process->kstack->eax;
-	
+	// save the state of this process's kernel stack as it will get messed up 
+	// during any calls to process_yield()
+	struct PROCESS_STACK * kstack = mm_malloc( sizeof(struct PROCESS_STACK) );
+	memcpy( kstack, process->kstack, sizeof(struct PROCESS_STACK) );
 	// make sure our syscall index into the syscall table is in range
 	if( index < SYSCALL_MININDEX || index > SYSCALL_MAXINDEX )
 		return FALSE;
@@ -132,6 +157,10 @@ DWORD syscall_handler( struct PROCESS_INFO * process )
 				break;
 		}
 	}
+	// restore the kernel stack for the jump back to user land
+	memcpy( process->kstack, kstack, sizeof(struct PROCESS_STACK) );
+	// free the memory we malloc'd
+	mm_free( kstack );
 	// set return value
 	process->kstack->eax = (DWORD)ret;
 	// return to caller
@@ -166,20 +195,21 @@ int syscall_init( void )
 	syscall_add( SYSCALL_SEEK,     syscall_seek,       3 );
 	syscall_add( SYSCALL_CONTROL,  syscall_control,    3 );	
 	// file system operations
-	syscall_add( SYSCALL_MOUNT,    vfs_mount,          3 );
+	/*syscall_add( SYSCALL_MOUNT,    vfs_mount,          3 );
 	syscall_add( SYSCALL_UNMOUNT,  vfs_unmount,        1 );
 	syscall_add( SYSCALL_CREATE,   vfs_create,         1 );
 	syscall_add( SYSCALL_DELETE,   vfs_delete,         1 );
 	syscall_add( SYSCALL_RENAME,   vfs_rename,         2 );
 	syscall_add( SYSCALL_COPY,     vfs_copy,           2 );
 	syscall_add( SYSCALL_LIST,     vfs_list,           1 );
+	*/
 	// memory operations
-	syscall_add( SYSCALL_MORECORE, syscall_morecore,   2 );
+	syscall_add( SYSCALL_MORECORE, syscall_morecore,   1 );
 	// process operations
-	//syscall_add( SYSCALL_SPAWN,  process_spawn, 1 );
+	syscall_add( SYSCALL_SPAWN,    syscall_spawn,      2 );
 	//syscall_add( SYSCALL_KILL,   process_kill,  1 );
-	//syscall_add( SYSCALL_SLEEP,  process_sleep, 0 );
-	//syscall_add( SYSCALL_WAKE,   process_wake,  1 );
+	syscall_add( SYSCALL_SLEEP,    syscall_sleep,      0 );
+	syscall_add( SYSCALL_WAKE,     syscall_wake,       1 );
 	//syscall_add( SYSCALL_WAIT,   process_wait,  1 );
 	syscall_add( SYSCALL_EXIT,     syscall_exit,       0 );
 	

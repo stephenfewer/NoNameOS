@@ -8,6 +8,7 @@
 #define PROCESS_CONSOLEHANDLE			0
 #define PROCESS_MAXHANDLES				256
 
+#define PROCESS_TICKS_NONE				0
 #define PROCESS_TICKS_LOW				2
 #define PROCESS_TICKS_NORMAL			12
 #define PROCESS_TICKS_HIGH				24
@@ -64,28 +65,24 @@ struct PROCESS_INFO
 	int id;
 	int tick_slice;
 	int state;
-	
 	void * ustack_base;
 	void * kstack_base;
-	
-	//DWORD current_kesp;
-	
 	struct VFS_HANDLE * handles[PROCESS_MAXHANDLES];
-	
 	struct PROCESS_HEAP heap;
+	
 	struct PROCESS_INFO * next;
 };
 
 void process_printStack( struct PROCESS_STACK * );
 
-int process_spawn( char *, struct VFS_HANDLE * );
+int process_spawn( char *, char * );
 
 int process_kill( int );
 
 int process_yield( void );
 
-int process_wake( int );
+int process_sleep( struct PROCESS_INFO * );
 
-struct PROCESS_INFO * process_create( void (*thread)(), int );
+int process_wake( int );
 
 #endif 

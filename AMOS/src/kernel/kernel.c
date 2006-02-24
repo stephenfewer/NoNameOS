@@ -22,7 +22,9 @@
 #include <kernel/fs/fat.h>
 #include <kernel/syscall.h>
 #include <kernel/kprintf.h>
+#include <lib/amos.h>
 #include <lib/string.h>
+#include <lib/printf.h>
 
 struct PROCESS_INFO kernel_process;
 
@@ -84,7 +86,7 @@ int kernel_init( struct MULTIBOOT_INFO * m )
 	// setup the io subsystem
 	io_init();
 	// open the kernels console
-	kernel_process.handles[PROCESS_CONSOLEHANDLE] = vfs_open( "/device/console1", VFS_MODE_READWRITE );
+	kernel_process.handles[PROCESS_CONSOLEHANDLE] = vfs_open( "/device/console0", VFS_MODE_READWRITE );
 	if( kernel_process.handles[PROCESS_CONSOLEHANDLE] == NULL )
 		kernel_panic( NULL, "Failed to open the kernel console." );
 	// setup our system calls
@@ -99,28 +101,30 @@ int kernel_init( struct MULTIBOOT_INFO * m )
 
 void kernel_main( struct MULTIBOOT_INFO * m )
 {
-	struct VFS_HANDLE * console;
-
-	// initilize the kernel, when we return we will be executing as the kernel process
+	// initilize the kernel, when we return we will be executing as the kernel
+	// process and may use system calls
 	kernel_init( m );
 	
-	kernel_printf( "Welcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
+	// mount the primary file system
+	printf( "Mounting primary file system. " );
+	if( vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE ) == FAIL )
+	{
+		printf( "Failed.\n" );
+		kernel_panic( NULL, "Kernel failed to mount primary file system." );
+	}
+	printf( "Done.\n" );	
+	
+	printf( "\nWelcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
 
-	// mount the root file system
-	kernel_printf( "mounting device /device/floppy1 to /fat/ as a FAT file system. " );
-	vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE );
-	kernel_printf( "done.\n" );
-
-	console = vfs_open( "/device/console2", VFS_MODE_READWRITE );
-	if( console != NULL )
-		process_spawn( "/fat/BOOT/TEST.BIN", console );
-	else
-		kernel_printf( "failed to open /device/console3\n" );
-
-	kernel_printf( "About to hang the kernel process.\n" );	
-	while( TRUE );
-
-	// after scheduling is enabled we should never reach here
+	spawn( "/fat/BOOT/SHELLL.BIN", "/device/console1" );
+	//spawn( "/fat/BOOT/SHELLL.BIN", "/device/console2" );
+	//spawn( "/fat/BOOT/SHELLL.BIN", "/device/console3" );
+	//spawn( "/fat/BOOT/SHELLL.BIN", "/device/console4" );
+	
+	// we should really use sleep() but its not working yet :)
+	while( TRUE )
+		process_yield();
+	// we should never reach here
 	kernel_panic( NULL, "Kernel trying to exit." );
 }
 

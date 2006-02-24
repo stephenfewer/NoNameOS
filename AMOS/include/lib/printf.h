@@ -5,6 +5,8 @@
 
 void printf( char *, ... );
 
+char getch();
+
 int get( char *, int );
 
 #endif

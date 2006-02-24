@@ -39,132 +39,6 @@ __inline__ void process_printStack( struct PROCESS_STACK * stack )
 	kernel_printf( "\tEFLAGS:%x  SS0:%x ESP0:%x\n", stack->eflags, stack->ss0, stack->esp0 );
 }
 
-int process_spawn( char * filename, struct VFS_HANDLE * console )
-{
-	struct PROCESS_INFO * process;
-	struct VFS_HANDLE * handle;
-	BYTE * buffer;
-	int size;
-	int r=0, msize;
-	
-	// open the process image
-	handle = vfs_open( filename, VFS_MODE_READ );
-	if( handle == NULL )
-		return FAIL;
-		
-	// determine what type: elf/coff/flat/...
-
-	size = vfs_seek( handle, 0, VFS_SEEK_END );
-	
-	msize = size;
-	
-	r= msize % PAGE_SIZE;
-	
-	if(	r > 0 )
-	{
-		msize += ( PAGE_SIZE - r ) + 1;
-	}
-	// we will need to free this at some point? ...process_destroy()
-	buffer = (BYTE *)mm_malloc( msize );
-	
-	vfs_seek( handle, 0, VFS_SEEK_START );
-	if( vfs_read( handle, buffer, size ) == FAIL )
-		return FAIL;
-
-	//if( (i=elf_load( handle )) < 0 )
-	//	kernel_printf("Failed to load ELF [%d]: %s\n", i, filename );
-	
-	process = process_create( (void *)buffer, size );
-	if( process != NULL )
-	{
-		process->handles[PROCESS_CONSOLEHANDLE] = console;
-		// add the process to the scheduler
-		scheduler_addProcess( process );
-	}
-	// close the process images handle
-	vfs_close( handle );
-
-	mm_free( buffer );
-	
-	// return success
-	return SUCCESS;
-}
-
-extern void contextswitch( void );
-//extern struct PROCESS_INFO * scheduler_processCurrent;
-
-int process_yield( void )
-{
-	struct PROCESS_INFO * process;
-	// TO-DO: force the current process into a BLOCKED state
-	process = scheduler_getCurrentProcess();
-	if( process == NULL )
-		return FAIL;
-	// for now we just force a new process to run
-	process->state = READY;
-	process->tick_slice = 0;
-	// force a context switch
-	ASM("int $32" );
-	// we return here next time the process runs
-	return SUCCESS;
-}
-
-int process_wake( int id )
-{
-	struct PROCESS_INFO * process;
-	// find the requested process
-	process = scheduler_findProcesss( id );
-	if( process == NULL )
-		return FAIL;
-	// force the process into a READY state
-	process->state = READY;
-	return SUCCESS;
-}
-
-/*
-int process_wait( int id )
-{
-	//wait for the process of id to terminate...
-	return SUCCESS;
-}*/
-
-int process_kill( int id )
-{
-	int i;
-	struct PROCESS_INFO * process;
-
-	// cant kill the kernel ...we'd get court marshelled! :)
-	if( id == KERNEL_PID )
-		return FAIL;
-
-	//scheduler_printProcessTable();
-	kernel_printf("Killing process %d... ", id );
-	// remove the process from the scheduler so it cant be switched back in
-	process = scheduler_removeProcesss( id );
-	if( process == NULL )
-		return FAIL;
-
-	// close any open handles
-	for( i=0 ; i<PROCESS_MAXHANDLES ; i++ )
-	{
-		if( process->handles[i] != NULL )
-			vfs_close( process->handles[i] );
-	}
-	// destroy the process's page directory, inturn destroying the stack
-	//paging_destroyDirectory( process->page_dir );
-	
-	// destroy the user & kernel stacks, user heap, ...
-	
-	// destroy the process info structure
-	//mm_free( process );
-	
-	//process_total--;
-	kernel_printf("Done.\n" );
-	//scheduler_printProcessTable();
-
-	return SUCCESS;
-}
-
 struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 {
 	struct PROCESS_INFO * process;
@@ -250,4 +124,152 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 	//process->current_kesp = process->kstack;
 	// return with new process info
 	return process;
+}
+
+int process_spawn( char * filename, char * console_path )
+{
+	struct VFS_HANDLE * console;
+	struct PROCESS_INFO * process;
+	struct VFS_HANDLE * handle;
+	BYTE * buffer;
+	int size;
+	int r=0, msize;
+
+	kernel_printf("->process_spawn %s %s\n",filename,console_path);
+	
+	console = vfs_open( console_path, VFS_MODE_READWRITE );
+	if( console == NULL )
+		return FAIL;
+	// open the process image
+	handle = vfs_open( filename, VFS_MODE_READ );
+	if( handle == NULL )
+	{
+		vfs_close( console );
+		return FAIL;
+	}
+		
+	// determine what type: elf/coff/flat/...
+
+	size = vfs_seek( handle, 0, VFS_SEEK_END );
+	
+	msize = size;
+	
+	r= msize % PAGE_SIZE;
+	
+	if(	r > 0 )
+	{
+		msize += ( PAGE_SIZE - r ) + 1;
+	}
+	// we will need to free this at some point? ...process_destroy()
+	buffer = (BYTE *)mm_malloc( msize );
+	
+	vfs_seek( handle, 0, VFS_SEEK_START );
+	if( vfs_read( handle, buffer, size ) == FAIL )
+	{
+		vfs_close( console );
+		vfs_close( handle );
+		return FAIL;
+	}
+	//if( (i=elf_load( handle )) < 0 )
+	//	kernel_printf("Failed to load ELF [%d]: %s\n", i, filename );
+	
+	process = process_create( (void *)buffer, size );
+	if( process != NULL )
+	{
+		process->handles[PROCESS_CONSOLEHANDLE] = console;
+		// add the process to the scheduler
+		scheduler_addProcess( process );
+	}
+	// close the process images handle
+	vfs_close( handle );
+
+	mm_free( buffer );
+	
+	// return success
+	return SUCCESS;
+}
+
+int process_yield( void )
+{
+	struct PROCESS_INFO * process;
+	// TO-DO: force the current process into a BLOCKED state
+	process = scheduler_getCurrentProcess();
+	if( process == NULL )
+		return FAIL;
+	// for now we just force a new process to run
+	process->state = READY;
+	process->tick_slice = 0;
+	// force a context switch
+	ASM("int $32" );
+	// we return here next time the process runs
+	return SUCCESS;
+}
+
+int process_sleep( struct PROCESS_INFO * process )
+{
+	if( process == NULL )
+		return FAIL;
+	// place the process into a blocked state
+	process->state = BLOCKED;
+	process->tick_slice = PROCESS_TICKS_NONE;
+	// force a new process to be selected
+	scheduler_select();
+	// we return here when the process wakes
+	return SUCCESS;
+}
+
+int process_wake( int id )
+{
+	struct PROCESS_INFO * process;
+	process = scheduler_findProcesss( id );
+	if( process == NULL )
+		return FAIL;
+	// force the process into a READY state
+	process->state = READY;
+	process->tick_slice = PROCESS_TICKS_NORMAL;
+	return SUCCESS;
+}
+
+/*
+int process_wait( int id )
+{
+	//wait for the process of id to terminate...
+	return SUCCESS;
+}*/
+
+int process_kill( int id )
+{
+	int i;
+	struct PROCESS_INFO * process;
+
+	// cant kill the kernel ...we'd get court marshelled! :)
+	if( id == KERNEL_PID )
+		return FAIL;
+
+	//scheduler_printProcessTable();
+	kernel_printf("Killing process %d... ", id );
+	// remove the process from the scheduler so it cant be switched back in
+	process = scheduler_removeProcesss( id );
+	if( process == NULL )
+		return FAIL;
+
+	// close any open handles
+	for( i=0 ; i<PROCESS_MAXHANDLES ; i++ )
+	{
+		if( process->handles[i] != NULL )
+			vfs_close( process->handles[i] );
+	}
+	// destroy the process's page directory, inturn destroying the stack
+	//paging_destroyDirectory( process->page_dir );
+	
+	// destroy the user & kernel stacks, user heap, ...
+	
+	// destroy the process info structure
+	//mm_free( process );
+	
+	//process_total--;
+	kernel_printf("Done.\n" );
+	//scheduler_printProcessTable();
+
+	return SUCCESS;
 }

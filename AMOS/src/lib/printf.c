@@ -140,6 +140,13 @@ void printf( char * text, ... )
 	print( CONSOLE, text, args );
 }
 
+char getch()
+{
+	char c = -1;
+	read( CONSOLE, (BYTE *)&c, 1 );
+	return c;
+}
+
 int get( char * buffer, int size )
 {
 	// we want to echo what the user types to screen

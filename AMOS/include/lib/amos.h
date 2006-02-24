@@ -41,4 +41,10 @@ void * morecore( DWORD );
 
 void exit( void );
 
+int spawn( char *, char * );
+
+int sleep( void );
+
+int wake( int );
+
 #endif 

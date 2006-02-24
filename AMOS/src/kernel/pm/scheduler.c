@@ -104,9 +104,9 @@ DWORD scheduler_select( void )
 		// if we find one in a READY state we choose it
 		if( processNext->state == READY )
 			break;
-			
-		//if( processNext->state == BLOCKED )
-		//	continue;
+		// we must ignore BLOCKED processes
+		if( processNext->state == BLOCKED )
+			continue;
 	}
 	// test if we found another process to run || processNext->id == KERNEL_PID
 	if( processNext != scheduler_processCurrent )
@@ -192,7 +192,7 @@ DWORD scheduler_handler( struct PROCESS_INFO * process )
 	// decrement the current processes time slice by one
 	process->tick_slice--;
 	// if the current process has reached the end of its tick slice we must select a new process to run
-	if( process->tick_slice <= 0 )//process->state != RUNNING || --
+	if( process->tick_slice <= PROCESS_TICKS_NONE )//process->state != RUNNING || --
 		doswitch = scheduler_select();
 	// unlock the critical section
 	mutex_unlock( scheduler_handlerLock );

@@ -47,8 +47,8 @@ enum {
 struct CONSOLE_BUFFER
 {
 	int number;
-	
-	volatile BYTE * in_buff;
+
+	volatile BYTE * in_kbuff;	
 	volatile int in_buffIndex;
 	volatile int in_buffSize;
 	volatile BYTE in_breakByte;

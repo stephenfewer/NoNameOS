@@ -329,7 +329,7 @@ int console_close( struct IO_HANDLE * handle )
 	return SUCCESS;
 }
 
-int console_read( struct IO_HANDLE * handle, BYTE * user_buffer, DWORD size  )
+int console_read( struct IO_HANDLE * handle, BYTE * ubuff, DWORD size  )
 {
 	struct CONSOLE * console;
 	struct CONSOLE_BUFFER * buffer;
@@ -344,13 +344,12 @@ int console_read( struct IO_HANDLE * handle, BYTE * user_buffer, DWORD size  )
 	buffer = console->buffer;
 	if( buffer == NULL )
 		return FAIL;
-kernel_printf("[console read] handle=%x in_buff=%x buffer=%x size=%d\n", handle, console->buffer->in_buff, user_buffer, size );
 
-	if(	buffer->in_buff == NULL )
+	if(	buffer->in_kbuff == NULL )
 	{
 		buffer->in_buffIndex = 0;
 		buffer->in_buffSize = size;
-		buffer->in_buff = user_buffer;
+		buffer->in_kbuff = (BYTE *)mm_malloc( size );
 		
 		while( buffer->in_buffIndex < buffer->in_buffSize  )
 		{
@@ -359,15 +358,17 @@ kernel_printf("[console read] handle=%x in_buff=%x buffer=%x size=%d\n", handle,
 			process_yield();
 		}
 		
-		buffer->in_buff = NULL;
+		memcpy( ubuff, buffer->in_kbuff, buffer->in_buffIndex );
+		
+		mm_free( buffer->in_kbuff );
+
+		buffer->in_kbuff = NULL;	
 		buffer->in_break = FALSE;
 		if( buffer->in_breakByte != 0x00 )
 			buffer->in_breakByte = 0x00;
-		
+		// return bytes read to caller
 		return buffer->in_buffIndex;
-	}/* else {
-		//kernel_printf("[console read] console->in_buff %x buffer = %x\n", console->in_buff, buffer );
-	}*/
+	}
 	
 	return FAIL;
 }
@@ -407,7 +408,7 @@ int console_putchBuffer( int number, BYTE byte )
 				}
 			}
 			if( buffer->in_buffIndex < buffer->in_buffSize )
-				buffer->in_buff[ buffer->in_buffIndex++ ] = byte;				
+				buffer->in_kbuff[ buffer->in_buffIndex++ ] = byte;				
 		}
 	}
 	return SUCCESS;	
@@ -438,31 +439,7 @@ int console_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 		case CONSOLE_SENDCHAR:
 			if( console->data->echo )
 				console_putch( console, arg );
-
 			console_putchBuffer( console->data->number, (BYTE)arg );
-/*
-kernel_printf("SENDCHAR: %c console->buffer=%x\n", (BYTE)arg, console->buffer );
-			if( console->buffer == NULL )
-				return FAIL;
-				
-			if( console->buffer->in_buff != NULL )
-			{
-kernel_printf("SENDCHAR: console->buffer->in_buff=%x\n", console->buffer->in_buff );
-				if( console->buffer->in_breakByte != 0x00 )
-				{
-					if( console->buffer->in_breakByte == (BYTE)arg )
-					{
-						console->buffer->in_break = TRUE;
-						break;
-					}
-				}
-				if( console->buffer->in_buffIndex < console->buffer->in_buffSize )
-				{
-kernel_printf("putting: %c in_buffIndex=%d in_buffSize=%d\n",(BYTE)arg,console->buffer->in_buffIndex,console->buffer->in_buffSize);
-					console->buffer->in_buff[ console->buffer->in_buffIndex++ ] = (BYTE)arg;	
-				}
-			}
-*/
 			return SUCCESS;
 		case CONSOLE_SETBREAK:
 			console->buffer->in_breakByte = (BYTE)arg;
