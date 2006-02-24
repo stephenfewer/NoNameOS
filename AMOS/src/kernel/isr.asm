@@ -61,7 +61,8 @@ _contextswitch:							; perform a context switch
     jne notss
     mov ebx, [_scheduler_tss]			; EBX = &scheduler_tss
     mov word [ebx+8], KERNEL_DATA_SEL	; scheduler_tss->ss0 = KERNEL_DATA_SEL;
-    mov ecx, [eax+36]					; ECX = process->current_kesp
+    mov ecx, [eax+28]					; ECX = process->current_kesp
+	add ecx, 4096
     mov dword [ebx+4], ecx				; scheduler_tss->esp0 = process->current_kesp;
 notss:
     mov esp, [eax]						; esp = process->current_esp
