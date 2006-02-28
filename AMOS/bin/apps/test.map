@@ -9,19 +9,22 @@ Linker script and memory map
                 0x00000000                phys = 0x0
                 0x10000000                virt = 0x10000000
 
-.text           0x10000000      0x860 load address 0x00000000
+.text           0x10000000      0x8d0 load address 0x00000000
  *(.text)
  .text          0x10000000       0x50 test.o
                 0x1000002d                _realmain
                 0x10000000                _main
- .text          0x10000050      0x200 ../lib/amos.o
+ .text          0x10000050      0x250 ../lib/amos.o
                 0x10000223                _morecore
+                0x10000278                _sleep
                 0x100001d7                _mount
+                0x10000249                _spawn
                 0x10000050                _open
                 0x100001bd                _list
                 0x1000018e                _copy
                 0x10000145                _delete
                 0x100000eb                _seek
+                0x10000284                _wake
                 0x1000015f                _rename
                 0x1000012b                _create
                 0x10000209                _unmount
@@ -30,36 +33,37 @@ Linker script and memory map
                 0x10000087                _read
                 0x1000023d                _exit
                 0x1000006d                _close
- .text          0x10000250      0x410 ../lib/printf.o
-                0x100005da                _get
-                0x10000250                _printf_putuint
-                0x10000374                _printf_puthex
-                0x1000031a                _printf_putint
-                0x1000041c                _print
-                0x100005c1                _printf
- .text          0x10000660      0x200 ../lib/string.o
-                0x100006a2                _strcmp
-                0x1000072c                _strncpy
-                0x100007ee                _memcpy
-                0x100007c7                _memset
-                0x10000714                _strcpy
-                0x10000814                _memcmp
-                0x100006c2                _strncmp
-                0x10000679                _strrchr
-                0x10000660                _strlen
-                0x1000076d                _strstr
-                0x10000860                . = ALIGN (0x10)
+ .text          0x100002a0      0x430 ../lib/printf.o
+                0x10000647                _get
+                0x100002a0                _printf_putuint
+                0x100003c4                _printf_puthex
+                0x1000036a                _printf_putint
+                0x1000062a                _getch
+                0x1000046c                _print
+                0x10000611                _printf
+ .text          0x100006d0      0x200 ../lib/string.o
+                0x10000712                _strcmp
+                0x1000079c                _strncpy
+                0x1000085e                _memcpy
+                0x10000837                _memset
+                0x10000784                _strcpy
+                0x10000884                _memcmp
+                0x10000732                _strncmp
+                0x100006e9                _strrchr
+                0x100006d0                _strlen
+                0x100007dd                _strstr
+                0x100008d0                . = ALIGN (0x10)
 
-.data           0x10000860        0x0 load address 0x10000860
+.data           0x100008d0        0x0 load address 0x100008d0
  *(.data)
-                0x10000860                . = ALIGN (0x10)
+                0x100008d0                . = ALIGN (0x10)
 
-.bss            0x10000860        0x0 load address 0x10000860
-                0x10000860                bss = .
+.bss            0x100008d0        0x0 load address 0x100008d0
+                0x100008d0                bss = .
  *(.bss)
-                0x10000860                . = ALIGN (0x10)
+                0x100008d0                . = ALIGN (0x10)
  *(COMMON)
-                0x10000860                . = ALIGN (0x10)
+                0x100008d0                . = ALIGN (0x10)
 LOAD test.o
 LOAD ../lib/amos.o
 LOAD ../lib/printf.o

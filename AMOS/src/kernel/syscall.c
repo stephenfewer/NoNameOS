@@ -19,6 +19,7 @@
 #include <kernel/kernel.h>
 #include <lib/string.h>
 
+static volatile BOOL syscall_switch = FALSE;
 struct SYSCALL syscall_table[SYSCALL_MAXCALLS];
 
 int syscall_open( struct PROCESS_INFO * process, char * filename, int mode )
@@ -47,7 +48,6 @@ int syscall_close( struct PROCESS_INFO * process, int handleIndex )
 	// make sure the handle index is in range
 	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
 		return FAIL;
-	// call the real function
 	return vfs_close( process->handles[ handleIndex ] );	
 }
 
@@ -56,7 +56,6 @@ int syscall_read( struct PROCESS_INFO * process, int handleIndex, BYTE * buffer,
 	// make sure the handle index is in range
 	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
 		return FAIL;
-	// call the real function
 	return vfs_read( process->handles[ handleIndex ], buffer, size );
 }
 
@@ -65,7 +64,6 @@ int syscall_write( struct PROCESS_INFO * process, int handleIndex, BYTE * buffer
 	// make sure the handle index is in range
 	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
 		return FAIL;
-	// call the real function
 	return vfs_write( process->handles[ handleIndex ], buffer, size );
 }
 
@@ -74,7 +72,6 @@ int syscall_seek( struct PROCESS_INFO * process, int handleIndex, DWORD offset, 
 	// make sure the handle index is in range
 	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
 		return FAIL;
-	// call the real function
 	return vfs_seek( process->handles[ handleIndex ], offset, origin );	
 }
 
@@ -83,26 +80,18 @@ int syscall_control( struct PROCESS_INFO * process, int handleIndex, DWORD reque
 	// make sure the handle index is in range
 	if( handleIndex < 0 || handleIndex >= PROCESS_MAXHANDLES )
 		return FAIL;
-	// call the real function
 	return vfs_control( process->handles[ handleIndex ], request, arg );		
 }
 
 void * syscall_morecore( struct PROCESS_INFO * process, DWORD size )
 {
-	// call the real function
 	return mm_morecore( process, size );
 }
 
-extern volatile DWORD scheduler_switch;
-
 int syscall_exit( struct PROCESS_INFO * process )
 {
-	if( process_kill( process->id ) == SUCCESS )
-	{
-		scheduler_switch = TRUE;
-		return SUCCESS;
-	}
-	return FAIL;
+	syscall_switch = TRUE;
+	return process_kill( process->id );
 }
 
 int syscall_spawn( struct PROCESS_INFO * process, char * filename, char * console_path )
@@ -112,12 +101,7 @@ int syscall_spawn( struct PROCESS_INFO * process, char * filename, char * consol
 
 int syscall_sleep( struct PROCESS_INFO * process )
 {
-	if( process_sleep( process ) == SUCCESS )
-	{
-		scheduler_switch = TRUE;
-		return SUCCESS;
-	}
-	return FAIL;
+	return process_sleep( process );
 }
 
 int syscall_wake( struct PROCESS_INFO * process, int id )
@@ -125,7 +109,7 @@ int syscall_wake( struct PROCESS_INFO * process, int id )
 	return process_wake( id );
 }
 
-DWORD syscall_handler( struct PROCESS_INFO * process )
+struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 {
 	int ret = FAIL;
 	int index = (int)process->kstack->eax;
@@ -157,14 +141,22 @@ DWORD syscall_handler( struct PROCESS_INFO * process )
 				break;
 		}
 	}
-	// restore the kernel stack for the jump back to user land
-	memcpy( process->kstack, kstack, sizeof(struct PROCESS_STACK) );
-	// free the memory we malloc'd
-	mm_free( kstack );
-	// set return value
-	process->kstack->eax = (DWORD)ret;
+	if( syscall_switch == FALSE )
+	{
+		// restore the kernel stack for the jump back to user land
+		memcpy( process->kstack, kstack, sizeof(struct PROCESS_STACK) );
+		// free the memory we malloc'd
+		mm_free( kstack );
+		// set return value
+		process->kstack->eax = (DWORD)ret;
+	} 
+	else
+	{
+		syscall_switch = FALSE;
+		process = scheduler_select( process );
+	}
 	// return to caller
-	return FALSE;
+	return process;
 }
 
 BOOL syscall_add( int index, void * function, int parameters )

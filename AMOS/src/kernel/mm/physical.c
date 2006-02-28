@@ -13,6 +13,7 @@
 
 #include <kernel/mm/physical.h>
 #include <kernel/mm/paging.h>
+#include <kernel/mm/dma.h>
 #include <kernel/kernel.h>
 #include <kernel/pm/sync/mutex.h>
 #include <lib/string.h>
@@ -53,16 +54,16 @@ int physical_getBitmapSize()
 // To-Do: return 0x00000000 if no physical memory left
 void * physical_pageAlloc()
 {
+	void * physicalAddress;
+	// lock this critical section so we cant allocate the same page twice!
+	mutex_lock( &physical_bitmapLock );
 	// better to reserver the address 0x00000000 so we can better
 	// detect null pointer exceptions...
-	void * physicalAddress = (void *)0x00001000;
-	// lock this critical section so we cant allocate the smae page twice!
-	mutex_lock( &physical_bitmapLock );
-	
+	physicalAddress = (void *)0x00001000;
 	// linear search! ohh dear :)
 	while( !physical_isPageFree( physicalAddress ) )
 		physicalAddress += SIZE_4KB;
-
+	// mark the page as allocated
 	physicalAddress = physical_pageAllocAddress( physicalAddress );
 	// unlock the critical section
 	mutex_unlock( &physical_bitmapLock );
@@ -102,6 +103,9 @@ int physical_init( DWORD memUpper )
 	for( physicalAddress=(void *)0xA0000 ; physicalAddress<(void *)0x100000 ; physicalAddress+=SIZE_4KB )
 		physical_pageAllocAddress( physicalAddress );
 		
+	// reserve the default DMA page address
+	physical_pageAllocAddress( DMA_PAGE_ADDRESS );
+	
 	// reserve all the physical memory currently being taken up by
 	// the kernel and the physical memory bitmap tacked on to the
 	// end of the kernel image, this avoids us allocating this memory

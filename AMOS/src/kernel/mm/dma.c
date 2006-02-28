@@ -35,8 +35,6 @@ void dma_transfer( BYTE channel, void * address, DWORD length, struct MODE mode 
 	offset = (((DWORD)address) & 0xFFFF);
 	// ...
 	length--;
-	// disable interrupts
-	interrupt_disableAll();
 	// ...
     outportb( dma_maskreg[channel], 0x04 | channel );
     // clear the byte pointer flip flop
@@ -52,33 +50,39 @@ void dma_transfer( BYTE channel, void * address, DWORD length, struct MODE mode 
     outportb( dma_countport[channel], (length & 0x00FF) );
     outportb( dma_countport[channel], ((length & 0xFF00) >> 8) );
     // ...
-    outportb( dma_maskreg[channel], channel );
-	// enable interrupts
-    interrupt_enableAll();    
+    outportb( dma_maskreg[channel], channel );  
 }
 
 void dma_read( BYTE channel, void * address, DWORD length )
 {
 	struct MODE mode;
+	// disable interrupts
+	interrupt_disableAll();
 	// clear all the bits
 	mode.data = 0x00;
-	
+	// setup the mode for a DMA read operation	
 	mode.bits.modeselect = DMA_SINGLE;
 	mode.bits.transfertype = DMA_READ;
 	mode.bits.channel = channel;
-
+	// perform the transfer
 	dma_transfer( channel, address, length, mode );
+	// enable interrupts
+    interrupt_enableAll();  
 }
 
 void dma_write( BYTE channel, void * address, DWORD length )
 {
 	struct MODE mode;
+	// disable interrupts
+	interrupt_disableAll();
 	// clear all the bits
 	mode.data = 0x00;
-	
+	// setup the mode for a DMA read operation
 	mode.bits.modeselect = DMA_SINGLE;
 	mode.bits.transfertype = DMA_WRITE;
 	mode.bits.channel = channel;
-
+	// perform the transfer
 	dma_transfer( channel, address, length, mode );
+	// enable interrupts
+    interrupt_enableAll();  
 }

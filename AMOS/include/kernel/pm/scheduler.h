@@ -7,22 +7,19 @@
 struct SCHEDULER_PROCESS_TABLE
 {
 	int total;
+	struct PROCESS_INFO * current;
 	// the linked list of processes that defines the process table
 	struct PROCESS_INFO * top;
 	struct PROCESS_INFO * bottom;
 };
 
-struct PROCESS_INFO * scheduler_getCurrentProcess( void );
+int scheduler_setProcess( int, int, int );
 
 void scheduler_printProcessTable( void );
 
 struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * );
 
-struct PROCESS_INFO * scheduler_findProcesss( int );
-
-DWORD scheduler_select( void );
-
-struct PROCESS_INFO * scheduler_removeProcesss( int );
+struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * );
 
 void scheduler_init();
 

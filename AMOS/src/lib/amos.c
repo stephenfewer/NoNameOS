@@ -144,6 +144,7 @@ void * morecore( DWORD size )
 void exit( void )
 {
 	ASM( "int $0x30" :: "a" (SYSCALL_EXIT) );
+	while(TRUE);
 }
 
 int spawn( char * filename, char * console_path )

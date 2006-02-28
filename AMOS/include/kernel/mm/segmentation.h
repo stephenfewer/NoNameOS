@@ -27,7 +27,7 @@ struct SEGMENTATION_GDT_ENTRY
 struct SEGMENTATION_GDT_POINTER
 {
     WORD limit;
-    unsigned int base;
+    struct SEGMENTATION_GDT_ENTRY * base;
 } PACKED;
 
 struct SEGMENTATION_TSS 

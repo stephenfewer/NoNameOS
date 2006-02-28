@@ -71,22 +71,22 @@ char * interrupt_messages[] =
     "Reserved"
 };
 
-extern struct SEGMENTATION_TSS * scheduler_tss;
-extern volatile DWORD scheduler_switch;
+//extern volatile DWORD scheduler_switch;
 
-DWORD interrupt_dispatcher( struct PROCESS_INFO * process )
+struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
 {
-	DWORD ret = FALSE;
+	struct PROCESS_INFO * newProcess;
 	INTERRUPT_HANDLER handler;
 
 	handler = interrupt_handlers[ process->kstack->intnumber ];
 
 	if( handler != NULL )
 	{
-		ret = handler( process );
+		newProcess = handler( process );
 	}
 	else
 	{
+		newProcess = process;
 		// if its an exception we must do something by default if their is no appropriate handler
 		if( process->kstack->intnumber <= INT31 )
 		{
@@ -101,8 +101,8 @@ DWORD interrupt_dispatcher( struct PROCESS_INFO * process )
 				else {
 					kernel_printf("Exception: pid: %d %s\n", process->id, interrupt_messages[process->kstack->intnumber] );
 					process_printStack( process->kstack );
-					if( process_kill( process->id ) == 0 )
-						ret = TRUE;
+					if( process_kill( process->id ) == SUCCESS )
+						newProcess = scheduler_select( process );
 				}
 			}
 			
@@ -115,10 +115,7 @@ DWORD interrupt_dispatcher( struct PROCESS_INFO * process )
 	else if( process->kstack->intnumber >= IRQ0 && process->kstack->intnumber <= IRQ15 )
 		outportb( INTERRUPT_PIC_1, INTERRUPT_EOI );
 
-	if( ret == TRUE )
-		scheduler_switch = TRUE;
-
-	return scheduler_switch;
+	return newProcess;
 }
 
 BOOL interrupt_setHandler( int index, INTERRUPT_HANDLER handler )

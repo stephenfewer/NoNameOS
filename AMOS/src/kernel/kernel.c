@@ -101,29 +101,29 @@ int kernel_init( struct MULTIBOOT_INFO * m )
 
 void kernel_main( struct MULTIBOOT_INFO * m )
 {
-	// initilize the kernel, when we return we will be executing as the kernel
-	// process and may use system calls
+	// initilize the kernel, when we return we will be executing as the kernel process
 	kernel_init( m );
-	
+
 	// mount the primary file system
-	printf( "Mounting primary file system. " );
+	kernel_printf( "Mounting primary file system. " );
 	if( vfs_mount( "/device/floppy1", "/fat/", FAT_TYPE ) == FAIL )
 	{
-		printf( "Failed.\n" );
+		kernel_printf( "Failed.\n" );
 		kernel_panic( NULL, "Kernel failed to mount primary file system." );
 	}
-	printf( "Done.\n" );	
-	
-	printf( "\nWelcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
+	kernel_printf( "Done.\n" );	
 
-	spawn( "/fat/BOOT/SHELLL.BIN", "/device/console1" );
-	//spawn( "/fat/BOOT/SHELLL.BIN", "/device/console2" );
-	//spawn( "/fat/BOOT/SHELLL.BIN", "/device/console3" );
-	//spawn( "/fat/BOOT/SHELLL.BIN", "/device/console4" );
-	
+	kernel_printf( "\nWelcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
+
+	process_spawn( "/fat/BOOT/TEST.BIN", "/device/console1" );
+	process_spawn( "/fat/BOOT/SHELL.BIN", "/device/console2" );
+	process_spawn( "/fat/BOOT/SHELL.BIN", "/device/console3" );
+	process_spawn( "/fat/BOOT/SHELL.BIN", "/device/console4" );
+
 	// we should really use sleep() but its not working yet :)
 	while( TRUE )
 		process_yield();
+
 	// we should never reach here
 	kernel_panic( NULL, "Kernel trying to exit." );
 }

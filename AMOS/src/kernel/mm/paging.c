@@ -16,6 +16,7 @@
 #include <kernel/mm/mm.h>
 #include <kernel/kernel.h>
 #include <kernel/interrupt.h>
+#include <kernel/pm/scheduler.h>
 #include <kernel/pm/process.h>
 #include <lib/string.h>
 
@@ -108,22 +109,22 @@ void paging_setPageTableEntry( struct PROCESS_INFO * p, void * linearAddress, vo
 }
 
 // See page 5-43
-DWORD paging_pageFaultHandler( struct PROCESS_INFO * process )
+struct PROCESS_INFO * paging_pageFaultHandler( struct PROCESS_INFO * process )
 {
 	void * linearAddress;
 	// retrieve the linear address of the page fault stored in CR2
 	ASM( "movl %%cr2, %0" : "=r" (linearAddress) );
 	kernel_printf( "Page Fault at CS:EIP %x:%x Address %x\n", process->kstack->cs, process->kstack->eip, linearAddress );
 	// if the kernel caused the page fault we must kernel panic
-	if( process->id == 0 )
+	if( process->id == KERNEL_PID )
 		kernel_panic( process->kstack, "Kernel Page Fault." );
 	// print out the stack
 	process_printStack( process->kstack );
 	// try to kill the offending process
-	if( process_kill( process->id ) == 0 )
-		return TRUE;
+	if( process_kill( process->id ) == SUCCESS )
+		return scheduler_select( process );
 	// if we failed to kill the process we dont need to perform a context switch
-	return FALSE;
+	return process;
 }
 
 int paging_createDirectory( struct PROCESS_INFO * p )
@@ -134,6 +135,8 @@ int paging_createDirectory( struct PROCESS_INFO * p )
 		return FALSE;
 	// clear out the page directory
 	paging_clearDirectory( p );
+	// identity map the physical address of the page directory
+	paging_setPageTableEntry( p, p->page_dir, p->page_dir, TRUE );
 	// return success
 	return TRUE;
 }
@@ -176,8 +179,8 @@ void paging_mapKernel( struct PROCESS_INFO * p )
 {
 	struct PAGE_DIRECTORY_ENTRY * pde;
 	// map in the bottom 4MB's ( which are identity mapped, see paging_init() )
-	//pde = paging_getPageDirectoryEntry( kernel_process.page_dir, NULL );
-	//paging_setPageDirectoryEntry( p, NULL, (void *)TABLE_SHIFT_L(pde->address), FALSE );
+	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, NULL );
+	paging_setPageDirectoryEntry( p, NULL, (void *)TABLE_SHIFT_L(pde->address), FALSE );
 	// map in the kernel
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_CODE_VADDRESS );
 	paging_setPageDirectoryEntry( p, KERNEL_CODE_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	

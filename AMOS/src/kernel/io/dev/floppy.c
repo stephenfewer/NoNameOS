@@ -17,7 +17,7 @@
 #include <kernel/io/io.h>
 #include <kernel/mm/dma.h>
 #include <kernel/interrupt.h>
-#include <kernel/pm/scheduler.h>
+#include <kernel/pm/process.h>
 #include <lib/string.h>
 
 struct FLOPPY_DRIVE * floppy1 = NULL;
@@ -115,11 +115,12 @@ int floppy_off( struct FLOPPY_DRIVE * floppy )
 	return TRUE;
 }
 
-DWORD floppy_handler( struct PROCESS_INFO * process )
+struct PROCESS_INFO * floppy_handler( struct PROCESS_INFO * process )
 {
 	// set the donewait flag to signal a floppy_wait() to finish
 	floppy_donewait = TRUE;
-	return FALSE;
+
+	return process;
 }
 
 int floppy_wait( struct FLOPPY_DRIVE * floppy, BYTE sence )
@@ -129,6 +130,7 @@ int floppy_wait( struct FLOPPY_DRIVE * floppy, BYTE sence )
     {
     	if( floppy_donewait == TRUE )
     		break;
+    	process_yield();
     }
     // reset the donewait flag
     floppy_donewait = FALSE;
@@ -212,7 +214,7 @@ void floppy_blockGeometry( struct FLOPPY_DRIVE * floppy, int block, struct FLOPP
 int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
 {
 	// To-Do: alloc this from the physical memory manager!
-	void * dma_address = (void *)0x00080000;
+	void * dma_address = DMA_PAGE_ADDRESS;
 	int tries = FLOPPY_RWTRIES;
 	struct FLOPPY_GEOMETRY blockGeometry;
 	// retrieve the block geometry

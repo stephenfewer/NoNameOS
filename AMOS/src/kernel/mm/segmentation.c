@@ -23,19 +23,19 @@ void segmentation_setEntry( int selector, DWORD base, DWORD limit, BYTE access, 
 {
 	selector = SELECTOR_TO_INDEX(selector);
 	
-    segmentation_gdt[selector].base_low = (base & 0xFFFF);
+    segmentation_gdt[selector].base_low		= (base & 0xFFFF);
 
-    segmentation_gdt[selector].base_middle = (base >> 16) & 0xFF;
+    segmentation_gdt[selector].base_middle	= (base >> 16) & 0xFF;
 
-    segmentation_gdt[selector].base_high = (base >> 24) & 0xFF;
+    segmentation_gdt[selector].base_high	= (base >> 24) & 0xFF;
 
-    segmentation_gdt[selector].limit_low = (limit & 0xFFFF);
+    segmentation_gdt[selector].limit_low	= (limit & 0xFFFF);
 
-    segmentation_gdt[selector].granularity = ( (limit >> 16) & 0x0F );
+    segmentation_gdt[selector].granularity	= ( (limit >> 16) & 0x0F );
 
-    segmentation_gdt[selector].granularity |= (granularity & 0xF0);
+    segmentation_gdt[selector].granularity	|= (granularity & 0xF0);
 
-    segmentation_gdt[selector].access = access;
+    segmentation_gdt[selector].access		= access;
 }
 
 void segmentation_ltr( WORD selector )
@@ -46,6 +46,7 @@ void segmentation_ltr( WORD selector )
 
 void segmentation_reload( void )
 {
+	// load a linear address
 	ASM( "lgdt (%0)" :: "r" ( &segmentation_gdtp ) );
 	ASM( "movw $0x10, %ax" );
 	ASM( "movw %ax, %ds" );
@@ -61,8 +62,9 @@ int segmentation_init( void )
 {
     segmentation_gdtp.limit = ( sizeof(struct SEGMENTATION_GDT_ENTRY) * SEGMENTATION_GDT_ENTRYS ) - 1;
     // linear address, should be aligned on an 8byte boundry for best performance (3.5.1)
-    segmentation_gdtp.base = (unsigned int)&segmentation_gdt;
+    segmentation_gdtp.base = (struct SEGMENTATION_GDT_ENTRY *)&segmentation_gdt;
 
+	// clear the strucure
 	memset( (void *)&segmentation_gdt, 0x00, sizeof(struct SEGMENTATION_GDT_ENTRY) * SEGMENTATION_GDT_ENTRYS );
 
     // NULL descriptor
@@ -75,13 +77,13 @@ int segmentation_init( void )
     segmentation_setEntry( KERNEL_DATA_SEL, 0x00000000, 0xFFFFFFFF, 0x92, 0xCF );
 
 	// user code segment: ring3, read, execute
-    segmentation_setEntry( USER_CODE_SEL, 0x00000000, 0xFFFFFFFF, 0xFA, 0xCF );
+    segmentation_setEntry( USER_CODE_SEL,   0x00000000, 0xFFFFFFFF, 0xFA, 0xCF );
 
 	// user data segment: ring3, read, write
-    segmentation_setEntry( USER_DATA_SEL, 0x00000000, 0xFFFFFFFF, 0xF2, 0xCF );
+    segmentation_setEntry( USER_DATA_SEL,   0x00000000, 0xFFFFFFFF, 0xF2, 0xCF );
     
     // empty descriptor, we fill it in with a TSS descriptor later in scheduler_init()
-    segmentation_setEntry( KERNEL_TSS_SEL, 0x00000000, 0x00000000, 0x00, 0x00 );
+    segmentation_setEntry( KERNEL_TSS_SEL,  0x00000000, 0x00000000, 0x00, 0x00 );
 	
 	// Enable flat segmentation...
 	segmentation_reload();

@@ -71,7 +71,7 @@ int keyboard_close( struct IO_HANDLE * handle )
 	return SUCCESS;
 }
 
-DWORD keyboard_handler( struct PROCESS_INFO * process )
+struct PROCESS_INFO * keyboard_handler( struct PROCESS_INFO * process )
 {
 	BYTE scancode;
 	
@@ -94,7 +94,7 @@ DWORD keyboard_handler( struct PROCESS_INFO * process )
 
 	}
 	
-	return FALSE;
+	return process;
 }
 
 int keyboard_init( void )

@@ -5,6 +5,8 @@
 #include <kernel/fs/vfs.h>
 #include <kernel/mm/paging.h>
 
+#define PROCESS_CURRENT					-1
+
 #define PROCESS_CONSOLEHANDLE			0
 #define PROCESS_MAXHANDLES				256
 
@@ -74,6 +76,8 @@ struct PROCESS_INFO
 };
 
 void process_printStack( struct PROCESS_STACK * );
+
+int process_destroy( struct PROCESS_INFO * );
 
 int process_spawn( char *, char * );
 
