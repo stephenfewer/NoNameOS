@@ -102,9 +102,10 @@ int physical_init( DWORD memUpper )
 	// reserve the bios and video memory
 	for( physicalAddress=(void *)0xA0000 ; physicalAddress<(void *)0x100000 ; physicalAddress+=SIZE_4KB )
 		physical_pageAllocAddress( physicalAddress );
+	physical_pageAllocAddress( KERNEL_VGA_PADDRESS );
 		
 	// reserve the default DMA page address
-	physical_pageAllocAddress( DMA_PAGE_ADDRESS );
+	physical_pageAllocAddress( DMA_PAGE_VADDRESS );
 	
 	// reserve all the physical memory currently being taken up by
 	// the kernel and the physical memory bitmap tacked on to the

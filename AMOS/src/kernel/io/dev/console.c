@@ -93,7 +93,7 @@ void console_putChar( struct CONSOLE * console, int x, int y, BYTE c )
     
     if( console->data->active == TRUE )
     {
-    	BYTE * mem = (BYTE *)VIDEOMEM_BASE;
+    	BYTE * mem = (BYTE *)KERNEL_VGA_VADDRESS;
     	mem[ index ] = c;
     	mem[ index + 1 ] = console->data->attributes;
     }
@@ -217,11 +217,16 @@ int console_activate( DWORD number )
 		console = console4;
 	else
 		return FAIL;
-	 
+
+	// set all consoles as not active, theirs a bug if we dont
+	console1->data->active = FALSE;
+	console2->data->active = FALSE;
+	console3->data->active = FALSE;
+	console4->data->active = FALSE;
+	
 	if( console0 != NULL )
 	{
-		// dont do anything if we are trying to set an allready active
-		// console active
+		// dont do anything if we are trying to set an allready active console active
 		if( (*console0)->data->number == console->data->number )
 			return FAIL;
 		// set the current virtual console not active
@@ -230,7 +235,7 @@ int console_activate( DWORD number )
 	// set the one we are changeing to as active
 	console->data->active = TRUE;
 	// copy in the new contents
-	memcpy( (BYTE *)VIDEOMEM_BASE, console->data->mem, CONSOLE_COLUMNS*CONSOLE_ROWS*2 );
+	memcpy( (BYTE *)KERNEL_VGA_VADDRESS, console->data->mem, CONSOLE_COLUMNS*CONSOLE_ROWS*2 );
 	// update the cursor to the correct new position
 	console_setCursor( console, console->data->x, console->data->y );
 	// set the currenty active virtual console to the one we just changed to
@@ -461,7 +466,7 @@ int console_init( void )
 	calltable->read    = console_read;
 	calltable->write   = console_write;
 	calltable->seek    = NULL;
-	calltable->control = console_control;
+	calltable->control = console_control;	
 	// create the first virtual console
 	console1 = console_create( "console1", CONSOLE_1 );
 	io_add( console1->data->name, calltable, IO_CHAR );

@@ -214,7 +214,7 @@ void floppy_blockGeometry( struct FLOPPY_DRIVE * floppy, int block, struct FLOPP
 int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
 {
 	// To-Do: alloc this from the physical memory manager!
-	void * dma_address = DMA_PAGE_ADDRESS;
+	void * dma_address = DMA_PAGE_VADDRESS;
 	int tries = FLOPPY_RWTRIES;
 	struct FLOPPY_GEOMETRY blockGeometry;
 	// retrieve the block geometry

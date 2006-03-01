@@ -42,7 +42,8 @@ __inline__ void process_printStack( struct PROCESS_STACK * stack )
 int process_destroy( struct PROCESS_INFO * process )
 {
 	int i;
-
+	// should we kill a processes children?
+	
 	kernel_printf("destroying process %d... ", process->id );
 	// close any open handles
 	for( i=0 ; i<PROCESS_MAXHANDLES ; i++ )
@@ -74,6 +75,8 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 		return NULL;
 	// assign a process id
 	process->id = ++process_total;
+	// set the process id of the parent
+	process->parent_id = parent->id;
 	// set its privilege to USER as it is a user process
 	process->privilege = USER;
 	// clear the handles table

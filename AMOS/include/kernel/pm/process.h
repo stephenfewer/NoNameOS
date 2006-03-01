@@ -61,14 +61,17 @@ struct PROCESS_HEAP
 
 struct PROCESS_INFO
 {
+	// -> the order of these is important, see isr.asm
 	struct PROCESS_STACK * kstack;
 	struct PAGE_DIRECTORY * page_dir;
     unsigned int privilege;
-	int id;
-	int tick_slice;
-	int state;
 	void * ustack_base;
 	void * kstack_base;
+    // <-
+	int id;
+	int parent_id;
+	int tick_slice;
+	int state;
 	struct VFS_HANDLE * handles[PROCESS_MAXHANDLES];
 	struct PROCESS_HEAP heap;
 	
