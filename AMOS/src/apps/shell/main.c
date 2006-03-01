@@ -118,7 +118,7 @@ static void shell_spawn( int argc, char **argv )
 	//if( strcmp( argv[argc-1], "&" ) == SUCCESS )
 	//	wait = FALSE;
 
-	pid = spawn( "/fat/BOOT/TEST.BIN", "/device/console2" );
+	pid = spawn( "/BOOT/TEST.BIN", "/device/console2" );
 	
 	printf("Spawned process %d\n", pid );
 }

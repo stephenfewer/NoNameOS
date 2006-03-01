@@ -19,47 +19,38 @@
 #include <kernel/io/io.h>
 #include <kernel/fs/vfs.h>
 
-struct VFS_HANDLE * keyboard_output = NULL;
+struct VFS_HANDLE * keyboard_output;
 
-unsigned char keymap[128] =
+BYTE keyboard_shift;
+BYTE keyboard_caps;
+BYTE keyboard_num;
+BYTE keyboard_scroll;
+
+BYTE keyboard_upperMap[128] =
 {
-    0,  27, '1', '2', '3', '4', '5', '6', '7', '8',	/* 9 */
-	'9', '0', '-', '=', '\b',	/* Backspace */
-	'\t',			/* Tab */
-	'q', 'w', 'e', 'r',	/* 19 */
-	't', 'y', 'u', 'i', 'o', 'p', '[', ']', '\n',	/* Enter key */
-	0,			/* 29   - Control */
-	'a', 's', 'd', 'f', 'g', 'h', 'j', 'k', 'l', ';',	/* 39 */
-	'\'', '`',   0,		/* Left shift */
-	'\\', 'z', 'x', 'c', 'v', 'b', 'n',			/* 49 */
-	'm', ',', '.', '/',   0,				/* Right shift */
-	'*',
-	0,	/* Alt */
-	' ',	/* Space bar */
-    0,	/* Caps lock */
-    0,	/* 59 - F1 key ... > */
-    0,   0,   0,   0,   0,   0,   0,   0,
-    0,	/* < ... F10 */
-    0,	/* 69 - Num lock*/
-    0,	/* Scroll Lock */
-    0,	/* Home key */
-    0,	/* Up Arrow */
-    0,	/* Page Up */
-	'-',
-    0,	/* Left Arrow */
-    0,
-    0,	/* Right Arrow */
-	'+',
-    0,	/* 79 - End key*/
-    0,	/* Down Arrow */
-    0,	/* Page Down */
-    0,	/* Insert Key */
-    0,	/* Delete Key */
-    0,   0,   0,
-    0,	/* F11 Key */
-    0,	/* F12 Key */
-    0,	/* All other keys are undefined */
-};	
+      0,  27, '!', '"',  '£',  '$', '%', '^',  '&', '*',
+	'(', ')', '_', '+', '\b', '\t', 'Q', 'W',  'E', 'R',
+	'T', 'Y', 'U', 'I',  'O',  'P', '{', '}', '\n',   0,
+	'A', 'S', 'D', 'F',  'G',  'H', 'J', 'K',  'L', ':',
+   '¬', '~',  0, '|',  'Z',  'X', 'C', 'V',  'B', 'N',	
+	'M', '<', '>', '?',   0,   '*',   0, ' ',    0,   0,
+      0,   0,   0,   0,   0,     0,   0,   0,    0,   0,
+      0,   0,   0,   0,	'-',     0,   0,   0,  '+',   0,
+	  0,   0,   0,   0,   0,     0,   0,   0,    0,   0,
+};
+
+BYTE keyboard_lowerMap[128] =
+{
+      0,  27, '1', '2',  '3',  '4', '5', '6',  '7', '8',
+	'9', '0', '-', '=', '\b', '\t', 'q', 'w',  'e', 'r',
+	't', 'y', 'u', 'i',  'o',  'p', '[', ']', '\n',   0,
+	'a', 's', 'd', 'f',  'g',  'h', 'j', 'k',  'l', ';',
+   '\'', '`',  0, '\\',  'z',  'x', 'c', 'v',  'b', 'n',	
+	'm', ',', '.', '/',   0,   '*',   0, ' ',    0,   0,
+      0,   0,   0,   0,   0,     0,   0,   0,    0,   0,
+      0,   0,   0,   0,	'-',     0,   0,   0,  '+',   0,
+	  0,   0,   0,   0,   0,     0,   0,   0,    0,   0,
+};
 
 struct IO_HANDLE * keyboard_open( struct IO_HANDLE * handle, char * filename )
 {
@@ -70,37 +61,95 @@ int keyboard_close( struct IO_HANDLE * handle )
 {
 	return SUCCESS;
 }
+/*
+int keyboard_wait( void )
+{
+	while( TRUE )
+	{
+		if( inportb( KEYBOARD_DATAREG ) == KEYBOARD_ACK )
+			break;
+		process_yield();
+	}
+	return SUCCESS;
+}
 
+int keyboard_setLED( BYTE led )
+{
+	outportb( KEYBOARD_DATAREG, 0xED );
+	
+	keyboard_wait();
+	
+	outportb( KEYBOARD_DATAREG, led );
+}
+*/
 struct PROCESS_INFO * keyboard_handler( struct PROCESS_INFO * process )
 {
 	BYTE scancode;
 	
 	scancode = inportb( KEYBOARD_DATAREG );
 	
-	if( scancode & 0x80 )
+	switch( scancode )
 	{
-		// key release
+		case KEYBORAD_KEY_LSHIFT:
+			keyboard_shift = TRUE;
+			break;
+		case KEYBORAD_KEY_RSHIFT:
+			keyboard_shift = TRUE;
+			break;
+		case KEYBORAD_KEY_CAPS:
+			if( keyboard_caps )
+				keyboard_caps = FALSE;
+			else
+				keyboard_caps = TRUE;
+			//keyboard_setLED( KEYBOARD_LED_CAPS );
+			break;
+		case KEYBORAD_KEY_NUM:
+			if( keyboard_num )
+				keyboard_num = FALSE;
+			else
+				keyboard_num = TRUE;
+			//keyboard_setLED( KEYBOARD_LED_NUM );
+			break;
+		case KEYBORAD_KEY_SCROLL:
+			if( keyboard_scroll )
+				keyboard_scroll = FALSE;
+			else
+				keyboard_scroll = TRUE;
+			//keyboard_setLED( KEYBOARD_LED_SCROLL );
+			break;
+		case KEYBORAD_KEY_F1:
+			vfs_control( keyboard_output, CONSOLE_SETACTIVE, CONSOLE_1 );
+			break;
+		case KEYBORAD_KEY_F2:
+			vfs_control( keyboard_output, CONSOLE_SETACTIVE, CONSOLE_2 );
+			break;
+		case KEYBORAD_KEY_F3:
+			vfs_control( keyboard_output, CONSOLE_SETACTIVE, CONSOLE_3 );
+			break;
+		case KEYBORAD_KEY_F4:
+			vfs_control( keyboard_output, CONSOLE_SETACTIVE, CONSOLE_4 );
+			break;
+		case 0xAA:
+			keyboard_shift = FALSE;
+			break;
+		default:
+			if( !(scancode & 0x80) )
+			{
+				BYTE b;
+			
+				b = (keyboard_shift||keyboard_caps ? keyboard_upperMap : keyboard_lowerMap )[scancode];
+					
+				vfs_control( keyboard_output, CONSOLE_SENDCHAR, b );
+			}
+			break;
 	}
-	else
-	{
-		// if an F1 to F4 key has been pressed
-		if( scancode >= 0x3B && scancode <= 0x3E )
-		{
-			// set the appropriate console active
-			vfs_control( keyboard_output, CONSOLE_SETACTIVE, scancode - 0x3A );
-		} else {
-			vfs_control( keyboard_output, CONSOLE_SENDCHAR, keymap[scancode] );
-		}
 
-	}
-	
 	return process;
 }
 
 int keyboard_init( void )
 {
 	struct IO_CALLTABLE * calltable;
-	
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open    = keyboard_open;
 	calltable->close   = keyboard_close;
@@ -109,13 +158,19 @@ int keyboard_init( void )
 	calltable->seek    = NULL;
 	calltable->control = NULL;
 	
+	keyboard_shift  = FALSE;
+	keyboard_caps   = FALSE;
+	keyboard_num    = FALSE;
+	keyboard_scroll = FALSE;
+	//keyboard_setLED( 0 );
+	
 	keyboard_output = vfs_open( "/device/console0", VFS_MODE_WRITE );
 	if( keyboard_output == NULL )
 		return FAIL;
-	// add the keyboard device
-	io_add( "keyboard1", calltable, IO_CHAR );
 	// setup the keyboard handler
 	interrupt_enable( IRQ1, keyboard_handler, SUPERVISOR );
+	// add the keyboard device
+	io_add( "keyboard1", calltable, IO_CHAR );
 	// return success
 	return SUCCESS;
 }
