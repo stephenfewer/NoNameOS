@@ -122,7 +122,11 @@ struct PROCESS_INFO * paging_pageFaultHandler( struct PROCESS_INFO * process )
 	process_printStack( process->kstack );
 	// try to kill the offending process
 	if( process_kill( process->id ) == SUCCESS )
+	{
+		scheduler_printProcessTable();
+		while(TRUE);
 		return scheduler_select( process );
+	}
 	// if we failed to kill the process we dont need to perform a context switch
 	return process;
 }

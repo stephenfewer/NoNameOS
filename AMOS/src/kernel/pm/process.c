@@ -43,8 +43,7 @@ int process_destroy( struct PROCESS_INFO * process )
 {
 	int i;
 
-	//kernel_printf("destroying process %d... ", process->id );
-
+	kernel_printf("destroying process %d... ", process->id );
 	// close any open handles
 	for( i=0 ; i<PROCESS_MAXHANDLES ; i++ )
 	{
@@ -57,21 +56,20 @@ int process_destroy( struct PROCESS_INFO * process )
 	// destroy the user & kernel stacks, user heap, ...
 	
 	// destroy the process info structure
-	//mm_free( process );
+	mm_free( process );
 	
 	//process_total--;
-	//kernel_printf("Done.\n" );
 
 	return SUCCESS;	
 }
 
-struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
+struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entrypoint, int size )
 {
 	struct PROCESS_INFO * process;
 	void * physicalAddress;
 	int i;
 	// create a new process info structure
-	process = mm_malloc( sizeof( struct PROCESS_INFO ) );
+	process = (struct PROCESS_INFO *)mm_malloc( sizeof( struct PROCESS_INFO ) );
 	if( process == NULL )
 		return NULL;
 	// assign a process id
@@ -82,9 +80,9 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 	for( i=0 ; i<PROCESS_MAXHANDLES ; i++ )
 		process->handles[i] = NULL;
 	// setup the initial user heap, mm_morecore() will take care of the rest
-	process->heap.heap_base = PROCESS_USER_HEAP_ADDRESS;
+	process->heap.heap_base   = PROCESS_USER_HEAP_ADDRESS;
 	process->heap.heap_bottom = NULL;
-	process->heap.heap_top = NULL;
+	process->heap.heap_top    = NULL;
 	// give it an initial tick slice
 	process->tick_slice = PROCESS_TICKS_NORMAL;
 	// set the initial process state
@@ -93,7 +91,6 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 	paging_createDirectory( process );
 	// map in the kernel including its heap and bottom 4 megs
 	paging_mapKernel( process );
-
 	// create the user stack
 	for( i=0 ; i<(PROCESS_STACKSIZE/PAGE_SIZE) ; i++ )
 	{
@@ -105,21 +102,25 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 		//  map in the stack to the process's address space
 		paging_setPageTableEntry( process, PROCESS_USER_STACK_ADDRESS+(i*PAGE_SIZE), physicalAddress, TRUE );
 	}
-	
 	// copy the code segment from kernel space to user space
 	for( i=0 ; i<(size/PAGE_SIZE)+1 ; i++ )
 	{
+		void * tempAddress = (void *)((DWORD)0xF0000000+(i*PAGE_SIZE));
+		
 		void * linearAddress = (void *)((DWORD)PROCESS_USER_CODE_ADDRESS+(i*PAGE_SIZE));
 		
 		physicalAddress = physical_pageAlloc();
+		if( physicalAddress == NULL )
+			kernel_panic( NULL, "No physical memory for process creation." );
+
+		paging_setPageTableEntry( parent, tempAddress, physicalAddress, TRUE );
 		
-		paging_setPageTableEntry( &kernel_process, linearAddress, physicalAddress, TRUE );
-		memcpy( linearAddress, entrypoint+(i*PAGE_SIZE), PAGE_SIZE );
-		paging_setPageTableEntry( &kernel_process, linearAddress, NULL, FALSE );
+		memcpy( tempAddress, entrypoint+(i*PAGE_SIZE), PAGE_SIZE );
+		
+		paging_setPageTableEntry( parent, tempAddress, NULL, FALSE );
 		
 		paging_setPageTableEntry( process, linearAddress, physicalAddress, TRUE );
 	}
-	
 	// create the process's initial kernel stack so we can perform a context switch
 	process->kstack_base = (struct PROCESS_STACK *)kstacks[ process->id ];
 	// advance the pointer to the top of the stack, less the size of the stack structure, so we can begin filling it in
@@ -146,14 +147,21 @@ struct PROCESS_INFO * process_create( void (*entrypoint)(), int size )
 	return process;
 }
 
-int process_spawn( char * filename, char * console_path )
+int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console_path )
 {
 	struct VFS_HANDLE   * console;
 	struct PROCESS_INFO * process;
 	struct VFS_HANDLE   * handle;
 	BYTE * buffer;
 	int size;
+	int test = FALSE;
 
+	if( strcmp( filename, "/fat/BOOT/TEST.BIN" ) == 0 )
+	{
+		kernel_printf("spawning TEST.BIN: filename=%s console_path=%s\n",filename,console_path);	
+		test = TRUE;
+	}
+	
 	console = vfs_open( console_path, VFS_MODE_READWRITE );
 	if( console == NULL )
 		return FAIL;
@@ -168,7 +176,6 @@ int process_spawn( char * filename, char * console_path )
 	// determine what type: elf/coff/flat/...
 
 	size = vfs_seek( handle, 0, VFS_SEEK_END );
-	
 
 	// alloc a page extra for safety, will fix this up later
 	buffer = (BYTE *)mm_malloc( size + PAGE_SIZE );
@@ -183,8 +190,8 @@ int process_spawn( char * filename, char * console_path )
 	}
 	//if( (i=elf_load( handle )) < 0 )
 	//	kernel_printf("Failed to load ELF [%d]: %s\n", i, filename );
-	
-	process = process_create( (void *)buffer, size );
+
+	process = process_create( parent, (void *)buffer, size );
 	if( process == NULL )
 	{
 		vfs_close( console );
@@ -202,7 +209,7 @@ int process_spawn( char * filename, char * console_path )
 	
 	// add the process to the scheduler
 	scheduler_addProcess( process );
-	
+
 	// return success
 	return SUCCESS;
 }

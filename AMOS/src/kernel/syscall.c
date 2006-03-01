@@ -14,12 +14,13 @@
 #include <kernel/syscall.h>
 #include <kernel/mm/mm.h>
 #include <kernel/pm/scheduler.h>
+#include <kernel/pm/sync/mutex.h>
 #include <kernel/fs/vfs.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <lib/string.h>
 
-static volatile BOOL syscall_switch = FALSE;
+//static volatile BOOL syscall_switch = FALSE;
 struct SYSCALL syscall_table[SYSCALL_MAXCALLS];
 
 int syscall_open( struct PROCESS_INFO * process, char * filename, int mode )
@@ -90,13 +91,13 @@ void * syscall_morecore( struct PROCESS_INFO * process, DWORD size )
 
 int syscall_exit( struct PROCESS_INFO * process )
 {
-	syscall_switch = TRUE;
+	//syscall_switch = TRUE;
 	return process_kill( process->id );
 }
 
 int syscall_spawn( struct PROCESS_INFO * process, char * filename, char * console_path )
 {
-	return process_spawn( filename, console_path );
+	return process_spawn( process, filename, console_path );
 }
 
 int syscall_sleep( struct PROCESS_INFO * process )
@@ -113,9 +114,8 @@ struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 {
 	int ret = FAIL;
 	int index = (int)process->kstack->eax;
-	// save the state of this process's kernel stack as it will get messed up 
-	// during any calls to process_yield()
-	struct PROCESS_STACK * kstack = mm_malloc( sizeof(struct PROCESS_STACK) );
+	// save the state of this process's kernel stack as it will get messed up during any calls to process_yield()
+	struct PROCESS_STACK * kstack = (struct PROCESS_STACK *)mm_malloc( sizeof(struct PROCESS_STACK) );
 	memcpy( kstack, process->kstack, sizeof(struct PROCESS_STACK) );
 	// make sure our syscall index into the syscall table is in range
 	if( index < SYSCALL_MININDEX || index > SYSCALL_MAXINDEX )
@@ -141,20 +141,21 @@ struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 				break;
 		}
 	}
-	if( syscall_switch == FALSE )
-	{
+	
+	//if( syscall_switch == FALSE )
+	//{
 		// restore the kernel stack for the jump back to user land
 		memcpy( process->kstack, kstack, sizeof(struct PROCESS_STACK) );
-		// free the memory we malloc'd
-		mm_free( kstack );
 		// set return value
 		process->kstack->eax = (DWORD)ret;
-	} 
-	else
-	{
-		syscall_switch = FALSE;
-		process = scheduler_select( process );
-	}
+	//} 
+	//else
+	//{
+	//	syscall_switch = FALSE;
+	//	process = scheduler_select( process );
+	//}
+	// free the memory we malloc'd
+	mm_free( kstack );
 	// return to caller
 	return process;
 }

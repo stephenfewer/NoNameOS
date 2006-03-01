@@ -115,10 +115,10 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 
 	kernel_printf( "\nWelcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
 
-	process_spawn( "/fat/BOOT/TEST.BIN", "/device/console1" );
-	process_spawn( "/fat/BOOT/SHELL.BIN", "/device/console2" );
-	process_spawn( "/fat/BOOT/SHELL.BIN", "/device/console3" );
-	process_spawn( "/fat/BOOT/SHELL.BIN", "/device/console4" );
+	process_spawn( &kernel_process, "/fat/BOOT/SHELL.BIN", "/device/console1" );
+	process_spawn( &kernel_process, "/fat/BOOT/SHELL.BIN", "/device/console2" );
+	process_spawn( &kernel_process, "/fat/BOOT/SHELL.BIN", "/device/console3" );
+	process_spawn( &kernel_process, "/fat/BOOT/SHELL.BIN", "/device/console4" );
 
 	// we should really use sleep() but its not working yet :)
 	while( TRUE )

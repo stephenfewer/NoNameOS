@@ -86,14 +86,16 @@ void console_setCursor( struct CONSOLE * console, int x, int y )
 
 void console_putChar( struct CONSOLE * console, int x, int y, BYTE c )
 {
-    console->data->mem[ (x + (y*CONSOLE_COLUMNS)) * 2 ] = c;
-    console->data->mem[ ((x + (y*CONSOLE_COLUMNS)) * 2) + 1 ] = console->data->attributes;
+	int index = ((x + (y*CONSOLE_COLUMNS)) * 2);
+	
+    console->data->mem[ index ] = c;
+    console->data->mem[ index + 1 ] = console->data->attributes;
     
     if( console->data->active == TRUE )
     {
     	BYTE * mem = (BYTE *)VIDEOMEM_BASE;
-    	mem[ (x + (y*CONSOLE_COLUMNS)) * 2 ] = c;
-    	mem[ ((x + (y*CONSOLE_COLUMNS)) * 2) + 1 ] = console->data->attributes;
+    	mem[ index ] = c;
+    	mem[ index + 1 ] = console->data->attributes;
     }
 }
 
@@ -266,8 +268,7 @@ struct CONSOLE * console_create( char * name, int number )
 struct IO_HANDLE * console_open( struct IO_HANDLE * handle, char * filename )
 {
 	struct CONSOLE * console;
-	
-	handle->data_arg = CONSOLE_PTR;
+
 	// associate the correct virtual console with the handle
 	if( strcmp( filename, "console0" ) == 0 )
 	{
@@ -290,7 +291,7 @@ struct IO_HANDLE * console_open( struct IO_HANDLE * handle, char * filename )
 			mm_free( console );
 			return NULL;
 		}
-		
+
 		console->buffer = (struct CONSOLE_BUFFER *)mm_malloc( sizeof(struct CONSOLE_BUFFER) );
 		memset( console->buffer, 0x00, sizeof(struct CONSOLE_BUFFER) );
 		
@@ -298,6 +299,7 @@ struct IO_HANDLE * console_open( struct IO_HANDLE * handle, char * filename )
 		
 		console_addBuffer( console->buffer );
 		
+		handle->data_arg = CONSOLE_PTR;
 		handle->data_ptr = console;
 	}
 	// return the virtual console handle
@@ -454,13 +456,12 @@ int console_init( void )
     struct IO_CALLTABLE * calltable;
 	// setup the calltable for this driver
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
-	calltable->open = console_open;
-	calltable->close = console_close;
-	calltable->read = console_read;
-	calltable->write = console_write;
-	calltable->seek = NULL;
+	calltable->open    = console_open;
+	calltable->close   = console_close;
+	calltable->read    = console_read;
+	calltable->write   = console_write;
+	calltable->seek    = NULL;
 	calltable->control = console_control;
-
 	// create the first virtual console
 	console1 = console_create( "console1", CONSOLE_1 );
 	io_add( console1->data->name, calltable, IO_CHAR );
@@ -477,6 +478,5 @@ int console_init( void )
 	console_activate( CONSOLE_1 );
 	// add the currently active console
 	io_add( "console0", calltable, IO_CHAR );
-	
 	return SUCCESS;
 }

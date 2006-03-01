@@ -102,11 +102,11 @@ int keyboard_init( void )
 	struct IO_CALLTABLE * calltable;
 	
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
-	calltable->open = keyboard_open;
-	calltable->close = keyboard_close;
-	calltable->read = NULL;
-	calltable->write = NULL;
-	calltable->seek = NULL;
+	calltable->open    = keyboard_open;
+	calltable->close   = keyboard_close;
+	calltable->read    = NULL;
+	calltable->write   = NULL;
+	calltable->seek    = NULL;
 	calltable->control = NULL;
 	
 	keyboard_output = vfs_open( "/device/console0", VFS_MODE_WRITE );

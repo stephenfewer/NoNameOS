@@ -29,7 +29,7 @@ struct SEGMENTATION_TSS * scheduler_tss;
 
 struct SCHEDULER_PROCESS_TABLE scheduler_processTable;
 
-//struct MUTEX * scheduler_handlerLock;
+struct MUTEX * scheduler_handlerLock;
 struct MUTEX * scheduler_processTableLock;
 
 struct PROCESS_INFO * scheduler_findProcesss( int id )
@@ -59,6 +59,7 @@ int scheduler_setProcess( int id, int state, int ticks )
 		mutex_unlock( scheduler_processTableLock );
 		return FAIL;
 	}
+	
 	process->state = state;
 	
 	process->tick_slice = ticks;
@@ -85,6 +86,7 @@ struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * process )
 		scheduler_processTable.bottom = process;
 	else
 		scheduler_processTable.top->next = process;
+
 	scheduler_processTable.top = process;
 
 	scheduler_processTable.top->next = NULL;
@@ -92,7 +94,6 @@ struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * process )
 	scheduler_processTable.total++;
 	
 	mutex_unlock( scheduler_processTableLock );
-	
 	return process;
 }
 
@@ -157,6 +158,10 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 	// test if we found another process to run || processNext->id == KERNEL_PID
 	if( processNext != scheduler_processTable.current )
 	{
+		if( processNext->state == TERMINATED )
+		{
+			kernel_printf("processNext TERMINATED! %d\n", processNext->id );
+		}
 		// set the current process to a READY state
 		scheduler_processTable.current->state = READY;
 		// we could set this higher/lower depending on its priority: LOW, NORMAL, HIGH
@@ -176,7 +181,7 @@ struct PROCESS_INFO * scheduler_handler( struct PROCESS_INFO * process )
 {
 	struct PROCESS_INFO * newProcess;
 	// lock this critical section so we are guaranteed mutual exclusion
-	//mutex_lock( scheduler_handlerLock );
+	mutex_lock( scheduler_handlerLock );
 	// increment our tick counter
 	scheduler_ticks++;
 	// decrement the current processes time slice by one
@@ -187,7 +192,7 @@ struct PROCESS_INFO * scheduler_handler( struct PROCESS_INFO * process )
 	else
 		newProcess = process;
 	// unlock the critical section
-	//mutex_unlock( scheduler_handlerLock );
+	mutex_unlock( scheduler_handlerLock );
 	// return TRUE if we are to perform a context switch or FALSE if not
 	return newProcess;
 }
@@ -200,7 +205,7 @@ void scheduler_init()
 	scheduler_processTable.top = NULL;
 	scheduler_processTable.bottom = NULL;
 	// create the lock
-	//scheduler_handlerLock = mutex_create();
+	scheduler_handlerLock = mutex_create();
 	scheduler_processTableLock = mutex_create();
 	// set the initial values we need for the kernels process
 	kernel_process.tick_slice = PROCESS_TICKS_LOW;

@@ -57,8 +57,8 @@ isr_common:
 	je noswitch
 _contextswitch:							;// perform a context switch
 	mov dr0, eax						;// DR0 = the new current process
- ;//   cmp dword [eax+8], USER				;// if( process->privilege == USER )
- ;//   jne notss
+    cmp dword [eax+8], USER				;// if( process->privilege == USER )
+    jne notss
     mov ebx, [_scheduler_tss]			;// EBX = &scheduler_tss
     mov word [ebx+8], KERNEL_DATA_SEL	;// scheduler_tss->ss0 = KERNEL_DATA_SEL;
     mov ecx, [eax+28]					;// ECX = process->kstack_base

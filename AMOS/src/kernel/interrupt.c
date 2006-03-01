@@ -71,8 +71,6 @@ char * interrupt_messages[] =
     "Reserved"
 };
 
-//extern volatile DWORD scheduler_switch;
-
 struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
 {
 	struct PROCESS_INFO * newProcess;
@@ -114,7 +112,7 @@ struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
         outportb( INTERRUPT_PIC_2, INTERRUPT_EOI );
 	else if( process->kstack->intnumber >= IRQ0 && process->kstack->intnumber <= IRQ15 )
 		outportb( INTERRUPT_PIC_1, INTERRUPT_EOI );
-
+	
 	return newProcess;
 }
 

@@ -101,7 +101,7 @@ display_args(argc,argv);
 
 static void shell_spawn( int argc, char **argv )
 {
-	char console_path[256];
+	//char console_path[256];
 	//int wait = TRUE;
 	int pid;
 	
@@ -221,7 +221,7 @@ void shell_init( int argc, char **argv )
 int realmain( int argc, char **argv )
 {
 	shell_init( argc, argv );
-	char c;
+	//char c;
 
 	tinysh_set_prompt( "AMOS:>" );
 	

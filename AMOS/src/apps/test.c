@@ -12,6 +12,12 @@ void main( void )
 
 int realmain( void )
 {
-	printf( "hello from test.bin\n" );
+	int i;
+	while(TRUE)
+	{
+		printf( "test " );
+		
+		for(i=0;i<99999999;i++);
+	}
 	return 0;
 }

@@ -79,7 +79,7 @@ void process_printStack( struct PROCESS_STACK * );
 
 int process_destroy( struct PROCESS_INFO * );
 
-int process_spawn( char *, char * );
+int process_spawn( struct PROCESS_INFO *, char *, char * );
 
 int process_kill( int );
 

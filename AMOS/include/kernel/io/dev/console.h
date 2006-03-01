@@ -48,7 +48,7 @@ struct CONSOLE_BUFFER
 {
 	int number;
 
-	volatile BYTE * in_kbuff;	
+	BYTE * in_kbuff;	
 	volatile int in_buffIndex;
 	volatile int in_buffSize;
 	volatile BYTE in_breakByte;
@@ -61,7 +61,7 @@ struct CONSOLE_DATA
 {
 	char * name;
 	int number;
-	BYTE active;
+	volatile BYTE active;
 	BYTE attributes;
 	BYTE * mem;
 	int x;
