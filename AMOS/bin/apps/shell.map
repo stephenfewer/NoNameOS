@@ -13,11 +13,11 @@ Linker script and memory map
  *(.text)
  .text          0x10000000      0x5f0 main.o
                 0x1000001f                _tinysh_char_out
-                0x100004f2                _shell_init
-                0x10000472                _shell_args
-                0x10000592                _realmain
+                0x100004f6                _shell_init
+                0x10000476                _shell_args
+                0x10000596                _realmain
                 0x10000000                _main
-                0x1000043e                _shell_exit
+                0x10000442                _shell_exit
  .text          0x100005f0      0xea0 tinysh.o
                 0x100013f4                _tinysh_atoxi
                 0x100007a0                _strstart
