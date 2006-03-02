@@ -16,10 +16,13 @@
 #include <kernel/mm/segmentation.h>
 #include <kernel/mm/paging.h>
 #include <kernel/pm/process.h>
+#include <kernel/pm/sync/mutex.h>
 #include <kernel/kernel.h>
 #include <lib/string.h>
 
 extern struct PROCESS_INFO kernel_process;
+
+struct MUTEX * mm_mallocLock;
 
 int mm_init( DWORD memUpper )
 {	
@@ -36,6 +39,9 @@ int mm_init( DWORD memUpper )
 	kernel_process.heap.heap_base   = KERNEL_HEAP_VADDRESS;
 	kernel_process.heap.heap_top    = NULL;
 	kernel_process.heap.heap_bottom = NULL;
+	
+	// create the lock that the kernel mm_malloc/mm_free will use
+	mm_mallocLock = mutex_create();
 	
 	// from here on in we can use mm_malloc() & mm_free()
 	return SUCCESS;
@@ -56,11 +62,12 @@ void * mm_morecore( struct PROCESS_INFO * process, DWORD size )
 	{
 		// alloc a physical page in mamory
 		void * physicalAddress = physical_pageAlloc();
-		if( physicalAddress == 0L )
+		// return NULL if we are are out of physical memory
+		if( physicalAddress == NULL )
 			return NULL;
 		// map it onto the end of the processes heap
 		paging_setPageTableEntry( process, process->heap.heap_top, physicalAddress, TRUE );
-		// clear it for safety
+		// clear it for safety, relativly expensive operation
 		memset( process->heap.heap_top, 0x00, PAGE_SIZE );
 	}
 	// return the start address of the memory we allocated to the heap
@@ -70,33 +77,36 @@ void * mm_morecore( struct PROCESS_INFO * process, DWORD size )
 // free a previously allocated item from the kernel heap
 void mm_free( void * address )
 {
-	struct MM_HEAPITEM * tmp_item;
-	struct MM_HEAPITEM * item = (struct MM_HEAPITEM *)( address - sizeof(struct MM_HEAPITEM) );
+	struct MM_HEAPITEM * tmp_item, * item;
 	// sanity check
 	if( address == NULL )
 		return;
+	// lock this critical section as we are about to modify the kernels heap
+	mutex_lock( mm_mallocLock );
+	// set the item to remove
+	item = (struct MM_HEAPITEM *)( address - sizeof(struct MM_HEAPITEM) );
 	// find it
 	for( tmp_item=kernel_process.heap.heap_bottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
 	{
 		if( tmp_item == item )
-			break;
-	}
-	// not found
-	if( tmp_item == NULL )
-	{
-		return;
-	}
-	// free it
-	tmp_item->used = FALSE;
-	// coalesce any free adjacent items
-	for( tmp_item=kernel_process.heap.heap_bottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
-	{
-		while( !tmp_item->used && tmp_item->next!=NULL && !tmp_item->next->used )
 		{
-			tmp_item->size += sizeof(struct MM_HEAPITEM) + tmp_item->next->size;
-			tmp_item->next = tmp_item->next->next;
+			// free it
+			tmp_item->used = FALSE;
+			// coalesce any adjacent free items
+			for( tmp_item=kernel_process.heap.heap_bottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
+			{
+				while( !tmp_item->used && tmp_item->next!=NULL && !tmp_item->next->used )
+				{
+					tmp_item->size += sizeof(struct MM_HEAPITEM) + tmp_item->next->size;
+					tmp_item->next = tmp_item->next->next;
+				}
+			}
+			// break and return as we are finished
+			break;
 		}
 	}
+	// unlock this critical section
+	mutex_unlock( mm_mallocLock );
 }
 
 // allocates an arbiturary size of memory (via first fit) from the kernel heap
@@ -106,9 +116,9 @@ void * mm_malloc( DWORD size )
 	int total_size;
 	// sanity check
 	if( size == 0 )
-	{
 		return NULL;
-	}
+	// lock this critical section as we are modifying the kernel heap
+	mutex_lock( mm_mallocLock );
 	// round up by 8 bytes and add header size
 	total_size = ( ( size + 7 ) & ~7 ) + sizeof(struct MM_HEAPITEM);
 	// search for first fit
@@ -135,7 +145,10 @@ void * mm_malloc( DWORD size )
 		new_item = mm_morecore( &kernel_process, total_size );
 		if( new_item == NULL )
 		{
-			return NULL;	
+			// unlock the critical section
+			mutex_unlock( mm_mallocLock );
+			// return NULL as we are out of physical memory!
+			return NULL;
 		}
 		// create an empty item for the extra space mm_morecore() gave us
 		// we can calculate the size because morecore() allocates space that is page aligned
@@ -148,6 +161,8 @@ void * mm_malloc( DWORD size )
 		new_item->used = TRUE;
 		new_item->next = tmp_item;
 	}
+	// unlock our critical section
+	mutex_unlock( mm_mallocLock );
 	// return the newly allocated memory location
 	return (void *)( (int)new_item + sizeof(struct MM_HEAPITEM) );
 }

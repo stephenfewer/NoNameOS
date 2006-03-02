@@ -158,15 +158,15 @@ struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 	return process;
 }
 
-BOOL syscall_add( int index, void * function, int parameters )
+int syscall_add( int index, void * function, int parameters )
 {
 	// make sure our syscall index into the syscall table is in range
 	if( index < SYSCALL_MININDEX || index > SYSCALL_MAXINDEX )
-		return FALSE;
+		return FAIL;
 	// set the function & its number of parameters
 	syscall_table[ index ].function.function = function;
 	syscall_table[ index ].parameters = parameters;
-	return TRUE;
+	return SUCCESS;
 }
 
 int syscall_init( void )
