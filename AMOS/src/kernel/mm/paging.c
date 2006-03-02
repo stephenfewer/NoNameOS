@@ -39,18 +39,15 @@ struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( struct PAGE_DIRECTOR
 
 void paging_clearDirectory( struct PROCESS_INFO * p )
 {
-	int i=0;
-	struct PAGE_DIRECTORY * pd;
+	int i;
 	
-	memset( (void *)p->page_dir, 0x00, sizeof(struct PAGE_DIRECTORY) );
-	
-	pd = p->page_dir;
+	memset( p->page_dir, 0x00, sizeof(struct PAGE_DIRECTORY) );
 	
 	for( i=0 ; i<PAGE_ENTRYS; i++ )
 	{
-		struct PAGE_DIRECTORY_ENTRY * pde = &pd->entry[i];
+		struct PAGE_DIRECTORY_ENTRY * pde = &p->page_dir->entry[i];
 		pde->present   = FALSE;
-		pde->readwrite = READWRITE;
+		pde->readwrite = READONLY;
 		pde->user      = p->privilege;
 	}
 }
@@ -140,17 +137,17 @@ int paging_createDirectory( struct PROCESS_INFO * p )
 	// allocate some physical memory for the page directory
 	p->page_dir = (struct PAGE_DIRECTORY *)physical_pageAlloc();
 	if( p->page_dir == NULL )
-		return FALSE;
+		return FAIL;
 	// clear out the page directory
 	paging_clearDirectory( p );
 	// identity map the physical address of the page directory
 	paging_setPageTableEntry( p, p->page_dir, p->page_dir, TRUE );
 	// return success
-	return TRUE;
+	return SUCCESS;
 }
 
-// not tested but will be used to destroy a processes page directory when it terminates
-void paging_destroyDirectory( struct PAGE_DIRECTORY * pd )
+// used to destroy a processes address space when it terminates
+void paging_destroyDirectory( struct PROCESS_INFO * p )
 {
 	struct PAGE_DIRECTORY_ENTRY * pde;
 	struct PAGE_TABLE * pt;
@@ -158,10 +155,10 @@ void paging_destroyDirectory( struct PAGE_DIRECTORY * pd )
 	void * physicalAddress;
 	int i, x;
 	// free up all the page tables we created but we dont free bottom 4 megs or kernel (anything above 3GB)
-	// we also free the physical memory the page table entrys map
-	for( i=1 ; i<768; i++ )
+	// we also free the physical memory the page table entrys map to
+	for( i=1 ; i<((DWORD)KERNEL_CODE_VADDRESS/(PAGE_SIZE*PAGE_ENTRYS)) ; i++ )
 	{
-		pde = &pd->entry[i];
+		pde = &p->page_dir->entry[i];
 		pt = (struct PAGE_TABLE *)( TABLE_SHIFT_L(pde->address) );
 		if( pt != NULL )
 		{
@@ -179,7 +176,7 @@ void paging_destroyDirectory( struct PAGE_DIRECTORY * pd )
 		}
 	}
 	// free the page directory itself
-	physical_pageFree( pd );
+	physical_pageFree( p->page_dir );
 }
 
 // map the kernel's virtual address to its physical memory location into pd
@@ -218,7 +215,7 @@ int paging_init( void )
 	void * linearAddress;
 
 	// create the kernels page directory
-	if( !paging_createDirectory( &kernel_process ) )
+	if( paging_createDirectory( &kernel_process ) == FAIL )
 		kernel_panic( NULL, "Failed to create the kernels page directory." );
 
 	paging_setPageTableEntry( &kernel_process, DMA_PAGE_VADDRESS, DMA_PAGE_VADDRESS, TRUE );

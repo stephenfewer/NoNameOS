@@ -63,7 +63,6 @@ struct PROCESS_INFO
 	struct PROCESS_STACK * kstack;
 	struct PAGE_DIRECTORY * page_dir;
     unsigned int privilege;
-	void * ustack_base;
 	void * kstack_base;
     // <-
 	int id;

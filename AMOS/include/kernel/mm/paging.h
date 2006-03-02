@@ -84,7 +84,7 @@ void paging_setPageTableEntry( struct PROCESS_INFO *, void *, void *, BOOL );
 
 int paging_createDirectory( struct PROCESS_INFO * );
 
-void paging_destroyDirectory( struct PAGE_DIRECTORY * );
+void paging_destroyDirectory( struct PROCESS_INFO * );
 
 void paging_mapKernel( struct PROCESS_INFO * );
 

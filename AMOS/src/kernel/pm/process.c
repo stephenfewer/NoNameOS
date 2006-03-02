@@ -49,15 +49,13 @@ int process_destroy( struct PROCESS_INFO * process )
 		if( process->handles[i] != NULL )
 			vfs_close( process->handles[i] );
 	}
-	// destroy the process's page directory, inturn destroying the stack
-	//paging_destroyDirectory( process->page_dir );
-	
-	// destroy the kernel stack
+	// destroy the process's page directory, inturn destroying and freeing
+	// any user memory like the user code, user stack and user heap
+	paging_destroyDirectory( process );
+	// free the kernel stack
 	mm_free( process->kstack_base );
-	
-	// destroy the process info structure
+	// free the process info structure
 	mm_free( process );
-
 	return SUCCESS;	
 }
 
@@ -96,9 +94,9 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 	{
 		// allocate a page for the process's user stack
 		physicalAddress = physical_pageAlloc();
-		// save the physical user stack base address
-		if( i == 0 )
-			process->ustack_base = physicalAddress;
+		// TO-DO: exit gracefully
+		if( physicalAddress == NULL )
+			kernel_panic( NULL, "No physical memory for process creation." );
 		//  map in the stack to the process's address space
 		paging_setPageTableEntry( process, PROCESS_USER_STACK_VADDRESS+(i*PAGE_SIZE), physicalAddress, TRUE );
 	}
@@ -123,6 +121,8 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 	}
 	// create the process's initial kernel stack so we can perform a context switch
 	process->kstack_base = mm_malloc( PROCESS_STACKSIZE );
+	if( process->kstack_base == NULL )
+		kernel_panic( NULL, "No physical memory for process creation." );
 	// advance the pointer to the top of the stack, less the size of the stack structure, so we can begin filling it in
 	process->kstack = (struct PROCESS_STACK *)( process->kstack_base + PROCESS_STACKSIZE - sizeof(struct PROCESS_STACK) );
 	// clear the kernel stack structure
