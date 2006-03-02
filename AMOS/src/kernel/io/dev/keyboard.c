@@ -28,9 +28,9 @@ BYTE keyboard_scroll;
 
 BYTE keyboard_upperMap[256] =
 {
-      0,  27, '!', '"',  '£',  '$', '%', '^',  '&', '*', '(', ')', '_', '+', '\b', '\t', 'Q', 'W',  'E', 'R',
+      0,  27, '!', '"',  '€',  '$', '%', '^',  '&', '*', '(', ')', '_', '+', '\b', '\t', 'Q', 'W',  'E', 'R',
 	'T', 'Y', 'U', 'I',  'O',  'P', '{', '}', '\n',   0, 'A', 'S', 'D', 'F',  'G',  'H', 'J', 'K',  'L', ':',
-	 '¬', '~',  0, '|',  'Z',  'X', 'C', 'V',  'B', 'N', 'M', '<', '>', '?',   0,   '*',   0, ' ',    0,   0,
+	 '@', '~',  0, '~',  'Z',  'X', 'C', 'V',  'B', 'N', 'M', '<', '>', '?',   0,   '*',   0, ' ',    0,   0,
       0,   0,   0,   0,   0,     0,   0,   0,    0,   0,   0,   0,   0,   0, '-',     0,   0,   0,  '+',   0,
 	  0,   0,   0,   0,   0,     0,   0,   0,    0,   0,   0,   0,   0,   0,   0,     0,   0,   0,    0,   0,
 	  0,   0,   0,   0,   0,     0,   0,   0,    0,   0,   0,   0,   0,   0,   0,     0,   0,   0,    0,   0,
@@ -47,7 +47,7 @@ BYTE keyboard_lowerMap[256] =
 {
       0,  27, '1', '2',  '3',  '4', '5', '6',  '7', '8', '9', '0', '-', '=', '\b', '\t', 'q', 'w',  'e', 'r',
    	't', 'y', 'u', 'i',  'o',  'p', '[', ']', '\n',   0, 'a', 's', 'd', 'f',  'g',  'h', 'j', 'k',  'l', ';',
-   '\'', '`',  0, '\\',  'z',  'x', 'c', 'v',  'b', 'n', 'm', ',', '.', '/',   0,   '*',   0, ' ',    0,   0,
+   '\'', '`',  0, '#',  'z',  'x', 'c', 'v',  'b', 'n', 'm', ',', '.', '/',   0,   '*',   0, ' ',    0,   0,
       0,   0,   0,   0,   0,     0,   0,   0,    0,   0,   0,   0,   0,   0, '-',     0,   0,   0,  '+',   0,
 	  0,   0,   0,   0,   0,     0,   0,   0,    0,   0,   0,   0,   0,   0,   0,     0,   0,   0,    0,   0,
 	  0,   0,   0,   0,   0,     0,   0,   0,    0,   0,   0,   0,   0,   0,   0,     0,   0,   0,    0,   0,
@@ -101,9 +101,9 @@ struct PROCESS_INFO * keyboard_handler( struct PROCESS_INFO * process )
 		case KEYBORAD_KEY_LSHIFT:
 			keyboard_shift = TRUE;
 			break;
-		case KEYBORAD_KEY_RSHIFT:
-			keyboard_shift = TRUE;
-			break;
+		//case KEYBORAD_KEY_RSHIFT:
+		//	keyboard_shift = TRUE;
+		//	break;
 		case KEYBORAD_KEY_CAPS:
 			if( keyboard_caps )
 				keyboard_caps = FALSE;
@@ -145,9 +145,13 @@ struct PROCESS_INFO * keyboard_handler( struct PROCESS_INFO * process )
 			{
 				BYTE b;
 			
-				b = (keyboard_shift||keyboard_caps ? keyboard_upperMap : keyboard_lowerMap )[scancode];
-					
-				vfs_control( keyboard_output, CONSOLE_SENDCHAR, b );
+				if( keyboard_shift || (keyboard_caps && !keyboard_shift) )
+					b = keyboard_upperMap[ scancode ];
+				else
+					b = keyboard_lowerMap[ scancode ];
+				
+				if( b > 0 )
+					vfs_control( keyboard_output, CONSOLE_SENDCHAR, b );
 			}
 			break;
 	}

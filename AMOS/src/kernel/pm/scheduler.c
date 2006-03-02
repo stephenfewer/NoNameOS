@@ -49,11 +49,7 @@ int scheduler_setProcess( int id, int state, int ticks )
 	
 	mutex_lock( scheduler_processTableLock );
 	
-	if( id == PROCESS_CURRENT )
-		process = scheduler_processTable.current;
-	else
-		process = scheduler_findProcesss( id );
-		
+	process = scheduler_findProcesss( id );
 	if( process == NULL )
 	{
 		mutex_unlock( scheduler_processTableLock );
@@ -90,8 +86,6 @@ struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * process )
 	scheduler_processTable.top = process;
 
 	scheduler_processTable.top->next = NULL;
-
-	scheduler_processTable.total++;
 	
 	mutex_unlock( scheduler_processTableLock );
 	return process;
@@ -122,13 +116,12 @@ int scheduler_removeProcesss( struct PROCESS_INFO * process )
 			}
 		}
 	}
-	// decrement the total process count
-	scheduler_processTable.total--;
 	return SUCCESS;
 }
 
 struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 {
+	struct PROCESS_INFO * processCurrent = processNext;
 	// lock critical section
 	mutex_lock( scheduler_processTableLock );
 	// search for another process to run in a round robin fashion 
@@ -143,33 +136,31 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 		// if there is a terminated process in the queue, remove and destroy it
 		if( processNext->state == TERMINATED )
 		{
-			//struct PROCESS_INFO * next = processNext->next;
-			//if( scheduler_removeProcesss( processNext ) == SUCCESS )
-			//{	
-				//process_destroy( processNext );
-			//	processNext = next;
+			struct PROCESS_INFO * next = processNext->next;
+			if( scheduler_removeProcesss( processNext ) == SUCCESS )
+			{	
+				process_destroy( processNext );
+				processNext = next;
 				continue;
-			//}
+			}
 		}
 		// if we find one in a READY state we choose it
 		else if( processNext->state == READY )
 			break;
 	}
 	// test if we found another process to run || processNext->id == KERNEL_PID
-	if( processNext != scheduler_processTable.current )
+	if( processNext != processCurrent )
 	{
 		if( processNext->state == TERMINATED )
 		{
 			kernel_printf("processNext TERMINATED! %d\n", processNext->id );
 		}
 		// set the current process to a READY state
-		scheduler_processTable.current->state = READY;
+		processCurrent->state = READY;
 		// we could set this higher/lower depending on its priority: LOW, NORMAL, HIGH
 		processNext->tick_slice = PROCESS_TICKS_NORMAL;
 		// set the process's state to running as we are switching into this process
 		processNext->state = RUNNING;
-		// change the current process to the next one we just picked
-		scheduler_processTable.current = processNext;
 	}
 	// unlock our critical section
 	mutex_unlock( scheduler_processTableLock );
@@ -201,7 +192,6 @@ void scheduler_init()
 {
 	int interval;
 	// initilize the process table
-	scheduler_processTable.total = 0;
 	scheduler_processTable.top = NULL;
 	scheduler_processTable.bottom = NULL;
 	// create the lock
@@ -212,10 +202,10 @@ void scheduler_init()
 	// we set the state to ready so when the first context switch occurs it will be for the kernel process
 	kernel_process.state = READY;
 	// add it to the scheduler and set it as the current process
-	scheduler_processTable.current = scheduler_addProcess( &kernel_process );
+	scheduler_addProcess( &kernel_process );
 	// we store the systems current process in the unused DR0 debug register ...so nobody use it!!!
 	// with debugging enabled this would specify a breakpoint
-	ASM( "movl %%eax, %%dr0" :: "r" ( scheduler_processTable.current ) );
+	ASM( "movl %%eax, %%dr0" :: "r" ( &kernel_process ) );
 	// create a TSS for our software task switching (6.2)
 	scheduler_tss = (struct SEGMENTATION_TSS *)mm_malloc( sizeof(struct SEGMENTATION_TSS) );
 	// clear it

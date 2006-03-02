@@ -16,14 +16,14 @@ USER					equ	0x01
 
 EXTERN _interrupt_dispatcher, _scheduler_tss
 
-GLOBAL _disable_int, _disable_irqA, _disable_irqB, _contextswitch
+GLOBAL _disable_intA,_disable_intB, _disable_irqA, _disable_irqB, _contextswitch
 
 %IMACRO ISR_A 1
 GLOBAL	_isr%1
 ALIGN	4
 _isr%1:
-	push byte 0
-	push byte %1
+	push dword 0
+	push dword %1
 	jmp isr_common
 %ENDMACRO
 
@@ -31,7 +31,7 @@ _isr%1:
 GLOBAL	_isr%1
 ALIGN	4
 _isr%1:
-	push byte %1
+	push dword %1
 	jmp isr_common
 %ENDMACRO
 
@@ -49,7 +49,7 @@ isr_common:
     mov fs, ax
     mov gs, ax
     mov eax, dr0						;// EAX = the current process
-    mov [eax], esp						;// save the current processes esp
+    mov dword [eax], esp				;// save the current processes esp
     push eax
     call _interrupt_dispatcher			;// call out C interrupt_dispatcher() function
    	pop ebx								;// EBX = the process that just called the dispatcher
@@ -74,12 +74,16 @@ noswitch:
     pop es
     pop ds
     popad								;// pop all general purpose registers
-    add esp, 8							;// clean up the two bytes we pushed on via the _isrXX routine
+    add esp, 8							;// clean up the two dwords we pushed on via the _isrXX routine
     iret								;// iret back
 
-_disable_int:
+_disable_intA:
 	iret
 
+_disable_intB:
+	add esp, 4							;// clear the error code
+	iret
+	
 _disable_irqA:
 	mov al, 0x20
 	out 0x20, al

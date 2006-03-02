@@ -6,8 +6,6 @@
 
 struct SCHEDULER_PROCESS_TABLE
 {
-	int total;
-	struct PROCESS_INFO * current;
 	// the linked list of processes that defines the process table
 	struct PROCESS_INFO * top;
 	struct PROCESS_INFO * bottom;

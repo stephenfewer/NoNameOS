@@ -2,7 +2,6 @@
 #define _KERNEL_IO_DEV_KEYBOARD_H_
 
 #include <sys/types.h>
-#include <kernel/io/io.h>
 
 #define KEYBORAD_KEY_LCTRL		0x1D
 #define KEYBORAD_KEY_LALT		0x38

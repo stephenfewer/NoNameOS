@@ -19,6 +19,7 @@
 #include <kernel/io/io.h>
 #include <kernel/pm/scheduler.h>
 #include <kernel/pm/process.h>
+#include <kernel/pm/sync/mutex.h>
 #include <lib/string.h>
 
 // our currently active console will point to one of the four virtual consoles below
@@ -31,6 +32,7 @@ struct CONSOLE * console4;
 
 struct CONSOLE_BUFFER * console_bufferTop = NULL;
 struct CONSOLE_BUFFER * console_bufferBottom = NULL;
+struct MUTEX * console_bufferLock;
 
 struct CONSOLE_BUFFER * console_addBuffer( struct CONSOLE_BUFFER * buffer )
 {
@@ -354,9 +356,14 @@ int console_read( struct IO_HANDLE * handle, BYTE * ubuff, DWORD size  )
 
 	if(	buffer->in_kbuff == NULL )
 	{
+		char c;
 		buffer->in_buffIndex = 0;
 		buffer->in_buffSize = size;
-		buffer->in_kbuff = (BYTE *)mm_malloc( size );
+		
+		if( size == 1 )
+			buffer->in_kbuff = (BYTE *)&c;
+		else
+			buffer->in_kbuff = (BYTE *)mm_malloc( size );
 		
 		while( buffer->in_buffIndex < buffer->in_buffSize  )
 		{
@@ -365,14 +372,18 @@ int console_read( struct IO_HANDLE * handle, BYTE * ubuff, DWORD size  )
 			process_yield();
 		}
 		
+		if( buffer->in_buffIndex > size )
+			kernel_printf( "buffer->in_buffIndex > size\n" );
+		
 		memcpy( ubuff, buffer->in_kbuff, buffer->in_buffIndex );
 		
-		mm_free( buffer->in_kbuff );
+		if( size > 1 )
+			mm_free( buffer->in_kbuff );
 
 		buffer->in_kbuff = NULL;	
 		buffer->in_break = FALSE;
-		if( buffer->in_breakByte != 0x00 )
-			buffer->in_breakByte = 0x00;
+		buffer->in_breakByte = 0x00;
+		
 		// return bytes read to caller
 		return buffer->in_buffIndex;
 	}
@@ -401,7 +412,9 @@ int console_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 int console_putchBuffer( int number, BYTE byte )
 {
 	struct CONSOLE_BUFFER * buffer;
-// we should probably lock this with a mutex?!?
+
+	mutex_lock( console_bufferLock );
+	
 	for( buffer=console_bufferBottom ; buffer!=NULL ; buffer=buffer->next )
 	{
 		if( buffer->number == number )
@@ -418,6 +431,9 @@ int console_putchBuffer( int number, BYTE byte )
 				buffer->in_kbuff[ buffer->in_buffIndex++ ] = byte;				
 		}
 	}
+	
+	mutex_unlock( console_bufferLock );
+	
 	return SUCCESS;	
 }
 
@@ -466,7 +482,9 @@ int console_init( void )
 	calltable->read    = console_read;
 	calltable->write   = console_write;
 	calltable->seek    = NULL;
-	calltable->control = console_control;	
+	calltable->control = console_control;
+	// create the buffer lock
+	console_bufferLock = mutex_create();
 	// create the first virtual console
 	console1 = console_create( "console1", CONSOLE_1 );
 	io_add( console1->data->name, calltable, IO_CHAR );

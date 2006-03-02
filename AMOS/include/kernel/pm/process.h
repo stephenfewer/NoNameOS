@@ -5,19 +5,17 @@
 #include <kernel/fs/vfs.h>
 #include <kernel/mm/paging.h>
 
-#define PROCESS_CURRENT					-1
-
 #define PROCESS_CONSOLEHANDLE			0
 #define PROCESS_MAXHANDLES				256
 
 #define PROCESS_TICKS_NONE				0
-#define PROCESS_TICKS_LOW				2
-#define PROCESS_TICKS_NORMAL			12
-#define PROCESS_TICKS_HIGH				24
+#define PROCESS_TICKS_LOW				1
+#define PROCESS_TICKS_NORMAL			10
+#define PROCESS_TICKS_HIGH				30
 
-#define PROCESS_USER_CODE_ADDRESS		(void *)0x10000000
-#define PROCESS_USER_STACK_ADDRESS		(void *)0x20000000
-#define PROCESS_USER_HEAP_ADDRESS		(void *)0x30000000
+#define PROCESS_USER_CODE_VADDRESS		(void *)0x10000000
+#define PROCESS_USER_STACK_VADDRESS		(void *)0x20000000
+#define PROCESS_USER_HEAP_VADDRESS		(void *)0x30000000
 
 #define PROCESS_STACKSIZE				4096
 
@@ -86,7 +84,7 @@ int process_spawn( struct PROCESS_INFO *, char *, char * );
 
 int process_kill( int );
 
-int process_yield( void );
+void process_yield( void );
 
 int process_sleep( struct PROCESS_INFO * );
 

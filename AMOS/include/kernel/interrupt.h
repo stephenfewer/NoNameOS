@@ -16,9 +16,9 @@
 
 #define INTERRUPT_EOI				0x20
 
-#define interrupt_enableAll()		ASM("sti")
+#define interrupt_enableAll()		ASM( "sti" )
 
-#define interrupt_disableAll()		ASM("cli")
+#define interrupt_disableAll()		ASM( "cli" )
 
 struct INTERRUPT_TABLE_ENTRY
 {
@@ -94,7 +94,8 @@ enum {
 	SYSCALL_INTERRUPT
 };
 
-extern void disable_int();
+extern void disable_intA();
+extern void disable_intB();
 extern void disable_irqA();
 extern void disable_irqB();
 

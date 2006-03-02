@@ -112,14 +112,14 @@ int syscall_wake( struct PROCESS_INFO * process, int id )
 
 struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 {
+	struct PROCESS_STACK kstack;
 	int ret = FAIL;
 	int index = (int)process->kstack->eax;
-	// save the state of this process's kernel stack as it will get messed up during any calls to process_yield()
-	struct PROCESS_STACK * kstack = (struct PROCESS_STACK *)mm_malloc( sizeof(struct PROCESS_STACK) );
-	memcpy( kstack, process->kstack, sizeof(struct PROCESS_STACK) );
+	// save the state of this process's kernel stack as it can get messed up
+	memcpy( &kstack, process->kstack, sizeof(struct PROCESS_STACK) );
 	// make sure our syscall index into the syscall table is in range
 	if( index < SYSCALL_MININDEX || index > SYSCALL_MAXINDEX )
-		return FALSE;
+		return process;
 	// make sure the syscall function has been set
 	if( syscall_table[ index ].function.function != NULL )
 	{
@@ -145,7 +145,7 @@ struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 	//if( syscall_switch == FALSE )
 	//{
 		// restore the kernel stack for the jump back to user land
-		memcpy( process->kstack, kstack, sizeof(struct PROCESS_STACK) );
+		memcpy( process->kstack, &kstack, sizeof(struct PROCESS_STACK) );
 		// set return value
 		process->kstack->eax = (DWORD)ret;
 	//} 
@@ -154,8 +154,6 @@ struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 	//	syscall_switch = FALSE;
 	//	process = scheduler_select( process );
 	//}
-	// free the memory we malloc'd
-	mm_free( kstack );
 	// return to caller
 	return process;
 }

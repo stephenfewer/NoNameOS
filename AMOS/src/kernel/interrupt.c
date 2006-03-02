@@ -188,9 +188,10 @@ BOOL interrupt_disable( int index )
 			stub = disable_irqA;
 		else if( index >= IRQ8 && index <= IRQ15 )
 			stub = disable_irqB;
+		else if( index == INT8 || (index >= INT10 && index <= INT14) )
+			stub = disable_intB;
 		else
-			stub = disable_int;
-		
+			stub = disable_intA;
 		interrupt_setTableEntry( index, stub, SUPERVISOR, TRUE );
 		// return success
 		return TRUE;
@@ -207,19 +208,15 @@ int interrupt_init( void )
     interrupt_ptable.base = (DWORD)&interrupt_table;
 	// clear the interrupt descriptor table
     memset( (void *)&interrupt_table, 0x00, sizeof(struct INTERRUPT_TABLE_ENTRY) * INTERRUPT_TABLE_ENTRYS );
-	// initially we clear all are interrupt handlers and table entrys
+	// initially we clear all are interrupt handlers and disable all interrupts
 	for( index=0 ; index<INTERRUPT_TABLE_ENTRYS ; index++ )
 	{
 		interrupt_handlers[index] = NULL;
-		// the disable_int routine will not work for IRQ's but we fix that up below when we disable them
-		interrupt_setTableEntry( index, disable_int, SUPERVISOR, FALSE );
+		interrupt_disable( index );
 	}
 	// enable the first 32 interrupts but dont set a handler
 	for( index=INT0 ; index<=INT31 ; index++ )
 		interrupt_enable( index, NULL, SUPERVISOR );
-	// disable all IRQ's for now
-	for( index=IRQ0 ; index<=IRQ15 ; index++ )
-		interrupt_disable( index );
 	// remap the Programable Interrupt Controller
 	interrupt_remapPIC();
 	// load the interrupt descriptor table (interrupt_ptable pointer to a linear address of the interrupt_table)

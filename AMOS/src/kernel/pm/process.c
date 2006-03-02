@@ -24,9 +24,7 @@
 #include <kernel/pm/scheduler.h>
 #include <lib/string.h>
 
-int process_total = 0;
-
-BYTE kstacks[8][PROCESS_STACKSIZE];
+static int process_uniqueid = 0;
 
 extern struct PROCESS_INFO kernel_process;
 
@@ -54,12 +52,11 @@ int process_destroy( struct PROCESS_INFO * process )
 	// destroy the process's page directory, inturn destroying the stack
 	//paging_destroyDirectory( process->page_dir );
 	
-	// destroy the user & kernel stacks, user heap, ...
+	// destroy the kernel stack
+	mm_free( process->kstack_base );
 	
 	// destroy the process info structure
 	mm_free( process );
-	
-	//process_total--;
 
 	return SUCCESS;	
 }
@@ -73,8 +70,8 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 	process = (struct PROCESS_INFO *)mm_malloc( sizeof( struct PROCESS_INFO ) );
 	if( process == NULL )
 		return NULL;
-	// assign a process id
-	process->id = ++process_total;
+	// assign a unique process id
+	process->id = ++process_uniqueid;
 	// set the process id of the parent
 	process->parent_id = parent->id;
 	// set its privilege to USER as it is a user process
@@ -83,7 +80,7 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 	for( i=0 ; i<PROCESS_MAXHANDLES ; i++ )
 		process->handles[i] = NULL;
 	// setup the initial user heap, mm_morecore() will take care of the rest
-	process->heap.heap_base   = PROCESS_USER_HEAP_ADDRESS;
+	process->heap.heap_base   = PROCESS_USER_HEAP_VADDRESS;
 	process->heap.heap_bottom = NULL;
 	process->heap.heap_top    = NULL;
 	// give it an initial tick slice
@@ -103,14 +100,14 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 		if( i == 0 )
 			process->ustack_base = physicalAddress;
 		//  map in the stack to the process's address space
-		paging_setPageTableEntry( process, PROCESS_USER_STACK_ADDRESS+(i*PAGE_SIZE), physicalAddress, TRUE );
+		paging_setPageTableEntry( process, PROCESS_USER_STACK_VADDRESS+(i*PAGE_SIZE), physicalAddress, TRUE );
 	}
 	// copy the code segment from kernel space to user space
 	for( i=0 ; i<(size/PAGE_SIZE)+1 ; i++ )
 	{
 		void * tempAddress = (void *)((DWORD)0xF0000000+(i*PAGE_SIZE));
 		
-		void * linearAddress = (void *)((DWORD)PROCESS_USER_CODE_ADDRESS+(i*PAGE_SIZE));
+		void * linearAddress = (void *)((DWORD)PROCESS_USER_CODE_VADDRESS+(i*PAGE_SIZE));
 		
 		physicalAddress = physical_pageAlloc();
 		if( physicalAddress == NULL )
@@ -125,9 +122,9 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 		paging_setPageTableEntry( process, linearAddress, physicalAddress, TRUE );
 	}
 	// create the process's initial kernel stack so we can perform a context switch
-	process->kstack_base = (struct PROCESS_STACK *)kstacks[ process->id ];
+	process->kstack_base = mm_malloc( PROCESS_STACKSIZE );
 	// advance the pointer to the top of the stack, less the size of the stack structure, so we can begin filling it in
-	process->kstack = ( process->kstack_base + PROCESS_STACKSIZE - sizeof(struct PROCESS_STACK) );
+	process->kstack = (struct PROCESS_STACK *)( process->kstack_base + PROCESS_STACKSIZE - sizeof(struct PROCESS_STACK) );
 	// clear the kernel stack structure
 	memset( (void *)process->kstack, 0x00, sizeof(struct PROCESS_STACK) );
 	// set the data segments, the privilege is set in the low two bits
@@ -138,13 +135,13 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 	// set the interrupt number we will return from
 	process->kstack->intnumber = IRQ0;
 	// set our initial entrypoint
-	process->kstack->eip = (DWORD)PROCESS_USER_CODE_ADDRESS;
+	process->kstack->eip = (DWORD)PROCESS_USER_CODE_VADDRESS;
 	// set the code segment
 	process->kstack->cs = USER_CODE_SEL | RING3;
 	// set the eflags register with the IF bit set
 	process->kstack->eflags = 0x0202;	
 	// set up the initial user ss and esp for the iret to ring3
-	process->kstack->esp0 = (DWORD)(PROCESS_USER_STACK_ADDRESS+PROCESS_STACKSIZE);
+	process->kstack->esp0 = (DWORD)(PROCESS_USER_STACK_VADDRESS+PROCESS_STACKSIZE);
 	process->kstack->ss0 = USER_DATA_SEL | RING3;
 	// return with new process info
 	return process;
@@ -217,18 +214,22 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 	return SUCCESS;
 }
 
-int process_yield( void )
+__inline__ void process_yield( void )
 {
-	// TO-DO: force the current process into a BLOCKED state
-	// for now we just force a new process to run
-	//struct PROCESS_INFO * process;
+	// force a new process to run
+	struct PROCESS_INFO * process;
+	
+	interrupt_disableAll();
+	
 	// retrieve the current process
-	//ASM( "movl %%dr0, %%eax" :"=r" ( process ): );
-	scheduler_setProcess( PROCESS_CURRENT, READY, PROCESS_TICKS_NONE );
+	ASM( "movl %%dr0, %%eax" :"=r" ( process ): );
+	
+	scheduler_setProcess( process->id, READY, process->tick_slice );
+	
+	interrupt_enableAll();
+	
 	// force a context switch
 	ASM("int $32" );
-	// we return here next time the process runs
-	return SUCCESS;
 }
 
 int process_sleep( struct PROCESS_INFO * process )

@@ -55,12 +55,9 @@ void paging_clearDirectory( struct PROCESS_INFO * p )
 	}
 }
 
-void paging_setPageDirectoryEntry( struct PROCESS_INFO * p, void * linearAddress, void * ptAddress, BOOL clear )
+void paging_setPageDirectoryEntry( struct PROCESS_INFO * p, void * linearAddress, void * ptAddress )
 {
 	struct PAGE_DIRECTORY_ENTRY * pde = paging_getPageDirectoryEntry( p->page_dir, linearAddress );
-	
-	if( clear )
-		memset( ptAddress, 0x00, sizeof(struct PAGE_TABLE) );
 	
 	pde->present       = TRUE;
 	pde->readwrite     = READWRITE;
@@ -83,9 +80,9 @@ struct PAGE_TABLE_ENTRY * paging_getPageTableEntry( struct PROCESS_INFO * p, voi
 	{
 		int i;
 		pt = (struct PAGE_TABLE *)physical_pageAlloc();
-		paging_setPageDirectoryEntry( p, linearAddress, (void *)pt, TRUE );
+		paging_setPageDirectoryEntry( p, linearAddress, (void *)pt );
 		for( i=0 ; i<PAGE_ENTRYS ; i++ )
-			paging_setPageTableEntry( p, linearAddress+SIZE_4KB, 0L, FALSE );
+			paging_setPageTableEntry( p, linearAddress+(i*SIZE_4KB), NULL, FALSE );
 	}
 	return (struct PAGE_TABLE_ENTRY *)&pt->entry[ GET_TABLE_INDEX(linearAddress) ];
 }
@@ -111,10 +108,17 @@ void paging_setPageTableEntry( struct PROCESS_INFO * p, void * linearAddress, vo
 // See page 5-43
 struct PROCESS_INFO * paging_pageFaultHandler( struct PROCESS_INFO * process )
 {
+//struct PROCESS_INFO * dr0process;
 	void * linearAddress;
 	// retrieve the linear address of the page fault stored in CR2
 	ASM( "movl %%cr2, %0" : "=r" (linearAddress) );
+	
+//ASM( "movl %%dr0, %%eax" :"=r" ( dr0process ): );
+	
 	kernel_printf( "Page Fault at CS:EIP %x:%x Address %x\n", process->kstack->cs, process->kstack->eip, linearAddress );
+	
+//kernel_printf( "dr0 %x process %x\n", dr0process, process );
+	
 	// if the kernel caused the page fault we must kernel panic
 	if( process->id == KERNEL_PID )
 		kernel_panic( process->kstack, "Kernel Page Fault." );
@@ -184,21 +188,21 @@ void paging_mapKernel( struct PROCESS_INFO * p )
 	struct PAGE_DIRECTORY_ENTRY * pde;
 	// map in the bottom 4MB's ( which are identity mapped, see paging_init() )
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, NULL );
-	paging_setPageDirectoryEntry( p, NULL, (void *)TABLE_SHIFT_L(pde->address), FALSE );
+	paging_setPageDirectoryEntry( p, NULL, (void *)TABLE_SHIFT_L(pde->address) );
 	
 	//pde = paging_getPageDirectoryEntry( kernel_process.page_dir, DMA_PAGE_VADDRESS );
-	//paging_setPageDirectoryEntry( p, DMA_PAGE_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );
+	//paging_setPageDirectoryEntry( p, DMA_PAGE_VADDRESS, (void *)TABLE_SHIFT_L(pde->address) );
 	
 	// map in the kernel (which wont be > 4MB)
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_CODE_VADDRESS );
-	paging_setPageDirectoryEntry( p, KERNEL_CODE_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );
+	paging_setPageDirectoryEntry( p, KERNEL_CODE_VADDRESS, (void *)TABLE_SHIFT_L(pde->address) );
 	
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_VGA_VADDRESS );
-	paging_setPageDirectoryEntry( p, KERNEL_VGA_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );
+	paging_setPageDirectoryEntry( p, KERNEL_VGA_VADDRESS, (void *)TABLE_SHIFT_L(pde->address) );
 	
 	// map in the kernel's heap, only maps the first 4MB, if heap grows bigger we will have problems
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_HEAP_VADDRESS );
-	paging_setPageDirectoryEntry( p, KERNEL_HEAP_VADDRESS, (void *)TABLE_SHIFT_L(pde->address), FALSE );	
+	paging_setPageDirectoryEntry( p, KERNEL_HEAP_VADDRESS, (void *)TABLE_SHIFT_L(pde->address) );	
 }
 
 void paging_enable( void )
@@ -217,6 +221,8 @@ int paging_init( void )
 	if( !paging_createDirectory( &kernel_process ) )
 		kernel_panic( NULL, "Failed to create the kernels page directory." );
 
+	paging_setPageTableEntry( &kernel_process, DMA_PAGE_VADDRESS, DMA_PAGE_VADDRESS, TRUE );
+			
 	// identity map bottom 4MB's
 	for( physicalAddress=0L ; physicalAddress<(void *)(1024*PAGE_SIZE) ; physicalAddress+=PAGE_SIZE )
 		paging_setPageTableEntry( &kernel_process, physicalAddress, physicalAddress, TRUE );
@@ -233,8 +239,6 @@ int paging_init( void )
 
 	paging_setPageTableEntry( &kernel_process, KERNEL_VGA_VADDRESS, KERNEL_VGA_PADDRESS, TRUE );
 
-	paging_setPageTableEntry( &kernel_process, DMA_PAGE_VADDRESS, DMA_PAGE_VADDRESS, TRUE );
-	
 	// set the system to use the kernels page directory
 	paging_setCurrentPageDir( kernel_process.page_dir );
 	
