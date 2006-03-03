@@ -51,7 +51,7 @@ int physical_getBitmapSize()
 	return physical_bitmapSize;
 }
 
-// To-Do: return 0x00000000 if no physical memory left
+// To-Do: return 0x00000000 (NULL) if no physical memory left
 void * physical_pageAlloc()
 {
 	void * physicalAddress;

@@ -211,7 +211,7 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 	scheduler_addProcess( process );
 
 	// return success
-	return SUCCESS;
+	return process->id;
 }
 
 __inline__ void process_yield( void )

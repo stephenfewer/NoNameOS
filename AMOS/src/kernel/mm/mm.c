@@ -22,7 +22,7 @@
 
 extern struct PROCESS_INFO kernel_process;
 
-struct MUTEX * mm_mallocLock;
+struct MUTEX mm_mallocLock;
 
 int mm_init( DWORD memUpper )
 {	
@@ -40,8 +40,9 @@ int mm_init( DWORD memUpper )
 	kernel_process.heap.heap_top    = NULL;
 	kernel_process.heap.heap_bottom = NULL;
 	
-	// create the lock that the kernel mm_malloc/mm_free will use
-	mm_mallocLock = mutex_create();
+	// inti the lock that the kernel mm_malloc/mm_free will use
+	// we cant use mutex_create() as it need mm_malloc()
+	mutex_init( &mm_mallocLock );
 	
 	// from here on in we can use mm_malloc() & mm_free()
 	return SUCCESS;
@@ -82,7 +83,7 @@ void mm_free( void * address )
 	if( address == NULL )
 		return;
 	// lock this critical section as we are about to modify the kernels heap
-	mutex_lock( mm_mallocLock );
+	mutex_lock( &mm_mallocLock );
 	// set the item to remove
 	item = (struct MM_HEAPITEM *)( address - sizeof(struct MM_HEAPITEM) );
 	// find it
@@ -106,7 +107,7 @@ void mm_free( void * address )
 		}
 	}
 	// unlock this critical section
-	mutex_unlock( mm_mallocLock );
+	mutex_unlock( &mm_mallocLock );
 }
 
 // allocates an arbiturary size of memory (via first fit) from the kernel heap
@@ -118,7 +119,7 @@ void * mm_malloc( DWORD size )
 	if( size == 0 )
 		return NULL;
 	// lock this critical section as we are modifying the kernel heap
-	mutex_lock( mm_mallocLock );
+	mutex_lock( &mm_mallocLock );
 	// round up by 8 bytes and add header size
 	total_size = ( ( size + 7 ) & ~7 ) + sizeof(struct MM_HEAPITEM);
 	// search for first fit
@@ -146,7 +147,7 @@ void * mm_malloc( DWORD size )
 		if( new_item == NULL )
 		{
 			// unlock the critical section
-			mutex_unlock( mm_mallocLock );
+			mutex_unlock( &mm_mallocLock );
 			// return NULL as we are out of physical memory!
 			return NULL;
 		}
@@ -162,7 +163,7 @@ void * mm_malloc( DWORD size )
 		new_item->next = tmp_item;
 	}
 	// unlock our critical section
-	mutex_unlock( mm_mallocLock );
+	mutex_unlock( &mm_mallocLock );
 	// return the newly allocated memory location
 	return (void *)( (int)new_item + sizeof(struct MM_HEAPITEM) );
 }

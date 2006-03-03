@@ -29,10 +29,9 @@ struct SEGMENTATION_TSS * scheduler_tss;
 
 struct SCHEDULER_PROCESS_TABLE scheduler_processTable;
 
-struct MUTEX * scheduler_handlerLock;
-struct MUTEX * scheduler_processTableLock;
+struct MUTEX scheduler_processTableLock;
 
-struct PROCESS_INFO * scheduler_findProcesss( int id )
+static struct PROCESS_INFO * scheduler_findProcesss( int id )
 {
 	struct PROCESS_INFO * process;
 	for( process=scheduler_processTable.bottom ; process!=NULL ; process=process->next )
@@ -47,12 +46,12 @@ int scheduler_setProcess( int id, int state, int ticks )
 {
 	struct PROCESS_INFO * process;
 	
-	mutex_lock( scheduler_processTableLock );
+	mutex_lock( &scheduler_processTableLock );
 	
 	process = scheduler_findProcesss( id );
 	if( process == NULL )
 	{
-		mutex_unlock( scheduler_processTableLock );
+		mutex_unlock( &scheduler_processTableLock );
 		return FAIL;
 	}
 	
@@ -60,7 +59,7 @@ int scheduler_setProcess( int id, int state, int ticks )
 	
 	process->tick_slice = ticks;
 	
-	mutex_unlock( scheduler_processTableLock );
+	mutex_unlock( &scheduler_processTableLock );
 	
 	return SUCCESS;
 }
@@ -68,15 +67,16 @@ int scheduler_setProcess( int id, int state, int ticks )
 void scheduler_printProcessTable( void )
 {
 	struct PROCESS_INFO * process;
-	mutex_lock( scheduler_processTableLock );
+	kernel_printf("scheduler_printProcessTable()\n");
+	mutex_lock( &scheduler_processTableLock );
 	for( process=scheduler_processTable.bottom ; process!=NULL ; process=process->next )
 		kernel_printf("\tproc %d %x state: %d (%d)", process->id, process, process->state, process->tick_slice );
-	mutex_unlock( scheduler_processTableLock );
+	mutex_unlock( &scheduler_processTableLock );
 }
 
 struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * process )
 {
-	mutex_lock( scheduler_processTableLock );
+	mutex_lock( &scheduler_processTableLock );
 	
 	if( scheduler_processTable.bottom == NULL )
 		scheduler_processTable.bottom = process;
@@ -86,15 +86,15 @@ struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * process )
 	scheduler_processTable.top = process;
 
 	scheduler_processTable.top->next = NULL;
-	
-	mutex_unlock( scheduler_processTableLock );
+
+	mutex_unlock( &scheduler_processTableLock );
 	return process;
 }
 
 int scheduler_removeProcesss( struct PROCESS_INFO * process )
 {
 	struct PROCESS_INFO  * p;
-
+	int ret=FAIL;
 	if( process == NULL )
 		return FAIL;
 	// we cant remove the kernel
@@ -104,6 +104,7 @@ int scheduler_removeProcesss( struct PROCESS_INFO * process )
 	if( process == scheduler_processTable.bottom )
 	{
 		scheduler_processTable.bottom = process->next;
+		ret = SUCCESS;
 	}
 	else
 	{
@@ -112,23 +113,26 @@ int scheduler_removeProcesss( struct PROCESS_INFO * process )
 			if( p->next == process )
 			{
 				p->next = process->next;
+				ret = SUCCESS;
 				break;
 			}
 		}
 	}
-	return SUCCESS;
+	return ret;
 }
 
 struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 {
-	struct PROCESS_INFO * processCurrent = processNext;
+	struct PROCESS_INFO * processCurrent;
 	// lock critical section
-	mutex_lock( scheduler_processTableLock );
+	mutex_lock( &scheduler_processTableLock );
+	processCurrent = processNext;
 	// search for another process to run in a round robin fashion 
 	while( TRUE )
 	{
 		// try the next one...
 		processNext=processNext->next;
+		
 		// if we have come to the end of the queue, we start from the begining
 		if( processNext == NULL )
 			processNext = scheduler_processTable.bottom;
@@ -163,7 +167,7 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 		processNext->state = RUNNING;
 	}
 	// unlock our critical section
-	mutex_unlock( scheduler_processTableLock );
+	mutex_unlock( &scheduler_processTableLock );
 	// we return the new process (possibly) to indicate we may wish to perform a context switch, see isr.asm
 	return processNext;
 }
@@ -171,32 +175,30 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 struct PROCESS_INFO * scheduler_handler( struct PROCESS_INFO * process )
 {
 	struct PROCESS_INFO * newProcess;
-	// lock this critical section so we are guaranteed mutual exclusion
-	mutex_lock( scheduler_handlerLock );
 	// increment our tick counter
 	scheduler_ticks++;
+	// lock this critical section so we are guaranteed mutual exclusion over the process table
+	mutex_lock( &scheduler_processTableLock );
 	// decrement the current processes time slice by one
 	process->tick_slice--;
+	mutex_unlock( &scheduler_processTableLock );
 	// if the current process has reached the end of its tick slice we must select a new process to run
-	if( process->tick_slice <= PROCESS_TICKS_NONE )// || process->state != RUNNING
+	if( process->tick_slice <= PROCESS_TICKS_NONE )//|| process->state != RUNNING )
 		newProcess = scheduler_select( process );
 	else
 		newProcess = process;
-	// unlock the critical section
-	mutex_unlock( scheduler_handlerLock );
-	// return TRUE if we are to perform a context switch or FALSE if not
+	// return a possible new process
 	return newProcess;
 }
 
-void scheduler_init()
+int scheduler_init( void )
 {
 	int interval;
 	// initilize the process table
 	scheduler_processTable.top = NULL;
 	scheduler_processTable.bottom = NULL;
-	// create the lock
-	scheduler_handlerLock = mutex_create();
-	scheduler_processTableLock = mutex_create();
+	// init the lock
+	mutex_init( &scheduler_processTableLock );
 	// set the initial values we need for the kernels process
 	kernel_process.tick_slice = PROCESS_TICKS_LOW;
 	// we set the state to ready so when the first context switch occurs it will be for the kernel process
@@ -217,7 +219,7 @@ void scheduler_init()
 	// load the task register with the TSS selector
 	segmentation_ltr( KERNEL_TSS_SEL );
 	// calculate the timer interval
-	interval = 1193180 / 1000;
+	interval = 1193180 / 100;
 	// square wave mode
 	outportb( INTERRUPT_PIT_COMMAND_REG, 0x36 );
 	// set the low interval for timer 0 (mapped to IRQ0)
@@ -226,4 +228,5 @@ void scheduler_init()
 	outportb( INTERRUPT_PIT_TIMER_0, interval >> 8 );
 	// enable the scheduler handler
 	interrupt_enable( IRQ0, scheduler_handler, SUPERVISOR );
+	return SUCCESS;
 }

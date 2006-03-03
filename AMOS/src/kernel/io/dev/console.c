@@ -32,7 +32,7 @@ struct CONSOLE * console4;
 
 struct CONSOLE_BUFFER * console_bufferTop = NULL;
 struct CONSOLE_BUFFER * console_bufferBottom = NULL;
-struct MUTEX * console_bufferLock;
+struct MUTEX console_bufferLock;
 
 struct CONSOLE_BUFFER * console_addBuffer( struct CONSOLE_BUFFER * buffer )
 {
@@ -413,7 +413,7 @@ int console_putchBuffer( int number, BYTE byte )
 {
 	struct CONSOLE_BUFFER * buffer;
 
-	mutex_lock( console_bufferLock );
+	mutex_lock( &console_bufferLock );
 	
 	for( buffer=console_bufferBottom ; buffer!=NULL ; buffer=buffer->next )
 	{
@@ -432,7 +432,7 @@ int console_putchBuffer( int number, BYTE byte )
 		}
 	}
 	
-	mutex_unlock( console_bufferLock );
+	mutex_unlock( &console_bufferLock );
 	
 	return SUCCESS;	
 }
@@ -483,8 +483,8 @@ int console_init( void )
 	calltable->write   = console_write;
 	calltable->seek    = NULL;
 	calltable->control = console_control;
-	// create the buffer lock
-	console_bufferLock = mutex_create();
+	// init the buffer lock
+	mutex_init( &console_bufferLock );
 	// create the first virtual console
 	console1 = console_create( "console1", CONSOLE_1 );
 	io_add( console1->data->name, calltable, IO_CHAR );

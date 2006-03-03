@@ -8,8 +8,6 @@ struct MUTEX
 	volatile DWORD lock;
 };
 
-struct MUTEX * mutex_create();
-
 void mutex_init( struct MUTEX * );
 
 void mutex_lock( struct MUTEX * );

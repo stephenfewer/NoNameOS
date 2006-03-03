@@ -78,21 +78,27 @@ int kernel_init( struct MULTIBOOT_INFO * m )
 	// set its privilege to SUPERVISOR as this is the kernel
 	kernel_process.privilege = SUPERVISOR;
 	// setup interrupts
-	interrupt_init();
+	if( interrupt_init() == FAIL )
+		kernel_panic( NULL, "Failed to initilize the interrupt layer." );
 	// setup our memory manager
-	mm_init( m->mem_upper );
+	if( mm_init( m->mem_upper ) == FAIL )
+		kernel_panic( NULL, "Failed to initilize the Memory Manager subsystem." );
 	// setup the virtual file system
-	vfs_init();
+	if( vfs_init() == FAIL )
+		kernel_panic( NULL, "Failed to initilize the Virtual File System subsystem." );
 	// setup the io subsystem
-	io_init();
+	if( io_init() == FAIL )
+		kernel_panic( NULL, "Failed to initilize the IO subsystem." );
 	// open the kernels console
 	kernel_process.handles[PROCESS_CONSOLEHANDLE] = vfs_open( "/device/console0", VFS_MODE_READWRITE );
 	if( kernel_process.handles[PROCESS_CONSOLEHANDLE] == NULL )
 		kernel_panic( NULL, "Failed to open the kernel console." );
 	// setup our system calls
-	syscall_init();
+	if( syscall_init() == FAIL )
+		kernel_panic( NULL, "Failed to initilize the system call layer." );
 	// setup scheduling
-	scheduler_init();
+	if( scheduler_init() == FAIL )
+		kernel_panic( NULL, "Failed to initilize the Process Manager subsystem." );
 	// enable interrutps
 	interrupt_enableAll();
 	// return success
