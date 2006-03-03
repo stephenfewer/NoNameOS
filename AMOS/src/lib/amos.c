@@ -156,6 +156,15 @@ int spawn( char * filename, char * console_path )
 	return ret;			
 }
 
+int kill( int id )
+{
+	int ret=FAIL;
+	if( id <= 0 )
+		return FAIL;
+	ASM( "int $0x30" : "=a" (ret) : "a" (SYSCALL_KILL), "b" (id) );
+	return ret;			
+}
+
 int sleep( void )
 {
 	int ret=FAIL;

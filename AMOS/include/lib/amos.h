@@ -43,6 +43,8 @@ void exit( void );
 
 int spawn( char *, char * );
 
+int kill( int );
+
 int sleep( void );
 
 int wake( int );

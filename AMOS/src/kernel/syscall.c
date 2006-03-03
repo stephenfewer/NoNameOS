@@ -100,6 +100,11 @@ int syscall_spawn( struct PROCESS_INFO * process, char * filename, char * consol
 	return process_spawn( process, filename, console_path );
 }
 
+int syscall_kill( struct PROCESS_INFO * process, int id )
+{
+	return process_kill( id );
+}
+
 int syscall_sleep( struct PROCESS_INFO * process )
 {
 	return process_sleep( process );
@@ -115,7 +120,7 @@ struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 	struct PROCESS_STACK kstack;
 	int ret = FAIL;
 	int index = (int)process->kstack->eax;
-	// save the state of this process's kernel stack as it can get messed up
+	// save the state of this process's kernel stack
 	memcpy( &kstack, process->kstack, sizeof(struct PROCESS_STACK) );
 	// make sure our syscall index into the syscall table is in range
 	if( index < SYSCALL_MININDEX || index > SYSCALL_MAXINDEX )
@@ -198,7 +203,7 @@ int syscall_init( void )
 	syscall_add( SYSCALL_MORECORE, syscall_morecore,   1 );
 	// process operations
 	syscall_add( SYSCALL_SPAWN,    syscall_spawn,      2 );
-	//syscall_add( SYSCALL_KILL,   process_kill,  1 );
+	syscall_add( SYSCALL_KILL,     syscall_kill,       1 );
 	syscall_add( SYSCALL_SLEEP,    syscall_sleep,      0 );
 	syscall_add( SYSCALL_WAKE,     syscall_wake,       1 );
 	//syscall_add( SYSCALL_WAIT,   process_wait,  1 );

@@ -33,6 +33,25 @@ void main( void )
 	exit();
 }
 
+int atoi( const char * s )
+{
+	long int v=0;
+	int sign=1;
+	
+	while( *s == ' '  ||  (unsigned int)(*s - 9) < 5u ) s++;
+	
+	switch( *s )
+	{
+		case '-': sign=-1;
+		case '+': ++s;
+	}
+	while( (unsigned int) (*s - '0') < 10u )
+	{
+		v=v*10+*s-'0'; ++s;
+	}
+	return sign==-1?-v:v;
+}
+
 void tinysh_char_out( unsigned char c )
 {
 //	printf( "%c", c );
@@ -125,7 +144,7 @@ static void shell_spawn( int argc, char **argv )
 
 static void shell_kill( int argc, char **argv )
 {
-	int pid = 0;
+	int id = 0;
 
 	if( argc < 1 )
 	{
@@ -134,15 +153,16 @@ static void shell_kill( int argc, char **argv )
 	}
 	
 	//unlucky for some
-	pid = 13;//atoi( argv[1] );
-	if( pid == 0 )
+	id = atoi( argv[1] );
+	if( id == 0 )
 	{
 		printf("kill: you must enter a valid process id.\n");
 		return;
 	}
 	
-	printf("kill: amos_kill( %d )\n", pid );
-	//amos_kill( pid );
+	printf("kill: amos_kill( %d )\n", id );
+	
+	kill( id );
 }
 
 // create a directory
