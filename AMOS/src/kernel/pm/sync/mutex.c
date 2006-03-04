@@ -34,10 +34,10 @@ void mutex_lock( struct MUTEX * m )
 		ASM( "bts $1, %1" : "=r" (unlocked) : "m" (m->lock) : "memory" );		
 		ASM( "sbbl %0, %0" : "=r" (unlocked) :: "memory" );
 		
-	/*	if( unlocked == 0 )
+		if( unlocked == 0 )
 			break;	
 		process_yield();
-	*/	
+		
     } while ( unlocked != 0 );
 }
 

@@ -20,7 +20,6 @@
 #include <kernel/kernel.h>
 #include <lib/string.h>
 
-static volatile BOOL syscall_switch = FALSE;
 struct SYSCALL syscall_table[SYSCALL_MAXCALLS];
 
 int syscall_open( struct PROCESS_INFO * process, char * filename, int mode )
@@ -91,8 +90,12 @@ void * syscall_morecore( struct PROCESS_INFO * process, DWORD size )
 
 int syscall_exit( struct PROCESS_INFO * process )
 {
-//	syscall_switch = TRUE;
-	return process_kill( process->id );
+	if( process_kill( process->id ) == SUCCESS )
+	{
+		kernel_printf("exited ME %d\n", process->id );
+		scheduler_switch();
+	}
+	return FAIL;
 }
 
 int syscall_spawn( struct PROCESS_INFO * process, char * filename, char * console_path )
@@ -102,9 +105,14 @@ int syscall_spawn( struct PROCESS_INFO * process, char * filename, char * consol
 
 int syscall_kill( struct PROCESS_INFO * process, int id )
 {
-//	if( process->id == id )
-//		syscall_switch = TRUE;
-	return process_kill( id );
+	int ret;
+	ret = process_kill( id );
+	if( ret == SUCCESS && process->id == id )
+	{
+		kernel_printf("killed ME %d\n", id );
+		scheduler_switch();
+	}
+	return ret;
 }
 
 int syscall_sleep( struct PROCESS_INFO * process )
@@ -148,13 +156,6 @@ struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 				break;
 		}
 	}
-	
-/*	if( syscall_switch )
-	{
-		syscall_switch = FALSE;
-		return scheduler_select( process );
-	}
-*/
 	// restore the kernel stack for the jump back to user land
 	memcpy( process->kstack, &kstack, sizeof(struct PROCESS_STACK) );
 	// set return value

@@ -135,29 +135,26 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 	processCurrent = processNext;
 	// search for another process to run in a round robin fashion 
 	while( TRUE )
-	{	
+	{
 		// try the next one...
 		processNext=processNext->next;
 		
 		// if we have come to the end of the queue, we start from the begining
 		if( processNext == NULL )
 			processNext = scheduler_processTable.bottom;
-		
+
 		// if there is a terminated process in the queue, remove and destroy it
 		if( processNext->state == TERMINATED )
 		{
-			//kernel_printf("processNext TERMINATED! %d\n", processNext->id );
-			struct PROCESS_INFO * next = processNext->next;
 			if( scheduler_removeProcesss( processNext ) == SUCCESS )
 			{	
 				process_destroy( processNext );
-				processNext = next;
-			//	continue;
+				processNext = scheduler_processTable.bottom;
+				continue;
 			}
-		} 
-		
+		}
 		// if we find one in a READY state we choose it
-		if( processNext->state == READY )
+		else if( processNext->state == READY )
 			break;
 	}
 	// test if we found another process to run || processNext->id == KERNEL_PID
@@ -186,6 +183,11 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 	return processNext;
 }
 
+__inline__ void scheduler_switch( void )
+{
+	ASM( "int %0" :: "i" (SCHEDULER_INTERRUPT) );
+}
+
 struct PROCESS_INFO * scheduler_handler( struct PROCESS_INFO * process )
 {
 	struct PROCESS_INFO * newProcess;
@@ -197,7 +199,7 @@ struct PROCESS_INFO * scheduler_handler( struct PROCESS_INFO * process )
 	process->tick_slice--;
 	mutex_unlock( &scheduler_processTable.lock );
 	// if the current process has reached the end of its tick slice we must select a new process to run
-	if( process->tick_slice <= PROCESS_TICKS_NONE )//|| process->state != RUNNING )
+	if( process->tick_slice <= PROCESS_TICKS_NONE )// || process->state != RUNNING )
 		newProcess = scheduler_select( process );
 	else
 		newProcess = process;

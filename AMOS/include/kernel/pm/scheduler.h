@@ -24,6 +24,8 @@ struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * );
 
 struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * );
 
+__inline__ void scheduler_switch( void );
+
 int scheduler_init( void );
 
 #endif

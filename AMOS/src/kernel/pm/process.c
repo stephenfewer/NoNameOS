@@ -225,7 +225,7 @@ void process_yield( void )
 	// enable all interrupts
 	interrupt_enableAll();
 	// force a context switch
-	ASM( "int %0" :: "i" (SCHEDULER_INTERRUPT) );
+	scheduler_switch();
 }
 
 int process_sleep( struct PROCESS_INFO * process )
