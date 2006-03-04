@@ -12,19 +12,20 @@
  */
 
 #include <kernel/pm/sync/mutex.h>
+#include <kernel/pm/process.h>
 #include <kernel/mm/mm.h>
 
 void mutex_init( struct MUTEX * m )
 {
 	// set the lock to zero
-	m->lock = 0L;	
+	m->lock = 0L;
 }
 
 void mutex_lock( struct MUTEX * m )
 {
 	volatile DWORD unlocked;
 	if( m->lock != 0 )
-		kernel_printf("lock %x = %d\n", m, m->lock);
+		kernel_printf("lock %x = %d\n", m, m->lock );
 	// we loop untill the lock has been reset
 	// we could yield the processor and let another process run while we wait here
     do
@@ -32,6 +33,11 @@ void mutex_lock( struct MUTEX * m )
 		ASM( "lock" );
 		ASM( "bts $1, %1" : "=r" (unlocked) : "m" (m->lock) : "memory" );		
 		ASM( "sbbl %0, %0" : "=r" (unlocked) :: "memory" );
+		
+	/*	if( unlocked == 0 )
+			break;	
+		process_yield();
+	*/	
     } while ( unlocked != 0 );
 }
 

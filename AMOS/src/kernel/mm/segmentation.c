@@ -41,20 +41,20 @@ void segmentation_setEntry( int selector, DWORD base, DWORD limit, BYTE access, 
 void segmentation_ltr( WORD selector )
 {
 	// load the task regiter with the TSS in the given selector
-	ASM( "ltr %0" : : "rm" (selector) );
+	ASM( "ltr %0" :: "rm" (selector) );
 }
 
 void segmentation_reload( void )
 {
 	// load a linear address
 	ASM( "lgdt (%0)" :: "r" ( &segmentation_gdtp ) );
-	ASM( "movw $0x10, %ax" );
+	ASM( "movw %0, %%ax" :: "i" (KERNEL_DATA_SEL) );
 	ASM( "movw %ax, %ds" );
 	ASM( "movw %ax, %ss" );
 	ASM( "movw %ax, %es" );
 	ASM( "movw %ax, %fs" );
 	ASM( "movw %ax, %gs" );
-	ASM( "ljmp $0x08, $flush" );	
+	ASM( "ljmp %0, $flush" :: "i" (KERNEL_CODE_SEL)  );	
 	ASM( "flush:" );
 }
 

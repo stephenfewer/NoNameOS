@@ -3,11 +3,16 @@
 
 #include <sys/types.h>
 #include <kernel/pm/process.h>
+#include <kernel/pm/sync/mutex.h>
+#include <kernel/interrupt.h>
+
+#define SCHEDULER_INTERRUPT			IRQ0
 
 struct SCHEDULER_PROCESS_TABLE
 {
+	struct MUTEX lock;
 	// the linked list of processes that defines the process table
-	struct PROCESS_INFO * top;
+	//struct PROCESS_INFO * top;
 	struct PROCESS_INFO * bottom;
 };
 

@@ -75,8 +75,11 @@ struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
 {
 	struct PROCESS_INFO * newProcess;
 	INTERRUPT_HANDLER handler;
-
-	handler = interrupt_handlers[ process->kstack->intnumber ];
+	volatile int intnumber;
+	
+	intnumber = process->kstack->intnumber;
+	
+	handler = interrupt_handlers[ intnumber ];
 
 	if( handler != NULL )
 	{
@@ -86,21 +89,25 @@ struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
 	{
 		newProcess = process;
 		// if its an exception we must do something by default if their is no appropriate handler
-		if( process->kstack->intnumber <= INT31 )
+		if( intnumber <= INT31 )
 		{
 			if( process == NULL )
 			{
-				kernel_printf("An exception has occurred in an unknown process\n\t- %s\n", interrupt_messages[process->kstack->intnumber] );
-				while(TRUE);
-			} else {
+				kernel_panic( NULL, "An exception has occurred in an unknown process!" );
+			}
+			else
+			{
 				// if the process that caused the exception is the kernel, we must kernel panic
 				if( process->id == KERNEL_PID )
-					kernel_panic( process->kstack, interrupt_messages[process->kstack->intnumber] );
-				else {
-					kernel_printf("Exception: pid: %d %s\n", process->id, interrupt_messages[process->kstack->intnumber] );
+					kernel_panic( process->kstack, interrupt_messages[ intnumber ] );
+				else
+				{
+					kernel_printf("Exception \"%s\" in process %d\n", interrupt_messages[ intnumber ], process->id );
 					process_printStack( process->kstack );
 					if( process_kill( process->id ) == SUCCESS )
 						newProcess = scheduler_select( process );
+					else
+						kernel_panic( NULL, "Failed to kill offending process." );
 				}
 			}
 			
@@ -108,9 +115,9 @@ struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
 	}
 	
 	// if this was an IRQ we must signal an EOI to the PIC
-	if( process->kstack->intnumber >= IRQ8 && process->kstack->intnumber <= IRQ15 )
+	if( intnumber >= IRQ8 && intnumber <= IRQ15 )
         outportb( INTERRUPT_PIC_2, INTERRUPT_EOI );
-	else if( process->kstack->intnumber >= IRQ0 && process->kstack->intnumber <= IRQ15 )
+	else if( intnumber >= IRQ0 && intnumber <= IRQ15 )
 		outportb( INTERRUPT_PIC_1, INTERRUPT_EOI );
 	
 	return newProcess;

@@ -29,7 +29,7 @@ extern struct PROCESS_INFO kernel_process;
 void paging_setCurrentPageDir( struct PAGE_DIRECTORY * pd )
 {
 	// set cr3 to the physical address of the page directory
-	ASM( "movl %%eax, %%cr3" :: "r" ( pd ) );
+	ASM( "movl %0, %%cr3" :: "r" ( pd ) );
 }
 
 struct PAGE_DIRECTORY_ENTRY * paging_getPageDirectoryEntry( struct PAGE_DIRECTORY * pd, void * linearAddress )

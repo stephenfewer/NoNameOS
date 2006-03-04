@@ -29,65 +29,70 @@ struct SEGMENTATION_TSS * scheduler_tss;
 
 struct SCHEDULER_PROCESS_TABLE scheduler_processTable;
 
-struct MUTEX scheduler_processTableLock;
-
 static struct PROCESS_INFO * scheduler_findProcesss( int id )
 {
 	struct PROCESS_INFO * process;
+	// search the process tabel for the process of the specified it
 	for( process=scheduler_processTable.bottom ; process!=NULL ; process=process->next )
 	{
 		if( process->id == id )
 			break;
 	}
+	// return the process or NULL if not found
 	return process;
 }
 
 int scheduler_setProcess( int id, int state, int ticks )
 {
 	struct PROCESS_INFO * process;
-	
-	mutex_lock( &scheduler_processTableLock );
-	
-	process = scheduler_findProcesss( id );
-	if( process == NULL )
+	int ret=FAIL;
+	// acquire tabel lock for critical section
+	mutex_lock( &scheduler_processTable.lock );
+	// find the specified process
+	if( id == PROCESS_CURRENT )
+		ASM( "movl %%dr0, %%eax" : "=r" ( process ) : );
+	else
+		process = scheduler_findProcesss( id );
+	// if we successfully found one, set its state and ticks
+	if( process != NULL )
 	{
-		mutex_unlock( &scheduler_processTableLock );
-		return FAIL;
+		// set the state
+		process->state = state;
+		// set the ticks if we didnt specify PROCESS_TICKS_CURRENT
+		if( ticks >= PROCESS_TICKS_NONE )
+			process->tick_slice = ticks;
+		ret = SUCCESS;
 	}
+	// unlock critical section
+	mutex_unlock( &scheduler_processTable.lock );
+	if( ret==FAIL)
+		kernel_printf("FAIL setProcess %d... \n", id, state, ticks );
 	
-	process->state = state;
-	
-	process->tick_slice = ticks;
-	
-	mutex_unlock( &scheduler_processTableLock );
-	
-	return SUCCESS;
+	return ret;
 }
 
 void scheduler_printProcessTable( void )
 {
 	struct PROCESS_INFO * process;
 	kernel_printf("scheduler_printProcessTable()\n");
-	mutex_lock( &scheduler_processTableLock );
+	mutex_lock( &scheduler_processTable.lock );
 	for( process=scheduler_processTable.bottom ; process!=NULL ; process=process->next )
 		kernel_printf("\tproc %d %x state: %d (%d)", process->id, process, process->state, process->tick_slice );
-	mutex_unlock( &scheduler_processTableLock );
+	mutex_unlock( &scheduler_processTable.lock );
 }
 
 struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * process )
 {
-	mutex_lock( &scheduler_processTableLock );
-	
+	mutex_lock( &scheduler_processTable.lock );
+	// if the process tabel is empty, set it as the bottom
 	if( scheduler_processTable.bottom == NULL )
 		scheduler_processTable.bottom = process;
-	else
-		scheduler_processTable.top->next = process;
-
-	scheduler_processTable.top = process;
-
-	scheduler_processTable.top->next = NULL;
-
-	mutex_unlock( &scheduler_processTableLock );
+	else {
+		// otherwise insert it after the bottom
+		process->next = scheduler_processTable.bottom->next;
+		scheduler_processTable.bottom->next = process;
+	}
+	mutex_unlock( &scheduler_processTable.lock );
 	return process;
 }
 
@@ -100,6 +105,7 @@ int scheduler_removeProcesss( struct PROCESS_INFO * process )
 	// we cant remove the kernel
 	if( process->id == KERNEL_PID )
 		return FAIL;
+	kernel_printf("remove process %d... \n", process->id );
 	// remove the process from the schedulers process table
 	if( process == scheduler_processTable.bottom )
 	{
@@ -125,11 +131,11 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 {
 	struct PROCESS_INFO * processCurrent;
 	// lock critical section
-	mutex_lock( &scheduler_processTableLock );
+	mutex_lock( &scheduler_processTable.lock );
 	processCurrent = processNext;
 	// search for another process to run in a round robin fashion 
 	while( TRUE )
-	{
+	{	
 		// try the next one...
 		processNext=processNext->next;
 		
@@ -140,16 +146,18 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 		// if there is a terminated process in the queue, remove and destroy it
 		if( processNext->state == TERMINATED )
 		{
+			//kernel_printf("processNext TERMINATED! %d\n", processNext->id );
 			struct PROCESS_INFO * next = processNext->next;
 			if( scheduler_removeProcesss( processNext ) == SUCCESS )
 			{	
 				process_destroy( processNext );
 				processNext = next;
-				continue;
+			//	continue;
 			}
-		}
+		} 
+		
 		// if we find one in a READY state we choose it
-		else if( processNext->state == READY )
+		if( processNext->state == READY )
 			break;
 	}
 	// test if we found another process to run || processNext->id == KERNEL_PID
@@ -166,8 +174,14 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 		// set the process's state to running as we are switching into this process
 		processNext->state = RUNNING;
 	}
+	
+	if( processNext->state == TERMINATED )
+	{
+		kernel_printf("RETURNING processNext as TERMINATED! %d\n", processNext->id );
+	}
+	
 	// unlock our critical section
-	mutex_unlock( &scheduler_processTableLock );
+	mutex_unlock( &scheduler_processTable.lock );
 	// we return the new process (possibly) to indicate we may wish to perform a context switch, see isr.asm
 	return processNext;
 }
@@ -178,10 +192,10 @@ struct PROCESS_INFO * scheduler_handler( struct PROCESS_INFO * process )
 	// increment our tick counter
 	scheduler_ticks++;
 	// lock this critical section so we are guaranteed mutual exclusion over the process table
-	mutex_lock( &scheduler_processTableLock );
+	mutex_lock( &scheduler_processTable.lock );
 	// decrement the current processes time slice by one
 	process->tick_slice--;
-	mutex_unlock( &scheduler_processTableLock );
+	mutex_unlock( &scheduler_processTable.lock );
 	// if the current process has reached the end of its tick slice we must select a new process to run
 	if( process->tick_slice <= PROCESS_TICKS_NONE )//|| process->state != RUNNING )
 		newProcess = scheduler_select( process );
@@ -195,10 +209,10 @@ int scheduler_init( void )
 {
 	int interval;
 	// initilize the process table
-	scheduler_processTable.top = NULL;
+	//scheduler_processTable.top = NULL;
 	scheduler_processTable.bottom = NULL;
 	// init the lock
-	mutex_init( &scheduler_processTableLock );
+	mutex_init( &scheduler_processTable.lock );
 	// set the initial values we need for the kernels process
 	kernel_process.tick_slice = PROCESS_TICKS_LOW;
 	// we set the state to ready so when the first context switch occurs it will be for the kernel process
@@ -214,19 +228,18 @@ int scheduler_init( void )
 	memset( (void *)scheduler_tss, 0x00, sizeof(struct SEGMENTATION_TSS) );
 	// setup the TSS Descriptor (6.2.2)
 	segmentation_setEntry( KERNEL_TSS_SEL, (DWORD)scheduler_tss, sizeof(struct SEGMENTATION_TSS)-1, 0x89, 0x00 );
-	// reload GDT
-	segmentation_reload();
 	// load the task register with the TSS selector
 	segmentation_ltr( KERNEL_TSS_SEL );
 	// calculate the timer interval
 	interval = 1193180 / 100;
 	// square wave mode
 	outportb( INTERRUPT_PIT_COMMAND_REG, 0x36 );
-	// set the low interval for timer 0 (mapped to IRQ0)
+	// set the low interval for timer 0 (mapped to SCHEDULER_INTERRUPT)
 	outportb( INTERRUPT_PIT_TIMER_0, interval & 0xFF );
 	// set the high interval for timer 0
 	outportb( INTERRUPT_PIT_TIMER_0, interval >> 8 );
 	// enable the scheduler handler
-	interrupt_enable( IRQ0, scheduler_handler, SUPERVISOR );
+	interrupt_enable( SCHEDULER_INTERRUPT, scheduler_handler, SUPERVISOR );
+	// return with pre emptive scheduling now active
 	return SUCCESS;
 }

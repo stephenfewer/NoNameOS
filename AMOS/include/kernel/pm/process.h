@@ -5,9 +5,12 @@
 #include <kernel/fs/vfs.h>
 #include <kernel/mm/paging.h>
 
+#define PROCESS_CURRENT					-1
+
 #define PROCESS_CONSOLEHANDLE			0
 #define PROCESS_MAXHANDLES				256
 
+#define PROCESS_TICKS_CURRENT			-1
 #define PROCESS_TICKS_NONE				0
 #define PROCESS_TICKS_LOW				1
 #define PROCESS_TICKS_NORMAL			10

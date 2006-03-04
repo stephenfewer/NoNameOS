@@ -16,7 +16,7 @@ USER					equ	0x01
 
 EXTERN _interrupt_dispatcher, _scheduler_tss
 
-GLOBAL _disable_intA,_disable_intB, _disable_irqA, _disable_irqB, _contextswitch
+GLOBAL _disable_intA,_disable_intB, _disable_irqA, _disable_irqB
 
 %IMACRO ISR_A 1
 GLOBAL	_isr%1
@@ -55,7 +55,6 @@ isr_common:
    	pop ebx								;// EBX = the process that just called the dispatcher
 	test ebx, eax						;// if we return the same process perform no context switch
 	je noswitch
-_contextswitch:							;// perform a context switch
 	mov dr0, eax						;// DR0 = the new current process
     cmp dword [eax+8], USER				;// if( process->privilege == USER )
     jne notss

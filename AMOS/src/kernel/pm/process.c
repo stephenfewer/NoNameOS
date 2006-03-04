@@ -42,7 +42,7 @@ int process_destroy( struct PROCESS_INFO * process )
 	int i;
 	// should we kill a processes children?
 	
-	kernel_printf("destroying process %d... ", process->id );
+	kernel_printf("destroying process %d... \n", process->id );
 	// close any open handles
 	for( i=0 ; i<PROCESS_MAXHANDLES ; i++ )
 	{
@@ -68,6 +68,8 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 	process = (struct PROCESS_INFO *)mm_malloc( sizeof( struct PROCESS_INFO ) );
 	if( process == NULL )
 		return NULL;
+	// no link in the chain yet
+	process->next = NULL;
 	// assign a unique process id
 	process->id = ++process_uniqueid;
 	// set the process id of the parent
@@ -214,22 +216,16 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 	return process->id;
 }
 
-__inline__ void process_yield( void )
+void process_yield( void )
 {
-	// force a new process to run
-	struct PROCESS_INFO * process;
-	
+	// disable interrupts
 	interrupt_disableAll();
-	
-	// retrieve the current process
-	ASM( "movl %%dr0, %%eax" :"=r" ( process ): );
-	
-	scheduler_setProcess( process->id, READY, process->tick_slice );
-	
+	// set the current process as ready but maintain its curren tick slice
+	scheduler_setProcess( PROCESS_CURRENT, READY, PROCESS_TICKS_CURRENT );
+	// enable all interrupts
 	interrupt_enableAll();
-	
 	// force a context switch
-	ASM("int $32" );
+	ASM( "int %0" :: "i" (SCHEDULER_INTERRUPT) );
 }
 
 int process_sleep( struct PROCESS_INFO * process )

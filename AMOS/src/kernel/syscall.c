@@ -20,7 +20,7 @@
 #include <kernel/kernel.h>
 #include <lib/string.h>
 
-//static volatile BOOL syscall_switch = FALSE;
+static volatile BOOL syscall_switch = FALSE;
 struct SYSCALL syscall_table[SYSCALL_MAXCALLS];
 
 int syscall_open( struct PROCESS_INFO * process, char * filename, int mode )
@@ -91,7 +91,7 @@ void * syscall_morecore( struct PROCESS_INFO * process, DWORD size )
 
 int syscall_exit( struct PROCESS_INFO * process )
 {
-	//syscall_switch = TRUE;
+//	syscall_switch = TRUE;
 	return process_kill( process->id );
 }
 
@@ -102,6 +102,8 @@ int syscall_spawn( struct PROCESS_INFO * process, char * filename, char * consol
 
 int syscall_kill( struct PROCESS_INFO * process, int id )
 {
+//	if( process->id == id )
+//		syscall_switch = TRUE;
 	return process_kill( id );
 }
 
@@ -147,18 +149,16 @@ struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 		}
 	}
 	
-	//if( syscall_switch == FALSE )
-	//{
-		// restore the kernel stack for the jump back to user land
-		memcpy( process->kstack, &kstack, sizeof(struct PROCESS_STACK) );
-		// set return value
-		process->kstack->eax = (DWORD)ret;
-	//} 
-	//else
-	//{
-	//	syscall_switch = FALSE;
-	//	process = scheduler_select( process );
-	//}
+/*	if( syscall_switch )
+	{
+		syscall_switch = FALSE;
+		return scheduler_select( process );
+	}
+*/
+	// restore the kernel stack for the jump back to user land
+	memcpy( process->kstack, &kstack, sizeof(struct PROCESS_STACK) );
+	// set return value
+	process->kstack->eax = (DWORD)ret;
 	// return to caller
 	return process;
 }
