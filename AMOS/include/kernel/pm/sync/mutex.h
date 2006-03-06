@@ -5,7 +5,7 @@
 
 struct MUTEX
 {
-	volatile DWORD lock;
+	DWORD flags;
 };
 
 void mutex_init( struct MUTEX * );

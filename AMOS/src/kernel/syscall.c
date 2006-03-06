@@ -176,7 +176,7 @@ struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 	}
 	// if the system call failed and we need to perform a context switch
 	if( ret == SYSCALL_SWITCH )
-		return scheduler_select( process->prev );
+		return scheduler_select( NULL );
 	// restore the kernel stack for the jump back to user land
 	memcpy( process->kstack, &kstack, sizeof(struct PROCESS_STACK) );
 	// set return value

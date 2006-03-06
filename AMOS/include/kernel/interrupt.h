@@ -16,9 +16,9 @@
 
 #define INTERRUPT_EOI				0x20
 
-#define interrupt_enableAll()		ASM( "sti" )
+#define interrupt_enableAll()		ASM( "sti" ::: "memory" )
 
-#define interrupt_disableAll()		ASM( "cli" )
+#define interrupt_disableAll()		ASM( "cli" ::: "memory" )
 
 struct INTERRUPT_TABLE_ENTRY
 {

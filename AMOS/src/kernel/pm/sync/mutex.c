@@ -19,32 +19,21 @@
 
 void mutex_init( struct MUTEX * m )
 {
-	// set the lock to zero
-	m->lock = 0L;
+	m->flags = 0L;
 }
 
 void mutex_lock( struct MUTEX * m )
 {
-/*
-	volatile DWORD unlocked;
-	// we loop untill the lock has been reset
-	// we could yield the processor and let another process run while we wait here
-    do
-	{
-		ASM( "lock" );
-		ASM( "bts $1, %1" : "=r" (unlocked) : "m" (m->lock) : "memory" );		
-		ASM( "sbbl %0, %0" : "=r" (unlocked) :: "memory" );
-		if( unlocked == 0 )
-			break;
-		ASM("sti");
-		scheduler_switch();//process_yield();
-    }
-    while ( unlocked != 0 );
-*/
+	// save the CPU flags
+	ASM( "pushfl" ::: "memory" );
+	ASM( "popl %0" : "=g" ( m->flags ) :: "memory" );
+	// disable interrupts locally
+	interrupt_disableAll();
 }
 
 void mutex_unlock( struct MUTEX * m )
 {
-	// reset the lock
-    ASM( "movb $0, %0" : "=m" (m->lock) :: "memory" );
+	// restore the flags
+    ASM( "pushl %0" :: "g" ( m->flags ): "memory" );
+    ASM( "popfl" ::: "memory" );
 }

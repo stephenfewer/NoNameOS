@@ -218,15 +218,12 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 
 void process_yield( void )
 {
-	//interrupt_disableAll();
 	// set the current process as ready but maintain its curren tick slice
 	if( scheduler_setProcess( PROCESS_CURRENT, READY, PROCESS_TICKS_CURRENT ) == SUCCESS )
 	{
-		//interrupt_enableAll();
 		// force a context switch
 		scheduler_switch();
 	}
-	//interrupt_enableAll();
 }
 
 int process_sleep( struct PROCESS_INFO * process )
@@ -234,7 +231,7 @@ int process_sleep( struct PROCESS_INFO * process )
 	if( process == NULL )
 		return FAIL;
 	// place the process into a blocked state
-	if( scheduler_setProcess( process->id, BLOCKED, PROCESS_TICKS_NONE ) == SUCCESS )
+	if( scheduler_setProcess( process->id, BLOCKED, PROCESS_TICKS_CURRENT ) == SUCCESS )
 	{
 		// force a context switch
 		scheduler_switch();
@@ -257,8 +254,10 @@ int process_wait( int id )
 	// wait for the process of id to terminate...
 	while( TRUE )
 	{
+		// if this returns NULL the process of id is no longer in the scheduler
 		if( scheduler_getProcess( id ) == NULL )
 			break;
+		// yield if we get here
 		process_yield();
 	}
 	return SUCCESS;
@@ -269,5 +268,6 @@ int process_kill( int id )
 	// cant kill the kernel ...we'd get court marshelled! :)
 	if( id == KERNEL_PID )
 		return FAIL;
+	// mark the process as TERMINATED, scheduler_select() will destroy it later
 	return scheduler_setProcess( id, TERMINATED, PROCESS_TICKS_NONE );
 }

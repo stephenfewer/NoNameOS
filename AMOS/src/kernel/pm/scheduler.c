@@ -137,21 +137,30 @@ int scheduler_removeProcesss( struct PROCESS_INFO * process )
 
 struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 {
-	struct PROCESS_INFO * processCurrent;
+	struct PROCESS_INFO * processCurrent = NULL;
 	// lock critical section
 	mutex_lock( &scheduler_processTable.lock );
 
-	//if( processNext == NULL )
-	//	ASM( "movl %%dr0, %%eax" : "=r" ( processCurrent ) : );
+	// if processNext is NULL it is not a valid current process
+	if( processNext != NULL )
+	{
+		processCurrent = processNext;
+		
+		if( processCurrent->state == RUNNING )
+			processCurrent->state = READY;
+	}
+	else
+	{
+		processNext = scheduler_processTable.head;
+	}
 
-	processCurrent = processNext;
 	// search for another process to run in a backwards round robin fashion 
 	while( TRUE )
-	{			
+	{
 		// try the next one...
-		processNext=processNext->prev;
-		
-		// if we have come to the end of the queue, we start from the begining
+		processNext = processNext->prev;
+
+		// if we have come to the end of the list we start from the top
 		if( processNext == NULL )
 			processNext = scheduler_processTable.head;
 
@@ -176,29 +185,22 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 		else if( processNext->state == CREATED )
 			break;
 	}
+
 	// test if we found another process to run || processNext->id == KERNEL_PID
 	if( processNext != processCurrent )
 	{
-		if( processNext->state == TERMINATED || processNext->state == BLOCKED )
-		{
-			kernel_printf("processNext TERMINATED or BLOCKED! %d\n", processNext->id );
-			kernel_panic( NULL, "12345" );
-		}
 		// reset the current process to a READY state
-		processCurrent->state = READY;
-		
+		if( processCurrent != NULL )
+		{
+			if( processCurrent->state != BLOCKED )
+				processCurrent->state = READY;
+		}
 		// we could set this higher/lower depending on its priority: LOW, NORMAL, HIGH
 		processNext->tick_slice = PROCESS_TICKS_NORMAL;
 		// set the process's state to running as we are switching into this process
 		processNext->state = RUNNING;
 	}
-	
-	if( processNext == NULL || processNext->state == TERMINATED || processNext->state == BLOCKED )
-	{
-		kernel_printf("RETURNING processNext as TERMINATED or BLOCKED! %d\n", processNext->id );
-		kernel_panic( NULL, "asasad" );
-	}
-	
+
 	// unlock our critical section
 	mutex_unlock( &scheduler_processTable.lock );
 	// we return the new process (possibly) to indicate we may wish to perform a context switch, see isr.asm
