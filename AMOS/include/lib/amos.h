@@ -31,7 +31,7 @@ int rename( char *, char * );
 
 int copy( char *, char * );
 
-struct DIRLIST_ENTRY * list( char * );
+int list( char *, DIRLIST_ENTRY *, int );
 
 int mount( char *, char *, int );
 

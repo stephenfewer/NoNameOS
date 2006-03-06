@@ -476,7 +476,6 @@ static void _tinysh_char_in(uchar c)
   if(c=='\n' || c=='\r') /* validate command */
     {
       tinysh_cmd_t *cmd;
-      //int context=0;
       
 /* first, echo the newline */
       if(echo)

@@ -105,6 +105,22 @@ int kernel_init( struct MULTIBOOT_INFO * m )
 	return SUCCESS;
 }
 
+void printdir( char * dir )
+{
+	struct VFS_DIRLIST_ENTRY * entry;
+	kernel_printf( "vfs_list( \"%s\" )\n", dir );
+	entry = vfs_list( dir );
+	while( entry != NULL  )
+	{
+		if( entry->name[0] == '\0' )
+			break;
+		kernel_printf( "\t%d\t%s\t\t%d\n",  entry->attributes, entry->name, entry->size );
+		entry++;
+	}
+	kernel_printf( "\n" );
+	mm_free( entry );
+}
+
 void kernel_main( struct MULTIBOOT_INFO * m )
 {
 	// initilize the kernel, when we return we will be executing as the kernel process
@@ -117,7 +133,7 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	kernel_printf( "Done.\n" );	
 
 	kernel_printf( "\nWelcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
-
+	
 	process_spawn( &kernel_process, "/BOOT/SHELL.BIN", "/device/console1" );
 	process_spawn( &kernel_process, "/BOOT/SHELL.BIN", "/device/console2" );
 	process_spawn( &kernel_process, "/BOOT/SHELL.BIN", "/device/console3" );

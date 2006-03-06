@@ -98,9 +98,32 @@ static void shell_copy( int argc, char **argv )
 display_args(argc,argv);
 }
 
+#define TOTAL_ENTRYS		32
+
 static void shell_list( int argc, char **argv )
 {
-display_args(argc,argv);
+	int i;
+	DIRLIST_ENTRY entry[TOTAL_ENTRYS];
+	char * dir;
+	if( argc < 1 )
+		dir = "/";
+	else
+		dir = argv[1];
+	
+	if( list( dir, (DIRLIST_ENTRY *)&entry, TOTAL_ENTRYS ) == SUCCESS )
+	{
+		printf( "list: %s\n", dir );
+		for( i=0 ; i<TOTAL_ENTRYS ; i++ )
+		{
+			if( entry[i].name[0] == '\0' )
+				break;
+			printf( "\t%s\t\t%d\n", entry[i].name, entry[i].size );	
+		}
+	}
+	else
+	{
+		printf( "list: Failed to list contents of %s.\n", dir );
+	}
 }
 
 static void shell_cd( int argc, char **argv )

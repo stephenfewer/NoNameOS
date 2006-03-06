@@ -1,6 +1,6 @@
 MAKEFILE=Makefile
 
-TARGET_BIN=shell.bin
+TARGET_BIN=test.bin
 
 TARGET_DIR=../../../bin/apps/
 
@@ -12,10 +12,10 @@ RM=del
 
 AMOS_LIB=../../lib/*.o
 
-LDFLAGS=-T ../apps.ld -s -nostdlib -Map $(TARGET_DIR)shell.map
+LDFLAGS=-T ../apps.ld -s -nostdlib -Map $(TARGET_DIR)test.map
 CCFLAGS=-Wall -O -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
 
-OBJ=main.o tinysh.o
+OBJ=test.o
 	
 all: $(TARGET_BIN)
 

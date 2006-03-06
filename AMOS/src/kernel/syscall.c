@@ -91,10 +91,7 @@ void * syscall_morecore( struct PROCESS_INFO * process, DWORD size )
 int syscall_exit( struct PROCESS_INFO * process )
 {
 	if( process_kill( process->id ) == SUCCESS )
-	{
-		kernel_printf("exited ME %d\n", process->id );
-		scheduler_switch();
-	}
+		return SYSCALL_SWITCH;
 	return FAIL;
 }
 
@@ -105,13 +102,9 @@ int syscall_spawn( struct PROCESS_INFO * process, char * filename, char * consol
 
 int syscall_kill( struct PROCESS_INFO * process, int id )
 {
-	int ret;
-	ret = process_kill( id );
+	int ret = process_kill( id );
 	if( ret == SUCCESS && process->id == id )
-	{
-		kernel_printf("killed ME %d\n", id );
-		scheduler_switch();
-	}
+		return SYSCALL_SWITCH;
 	return ret;
 }
 
@@ -123,6 +116,26 @@ int syscall_sleep( struct PROCESS_INFO * process )
 int syscall_wake( struct PROCESS_INFO * process, int id )
 {
 	return process_wake( id );
+}
+
+int syscall_list( struct PROCESS_INFO * process, char * dir, struct VFS_DIRLIST_ENTRY * entry, int entry_num )
+{
+	struct VFS_DIRLIST_ENTRY * kentry;
+	
+	if( dir == NULL || entry == NULL || entry_num <= 0 )
+		return FAIL;
+		
+	kentry = vfs_list( dir );
+	if( kentry == NULL )
+		return FAIL;
+	
+	memset( entry, 0x00, sizeof(struct VFS_DIRLIST_ENTRY)*entry_num );
+	// bounds check this so it doesnt run over the kentry size
+	memcpy( entry, kentry, sizeof(struct VFS_DIRLIST_ENTRY)*entry_num );
+	
+	mm_free( kentry );
+	
+	return SUCCESS;
 }
 
 struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
@@ -156,6 +169,9 @@ struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 				break;
 		}
 	}
+	// if the system call failed and we need to perform a context switch
+	if( ret == SYSCALL_SWITCH )
+		return scheduler_select( process->next );
 	// restore the kernel stack for the jump back to user land
 	memcpy( process->kstack, &kstack, sizeof(struct PROCESS_STACK) );
 	// set return value
@@ -197,9 +213,9 @@ int syscall_init( void )
 	syscall_add( SYSCALL_CREATE,   vfs_create,         1 );
 	syscall_add( SYSCALL_DELETE,   vfs_delete,         1 );
 	syscall_add( SYSCALL_RENAME,   vfs_rename,         2 );
-	syscall_add( SYSCALL_COPY,     vfs_copy,           2 );
-	syscall_add( SYSCALL_LIST,     vfs_list,           1 );
-	*/
+	syscall_add( SYSCALL_COPY,     vfs_copy,           2 );*/
+	syscall_add( SYSCALL_LIST,     syscall_list,       3 );
+	
 	// memory operations
 	syscall_add( SYSCALL_MORECORE, syscall_morecore,   1 );
 	// process operations

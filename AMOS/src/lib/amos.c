@@ -105,12 +105,12 @@ int copy( char * src, char * dest )
 	return ret;		
 }
 
-struct DIRLIST_ENTRY * list( char * dir )
+int list( char * dir, DIRLIST_ENTRY * entry, int entry_num )
 {
-	struct DIRLIST_ENTRY * ret=NULL;
-	if( dir == NULL )
-		return NULL;
-	ASM( "int $0x30" : "=a" (ret) : "a" (SYSCALL_LIST), "b" (dir) );
+	int ret=FAIL;
+	if( dir == NULL || entry == NULL || entry_num <= 0 )
+		return FAIL;
+	ASM( "int $0x30" : "=a" (ret) : "a" (SYSCALL_LIST), "b" (dir), "c" (entry), "d" (entry_num) );
 	return ret;		
 }
 
@@ -144,7 +144,6 @@ void * morecore( DWORD size )
 void exit( void )
 {
 	ASM( "int $0x30" :: "a" (SYSCALL_EXIT) );
-	while(TRUE);
 }
 
 int spawn( char * filename, char * console_path )

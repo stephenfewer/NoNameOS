@@ -36,7 +36,7 @@
 #define PROMPT_SIZE 64
 #endif
 #ifndef TOPCHAR
-#define TOPCHAR '/'
+#define TOPCHAR '\\'
 #endif
 
 typedef void (*tinysh_fnt_t)(int argc, char **argv);

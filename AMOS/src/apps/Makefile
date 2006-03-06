@@ -1,29 +1,16 @@
 MAKEFILE=Makefile
 
-TARGET_BIN=test.bin
+AMOS_SHELL=shell
+TEST=test
 
-TARGET_DIR=../../bin/apps/
+all: app_shell app_test
 
-INCLUDE_DIR=../../include/
-
-CC=gcc
-LD=ld
-RM=del
-
-AMOS_LIB=../lib/*.o
-
-LDFLAGS=-T test.ld -s  -nostdlib -Map $(TARGET_DIR)test.map
-CCFLAGS=-Wall -O -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
-
-OBJ=test.o
+app_shell:
+	$(MAKE) -C $(AMOS_SHELL)
 	
-all: $(TARGET_BIN)
-
-$(TARGET_BIN): $(OBJ)
-	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_BIN) $(OBJ) $(AMOS_LIB)
-
-%.o: %.c
-	$(CC) $(CCFLAGS) -c -o $@ $<
-
+app_test:
+	$(MAKE) -C $(TEST)
+	
 clean:
-	$(RM) *.o
+	$(MAKE) -C $(AMOS_SHELL) clean
+	$(MAKE) -C $(TEST) clean

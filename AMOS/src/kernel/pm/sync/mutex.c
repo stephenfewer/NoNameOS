@@ -14,6 +14,7 @@
 #include <kernel/pm/sync/mutex.h>
 #include <kernel/pm/process.h>
 #include <kernel/mm/mm.h>
+#include <kernel/kernel.h>
 
 void mutex_init( struct MUTEX * m )
 {
@@ -44,6 +45,5 @@ void mutex_lock( struct MUTEX * m )
 void mutex_unlock( struct MUTEX * m )
 {
 	// reset the lock
-	ASM( "lock" );
     ASM( "movb $0, %0" : "=m" (m->lock) :: "memory" );
 }

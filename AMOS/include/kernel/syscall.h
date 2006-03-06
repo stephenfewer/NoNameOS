@@ -4,6 +4,8 @@
 #include <sys/types.h>
 #include <kernel/pm/process.h>
 
+#define SYSCALL_SWITCH			FAIL-1
+
 #define SYSTEM_CALL0( function, process ) function.function0( process )
 #define SYSTEM_CALL1( function, process ) function.function1( process, (void *)process->kstack->ebx )
 #define SYSTEM_CALL2( function, process ) function.function2( process, (void *)process->kstack->ebx, (void *)process->kstack->ecx )
