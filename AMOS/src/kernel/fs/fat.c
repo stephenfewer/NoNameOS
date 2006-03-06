@@ -169,7 +169,7 @@ int fat_compareName( struct FAT_ENTRY * entry, char * name )
 		if( name[i] != entry->name[i] )
 			return FALSE;
 	}
-	i++;
+	//i++;
 	if( name[i] == '.' )
 	{
 		i++;
@@ -463,15 +463,21 @@ int fat_mount( char * device, char * mountpoint, int fstype )
 {
 	int root_dir_offset;
 	mount0 = (struct FAT_MOUNTPOINT *)mm_malloc( sizeof(struct FAT_MOUNTPOINT) );
+	if( mount0 == NULL )
+		return FAIL;
 	//open the device we wish to mount
 	mount0->device = vfs_open( device, VFS_MODE_READWRITE );
 	if( mount0->device == NULL )
+	{
+		mm_free( mount0 );
 		return FAIL;
+	}
 	// read in the bootsector
 	vfs_read( mount0->device, (void *)&mount0->bootsector, sizeof(struct FAT_BOOTSECTOR) );
 	// make sure we have a valid bootsector
 	if( mount0->bootsector.magic != FAT_MAGIC )
 	{
+		kernel_printf("[fat_mount] fail 2\n");
 		vfs_close( mount0->device );
 		mm_free( mount0 );
 		return FAIL;
@@ -516,7 +522,7 @@ struct VFS_HANDLE * fat_open( struct VFS_HANDLE * handle, char * filename )
 	struct FAT_FILE * file;
 	file = (struct FAT_FILE *)mm_malloc( sizeof(struct FAT_FILE) );
 	// try to find the file
-	if( fat_file2entry( mount0, filename, &file->entry ) < 0 )
+	if( fat_file2entry( mount0, filename, &file->entry ) == FAIL )
 	{
 		// if we fail free the file entry structure
 		mm_free( file );
@@ -713,7 +719,9 @@ struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )
 	fat_rwCluster( mount0, dir->start_cluster, (BYTE *)dir, FAT_READ );
 	 
 	entry = (struct VFS_DIRLIST_ENTRY *)mm_malloc( sizeof(struct VFS_DIRLIST_ENTRY)*17 );
-
+	// clear it
+	memset( entry, 0x00, sizeof(struct VFS_DIRLIST_ENTRY)*17 );
+	
 	for(dirIndex=0,entryIndex=0;dirIndex<16;dirIndex++)
 	{
 		// test if their are any more entries
@@ -751,8 +759,6 @@ struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )
 
 		entryIndex++;
 	}
-	// fill in terminating entry
-	entry[entryIndex].name[0] = '\0';
 	// free
 	mm_free( dir );
 	// return to caller. caller *must* free this structure

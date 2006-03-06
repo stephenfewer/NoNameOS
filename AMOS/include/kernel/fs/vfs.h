@@ -50,7 +50,7 @@ struct VFS_FILESYSTEM
 {
 	int fstype;
 	struct VFS_FILESYSTEM_CALLTABLE calltable;
-	struct VFS_FILESYSTEM * next;
+	struct VFS_FILESYSTEM * prev;
 };
 
 struct VFS_MOUNTPOINT
@@ -60,6 +60,7 @@ struct VFS_MOUNTPOINT
 	char * device;
 	struct VFS_MOUNTPOINT * next;
 };
+
 /*
 struct VFS_DIRLIST
 {

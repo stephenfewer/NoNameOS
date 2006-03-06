@@ -95,6 +95,11 @@ int syscall_exit( struct PROCESS_INFO * process )
 	return FAIL;
 }
 
+int syscall_wait( struct PROCESS_INFO * process, int id )
+{
+	return process_wait( id );
+}
+
 int syscall_spawn( struct PROCESS_INFO * process, char * filename, char * console_path )
 {
 	return process_spawn( process, filename, console_path );
@@ -171,7 +176,7 @@ struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 	}
 	// if the system call failed and we need to perform a context switch
 	if( ret == SYSCALL_SWITCH )
-		return scheduler_select( process->next );
+		return scheduler_select( process->prev );
 	// restore the kernel stack for the jump back to user land
 	memcpy( process->kstack, &kstack, sizeof(struct PROCESS_STACK) );
 	// set return value
@@ -223,7 +228,7 @@ int syscall_init( void )
 	syscall_add( SYSCALL_KILL,     syscall_kill,       1 );
 	syscall_add( SYSCALL_SLEEP,    syscall_sleep,      0 );
 	syscall_add( SYSCALL_WAKE,     syscall_wake,       1 );
-	//syscall_add( SYSCALL_WAIT,   process_wait,  1 );
+	syscall_add( SYSCALL_WAIT,     syscall_wait,       1 );
 	syscall_add( SYSCALL_EXIT,     syscall_exit,       0 );
 	
 	// enable the system call interrupt, we set the privilage to

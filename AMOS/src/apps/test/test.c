@@ -12,8 +12,17 @@ void main( void )
 
 int realmain( void )
 {
+	char buffer[256];
+	
 	printf( "Test App\n" );
 	
+	while( TRUE )
+	{
+		if( get( &buffer, 256 ) == FAIL )
+			break;
+		printf( "TEST GOT: %s\n", buffer );
+	}
+
 	// General Protection Fault
 	//ASM( "cli" );
 	

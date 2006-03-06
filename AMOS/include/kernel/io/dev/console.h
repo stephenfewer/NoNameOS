@@ -53,7 +53,7 @@ struct CONSOLE_BUFFER
 	volatile BYTE in_breakByte;
 	volatile BYTE in_break;
 
-	struct CONSOLE_BUFFER * next;
+	struct CONSOLE_BUFFER * prev;
 };
 
 struct CONSOLE_DATA

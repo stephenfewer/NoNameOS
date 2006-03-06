@@ -140,9 +140,11 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	process_spawn( &kernel_process, "/BOOT/SHELL.BIN", "/device/console4" );
 
 	// we should really use sleep() but its not working yet :)
+	//process_sleep( &kernel_process );
+	
 	while( TRUE )
 		process_yield();
-
+	
 	// we should never reach here
 	kernel_panic( NULL, "Kernel trying to exit." );
 }

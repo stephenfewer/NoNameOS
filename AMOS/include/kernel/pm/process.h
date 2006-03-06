@@ -47,7 +47,8 @@ struct PROCESS_STACK
 
 enum
 {
-	READY=0,
+	CREATED=0,
+	READY,
 	RUNNING,
 	BLOCKED,
 	TERMINATED
@@ -75,7 +76,7 @@ struct PROCESS_INFO
 	struct VFS_HANDLE * handles[PROCESS_MAXHANDLES];
 	struct PROCESS_HEAP heap;
 	
-	struct PROCESS_INFO * next;
+	struct PROCESS_INFO * prev;
 };
 
 void process_printStack( struct PROCESS_STACK * );
@@ -91,5 +92,7 @@ void process_yield( void );
 int process_sleep( struct PROCESS_INFO * );
 
 int process_wake( int );
+
+int process_wait( int );
 
 #endif 

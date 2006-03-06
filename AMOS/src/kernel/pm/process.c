@@ -69,7 +69,7 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 	if( process == NULL )
 		return NULL;
 	// no link in the chain yet
-	process->next = NULL;
+	process->prev = NULL;
 	// assign a unique process id
 	process->id = ++process_uniqueid;
 	// set the process id of the parent
@@ -86,7 +86,7 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 	// give it an initial tick slice
 	process->tick_slice = PROCESS_TICKS_NORMAL;
 	// set the initial process state
-	process->state = READY;
+	process->state = CREATED;
 	// create the new process's page directory
 	paging_createDirectory( process );
 	// map in the kernel including its heap and bottom 4 megs
@@ -218,14 +218,15 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 
 void process_yield( void )
 {
-	// disable interrupts
-	interrupt_disableAll();
+	//interrupt_disableAll();
 	// set the current process as ready but maintain its curren tick slice
-	scheduler_setProcess( PROCESS_CURRENT, READY, PROCESS_TICKS_CURRENT );
-	// enable all interrupts
-	interrupt_enableAll();
-	// force a context switch
-	scheduler_switch();
+	if( scheduler_setProcess( PROCESS_CURRENT, READY, PROCESS_TICKS_CURRENT ) == SUCCESS )
+	{
+		//interrupt_enableAll();
+		// force a context switch
+		scheduler_switch();
+	}
+	//interrupt_enableAll();
 }
 
 int process_sleep( struct PROCESS_INFO * process )
@@ -233,30 +234,40 @@ int process_sleep( struct PROCESS_INFO * process )
 	if( process == NULL )
 		return FAIL;
 	// place the process into a blocked state
-	scheduler_setProcess( process->id, BLOCKED, PROCESS_TICKS_NONE );
-	// we return here when the process wakes
-	return SUCCESS;
+	if( scheduler_setProcess( process->id, BLOCKED, PROCESS_TICKS_NONE ) == SUCCESS )
+	{
+		// force a context switch
+		scheduler_switch();
+		// we return here when the process wakes
+		return SUCCESS;
+	}
+	return FAIL;
 }
 
 int process_wake( int id )
 {
 	// force the process into a READY state
-	scheduler_setProcess( id, READY, PROCESS_TICKS_NORMAL );
-	return SUCCESS;
+	return scheduler_setProcess( id, READY, PROCESS_TICKS_NORMAL );
 }
 
-/*
 int process_wait( int id )
 {
-	//wait for the process of id to terminate...
+	if( id <= 0 )
+		return FAIL;
+	// wait for the process of id to terminate...
+	while( TRUE )
+	{
+		if( scheduler_getProcess( id ) == NULL )
+			break;
+		process_yield();
+	}
 	return SUCCESS;
-}*/
+}
 
 int process_kill( int id )
 {
 	// cant kill the kernel ...we'd get court marshelled! :)
 	if( id == KERNEL_PID )
 		return FAIL;
-	kernel_printf( "process_kill( %d )\n", id );
 	return scheduler_setProcess( id, TERMINATED, PROCESS_TICKS_NONE );
 }

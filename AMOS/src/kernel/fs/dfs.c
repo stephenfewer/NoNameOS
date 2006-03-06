@@ -17,23 +17,20 @@
 #include <kernel/io/io.h>
 #include <lib/string.h>
 
-struct DFS_ENTRY * dfs_deviceTop = NULL;
-struct DFS_ENTRY * dfs_deviceBottom = NULL;
+struct DFS_ENTRY * dfs_deviceHead = NULL;
 
 struct DFS_ENTRY * dfs_add( char * name, struct IO_CALLTABLE * calltable, int type )
 {
 	struct DFS_ENTRY * device;
 	
 	device = (struct DFS_ENTRY *)mm_malloc( sizeof(struct DFS_ENTRY) );
+
+	device->prev = NULL;
 	
-	if( dfs_deviceBottom == NULL )
-		dfs_deviceBottom = device;
-	else
-		dfs_deviceTop->next = device;
-	dfs_deviceTop = device;
-	
-	device->next = NULL;
-	
+	if( dfs_deviceHead != NULL )
+		device->prev = dfs_deviceHead;
+	dfs_deviceHead = device;
+
 	device->calltable = calltable;
 	
 	device->name = name;
@@ -46,7 +43,7 @@ struct DFS_ENTRY * dfs_add( char * name, struct IO_CALLTABLE * calltable, int ty
 struct DFS_ENTRY * dfs_find( char * name )
 {
 	struct DFS_ENTRY * device;
-	for( device=dfs_deviceBottom ; device!=NULL ; device=device->next )
+	for( device=dfs_deviceHead ; device!=NULL ; device=device->prev )
 	{
 		if( strcmp( device->name, name ) == 0 )
 			break;
@@ -64,17 +61,17 @@ int dfs_remove( char * name  )
 	// To Do: test for any open file handles of the requested device
 	
 	// remove from linked list
-	if( device == dfs_deviceBottom )
+	if( device == dfs_deviceHead )
 	{
-		dfs_deviceBottom = device->next;
+		dfs_deviceHead = device->prev;
 	}
 	else
 	{
-		for( d=dfs_deviceBottom ; d!=NULL ; d=d->next )
+		for( d=dfs_deviceHead ; d!=NULL ; d=d->prev )
 		{
-			if( d->next == device )
+			if( d->prev == device )
 			{
-				d->next = device->next;
+				d->prev = device->prev;
 				break;
 			}
 		}
@@ -180,14 +177,16 @@ struct VFS_DIRLIST_ENTRY * dfs_list( char * dir )
 	struct VFS_DIRLIST_ENTRY * entry;
 	int i=0;
 	// count how many devices we have
-	for( device=dfs_deviceBottom ; device!=NULL ; device=device->next )
+	for( device=dfs_deviceHead ; device!=NULL ; device=device->prev )
 		i++;
 	// return NULL if we dont have any
 	if( i == 0 )
 		return NULL;
 	// create the array of entry structures
 	entry = (struct VFS_DIRLIST_ENTRY *)mm_malloc( (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1 );
-	for( device=dfs_deviceBottom,i=0 ; device!=NULL ; device=device->next,i++ )
+	// clear it
+	memset( entry, 0x00, (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1 );
+	for( device=dfs_deviceHead, i=0 ; device!=NULL ; device=device->prev, i++ )
 	{
 		// fill in the name
 		strncpy( entry[i].name, device->name, 32 );
@@ -196,8 +195,6 @@ struct VFS_DIRLIST_ENTRY * dfs_list( char * dir )
 		// fill in the size
 		entry[i].size = 0;
 	}
-	// fill in terminating entry
-	entry[i+1].name[0] = '\0';
 	// return to caller. caller *must* free this structure
 	return entry;
 }

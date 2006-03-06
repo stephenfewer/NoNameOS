@@ -144,7 +144,7 @@ display_args(argc,argv);
 static void shell_spawn( int argc, char **argv )
 {
 	//char console_path[256];
-	//int wait = TRUE;
+	int shellwait = TRUE;
 	int pid;
 	
 	if( argc < 1 )
@@ -158,11 +158,19 @@ static void shell_spawn( int argc, char **argv )
 	}*/
 	
 	//if( strcmp( argv[argc-1], "&" ) == SUCCESS )
-	//	wait = FALSE;
+	//	shellwait = FALSE;
 
 	pid = spawn( "/BOOT/TEST.BIN", "/device/console2" );
-	
-	printf("Spawned process %d\n", pid );
+	if( pid == FAIL )
+	{
+		printf("Failed to spawn process.\n" );
+	}
+	else
+	{
+		printf("Spawned process %d\n", pid );
+		if( shellwait )
+			wait( pid );
+	}
 }
 
 static void shell_kill( int argc, char **argv )

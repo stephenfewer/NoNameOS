@@ -30,41 +30,49 @@ struct CONSOLE * console2;
 struct CONSOLE * console3;
 struct CONSOLE * console4;
 
-struct CONSOLE_BUFFER * console_bufferTop = NULL;
-struct CONSOLE_BUFFER * console_bufferBottom = NULL;
+struct CONSOLE_BUFFER * console_bufferHead = NULL;
+
 struct MUTEX console_bufferLock;
 
 struct CONSOLE_BUFFER * console_addBuffer( struct CONSOLE_BUFFER * buffer )
 {
-	if( console_bufferBottom == NULL )
-		console_bufferBottom = buffer;
-	else
-		console_bufferTop->next = buffer;
-	console_bufferTop = buffer;
-	console_bufferTop->next = NULL;
+	mutex_lock( &console_bufferLock );
+	
+	buffer->prev = NULL;
+	
+	if( console_bufferHead != NULL )
+		buffer->prev = console_bufferHead;
+	
+	console_bufferHead = buffer;
+	
+	mutex_unlock( &console_bufferLock );
+	
 	return buffer;
 }
 
 int console_removeBuffer( struct CONSOLE_BUFFER * buffer )
 {
 	struct CONSOLE_BUFFER * b;
-
-	if( buffer == console_bufferBottom )
+	int ret=FAIL;
+	mutex_lock( &console_bufferLock );
+	if( buffer == console_bufferHead )
 	{
-		console_bufferBottom = buffer->next;
+		console_bufferHead = buffer->prev;
 	}
 	else
 	{
-		for( b=console_bufferBottom ; b!=NULL ; b=b->next )
+		for( b=console_bufferHead ; b!=NULL ; b=b->prev )
 		{
-			if( b->next == buffer )
+			if( b->prev == buffer )
 			{
-				b->next = buffer->next;
-				return SUCCESS;
+				b->prev = buffer->prev;
+				ret=SUCCESS;
+				break;
 			}
 		}
 	}
-	return FAIL;
+	mutex_unlock( &console_bufferLock );
+	return ret;
 }
 
 void console_cls( struct CONSOLE * );
@@ -327,6 +335,8 @@ int console_close( struct IO_HANDLE * handle )
 	handle->data_ptr = NULL;
 	handle->data_arg = 0;
 	
+	console->data->echo = FALSE;
+	
 	if( console->buffer != NULL )
 	{
 		console_removeBuffer( console->buffer );	
@@ -415,7 +425,7 @@ int console_putchBuffer( int number, BYTE byte )
 
 	mutex_lock( &console_bufferLock );
 	
-	for( buffer=console_bufferBottom ; buffer!=NULL ; buffer=buffer->next )
+	for( buffer=console_bufferHead ; buffer!=NULL ; buffer=buffer->prev )
 	{
 		if( buffer->number == number )
 		{

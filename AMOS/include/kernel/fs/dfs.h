@@ -8,7 +8,7 @@
 
 struct DFS_ENTRY
 {
-	struct DFS_ENTRY	* next;
+	struct DFS_ENTRY	* prev;
 	struct IO_CALLTABLE * calltable;
 	char * name;
 	int type;

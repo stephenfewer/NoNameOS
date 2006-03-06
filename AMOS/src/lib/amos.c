@@ -179,3 +179,13 @@ int wake( int id )
 	ASM( "int $0x30" : "=a" (ret) : "a" (SYSCALL_WAKE), "b" (id) );
 	return ret;		
 }
+
+int wait( int id )
+{
+	int ret=FAIL;
+	if( id < 0 )
+		return FAIL;
+	ASM( "int $0x30" : "=a" (ret) : "a" (SYSCALL_WAIT), "b" (id) );
+	return ret;		
+}
+

@@ -75,7 +75,7 @@ struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
 {
 	struct PROCESS_INFO * newProcess;
 	INTERRUPT_HANDLER handler;
-	volatile int intnumber;
+	int intnumber;
 	
 	intnumber = process->kstack->intnumber;
 	
@@ -105,7 +105,7 @@ struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
 					kernel_printf("Exception \"%s\" in process %d\n", interrupt_messages[ intnumber ], process->id );
 					process_printStack( process->kstack );
 					if( process_kill( process->id ) == SUCCESS )
-						newProcess = scheduler_select( process->next );
+						newProcess = scheduler_select( process->prev );
 					else
 						kernel_panic( NULL, "Failed to kill offending process." );
 				}

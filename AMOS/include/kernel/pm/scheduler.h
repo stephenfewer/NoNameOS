@@ -11,10 +11,10 @@
 struct SCHEDULER_PROCESS_TABLE
 {
 	struct MUTEX lock;
-	// the linked list of processes that defines the process table
-	//struct PROCESS_INFO * top;
-	struct PROCESS_INFO * bottom;
+	struct PROCESS_INFO * head;
 };
+
+struct PROCESS_INFO * scheduler_getProcess( int );
 
 int scheduler_setProcess( int, int, int );
 

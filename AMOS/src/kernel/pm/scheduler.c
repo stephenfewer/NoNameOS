@@ -33,12 +33,21 @@ static struct PROCESS_INFO * scheduler_findProcesss( int id )
 {
 	struct PROCESS_INFO * process;
 	// search the process tabel for the process of the specified it
-	for( process=scheduler_processTable.bottom ; process!=NULL ; process=process->next )
+	for( process=scheduler_processTable.head ; process!=NULL ; process=process->prev )
 	{
 		if( process->id == id )
 			break;
 	}
 	// return the process or NULL if not found
+	return process;
+}
+
+struct PROCESS_INFO * scheduler_getProcess( int id  )
+{
+	struct PROCESS_INFO * process;
+	mutex_lock( &scheduler_processTable.lock );
+	process = scheduler_findProcesss( id );
+	mutex_unlock( &scheduler_processTable.lock );
 	return process;
 }
 
@@ -76,7 +85,7 @@ void scheduler_printProcessTable( void )
 	struct PROCESS_INFO * process;
 	kernel_printf("scheduler_printProcessTable()\n");
 	mutex_lock( &scheduler_processTable.lock );
-	for( process=scheduler_processTable.bottom ; process!=NULL ; process=process->next )
+	for( process=scheduler_processTable.head ; process!=NULL ; process=process->prev )
 		kernel_printf("\tproc %d %x state: %d (%d)", process->id, process, process->state, process->tick_slice );
 	mutex_unlock( &scheduler_processTable.lock );
 }
@@ -85,13 +94,12 @@ struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * process )
 {
 	mutex_lock( &scheduler_processTable.lock );
 	// if the process tabel is empty, set it as the bottom
-	if( scheduler_processTable.bottom == NULL )
-		scheduler_processTable.bottom = process;
-	else {
-		// otherwise insert it after the bottom
-		process->next = scheduler_processTable.bottom->next;
-		scheduler_processTable.bottom->next = process;
-	}
+
+	process->prev = NULL;
+	if( scheduler_processTable.head != NULL )
+		process->prev = scheduler_processTable.head;
+	scheduler_processTable.head = process;
+
 	mutex_unlock( &scheduler_processTable.lock );
 	return process;
 }
@@ -107,18 +115,18 @@ int scheduler_removeProcesss( struct PROCESS_INFO * process )
 		return FAIL;
 	kernel_printf("remove process %d... \n", process->id );
 	// remove the process from the schedulers process table
-	if( process == scheduler_processTable.bottom )
+	if( process == scheduler_processTable.head )
 	{
-		scheduler_processTable.bottom = process->next;
+		scheduler_processTable.head = process->prev;
 		ret = SUCCESS;
 	}
 	else
 	{
-		for( p=scheduler_processTable.bottom ; p!=NULL ; p=p->next )
+		for( p=scheduler_processTable.head ; p!=NULL ; p=p->prev )
 		{
-			if( p->next == process )
+			if( p->prev == process )
 			{
-				p->next = process->next;
+				p->prev = process->prev;
 				ret = SUCCESS;
 				break;
 			}
@@ -132,16 +140,20 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 	struct PROCESS_INFO * processCurrent;
 	// lock critical section
 	mutex_lock( &scheduler_processTable.lock );
+
+	//if( processNext == NULL )
+	//	ASM( "movl %%dr0, %%eax" : "=r" ( processCurrent ) : );
+
 	processCurrent = processNext;
-	// search for another process to run in a round robin fashion 
+	// search for another process to run in a backwards round robin fashion 
 	while( TRUE )
-	{
+	{			
 		// try the next one...
-		processNext=processNext->next;
+		processNext=processNext->prev;
 		
 		// if we have come to the end of the queue, we start from the begining
 		if( processNext == NULL )
-			processNext = scheduler_processTable.bottom;
+			processNext = scheduler_processTable.head;
 
 		// if there is a terminated process in the queue, remove and destroy it
 		if( processNext->state == TERMINATED )
@@ -149,32 +161,42 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 			if( scheduler_removeProcesss( processNext ) == SUCCESS )
 			{	
 				process_destroy( processNext );
-				processNext = scheduler_processTable.bottom;
+				processNext = scheduler_processTable.head;
 				continue;
 			}
 		}
+		// ignore a process if it is blocked
+		else if( processNext->state == BLOCKED )
+			continue;
 		// if we find one in a READY state we choose it
 		else if( processNext->state == READY )
+			break;
+		// if a process has been created we choose it, we could controll process
+		// being allowed into the system here to reduce cpu load
+		else if( processNext->state == CREATED )
 			break;
 	}
 	// test if we found another process to run || processNext->id == KERNEL_PID
 	if( processNext != processCurrent )
 	{
-		if( processNext->state == TERMINATED )
+		if( processNext->state == TERMINATED || processNext->state == BLOCKED )
 		{
-			kernel_printf("processNext TERMINATED! %d\n", processNext->id );
+			kernel_printf("processNext TERMINATED or BLOCKED! %d\n", processNext->id );
+			kernel_panic( NULL, "12345" );
 		}
-		// set the current process to a READY state
+		// reset the current process to a READY state
 		processCurrent->state = READY;
+		
 		// we could set this higher/lower depending on its priority: LOW, NORMAL, HIGH
 		processNext->tick_slice = PROCESS_TICKS_NORMAL;
 		// set the process's state to running as we are switching into this process
 		processNext->state = RUNNING;
 	}
 	
-	if( processNext->state == TERMINATED )
+	if( processNext == NULL || processNext->state == TERMINATED || processNext->state == BLOCKED )
 	{
-		kernel_printf("RETURNING processNext as TERMINATED! %d\n", processNext->id );
+		kernel_printf("RETURNING processNext as TERMINATED or BLOCKED! %d\n", processNext->id );
+		kernel_panic( NULL, "asasad" );
 	}
 	
 	// unlock our critical section
@@ -199,7 +221,7 @@ struct PROCESS_INFO * scheduler_handler( struct PROCESS_INFO * process )
 	process->tick_slice--;
 	mutex_unlock( &scheduler_processTable.lock );
 	// if the current process has reached the end of its tick slice we must select a new process to run
-	if( process->tick_slice <= PROCESS_TICKS_NONE )// || process->state != RUNNING )
+	if( process->tick_slice <= PROCESS_TICKS_NONE || process->state != RUNNING )
 		newProcess = scheduler_select( process );
 	else
 		newProcess = process;
@@ -211,8 +233,7 @@ int scheduler_init( void )
 {
 	int interval;
 	// initilize the process table
-	//scheduler_processTable.top = NULL;
-	scheduler_processTable.bottom = NULL;
+	scheduler_processTable.head = NULL;
 	// init the lock
 	mutex_init( &scheduler_processTable.lock );
 	// set the initial values we need for the kernels process

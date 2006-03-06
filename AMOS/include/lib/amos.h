@@ -49,4 +49,6 @@ int sleep( void );
 
 int wake( int );
 
+int wait( int );
+
 #endif 
