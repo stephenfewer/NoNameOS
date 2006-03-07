@@ -403,6 +403,7 @@ int floppy_init( void )
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open = floppy_open;
 	calltable->close = floppy_close;
+	calltable->clone = NULL;
 	calltable->read = floppy_read;
 	calltable->write = floppy_write;
     calltable->seek = floppy_seek;

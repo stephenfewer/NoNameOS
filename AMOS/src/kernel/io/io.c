@@ -62,6 +62,22 @@ int io_close( struct IO_HANDLE * handle )
 	return FAIL;
 }
 
+int io_clone( struct IO_HANDLE * handle, struct IO_HANDLE * clone )
+{
+	int ret=FAIL;
+	if( handle->device->calltable->clone != NULL )
+	{
+		clone = (struct IO_HANDLE *)mm_malloc( sizeof(struct IO_HANDLE) );
+		clone->device = handle->device;
+		clone->data_ptr = NULL;
+		clone->data_arg = (DWORD)NULL;
+		ret = handle->device->calltable->clone( handle, clone );
+		if( ret == FAIL )
+			mm_free( clone );
+	}
+	return ret;	
+}
+
 int io_read( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	if( handle->device->calltable->read != NULL )

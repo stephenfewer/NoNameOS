@@ -42,6 +42,7 @@ int bitbucket_init( void )
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open = bitbucket_open;
 	calltable->close = bitbucket_close;
+	calltable->clone = NULL;
 	calltable->read = NULL;
 	calltable->write = bitbucket_write;
 	calltable->seek = NULL;

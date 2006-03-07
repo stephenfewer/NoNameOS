@@ -348,6 +348,35 @@ int console_close( struct IO_HANDLE * handle )
 	return SUCCESS;
 }
 
+int console_clone( struct IO_HANDLE * handle, struct IO_HANDLE * clone )
+{
+	struct CONSOLE * console_orig, * console_clone;
+	// get the virtual console we are operating on
+	if( handle->data_arg == CONSOLE_PTRPTR )
+		console_orig = *(struct CONSOLE **)handle->data_ptr;
+	else if( handle->data_arg == CONSOLE_PTR )
+		console_orig = (struct CONSOLE *)handle->data_ptr;
+	else
+		return FAIL;
+	
+	console_clone = (struct CONSOLE *)mm_malloc( sizeof(struct CONSOLE) );
+	
+	console_clone->data = console_orig->data;
+	
+	console_clone->buffer = (struct CONSOLE_BUFFER *)mm_malloc( sizeof(struct CONSOLE_BUFFER) );
+	memset( console_clone->buffer, 0x00, sizeof(struct CONSOLE_BUFFER) );
+		
+	console_clone->buffer->number = console_clone->data->number;
+		
+	console_addBuffer( console_clone->buffer );
+	
+	clone->data_arg = CONSOLE_PTR;
+	
+	clone->data_ptr = console_clone;
+	
+	return SUCCESS;	
+}
+
 int console_read( struct IO_HANDLE * handle, BYTE * ubuff, DWORD size  )
 {
 	struct CONSOLE * console;
@@ -489,6 +518,7 @@ int console_init( void )
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open    = console_open;
 	calltable->close   = console_close;
+	calltable->clone   = console_clone;
 	calltable->read    = console_read;
 	calltable->write   = console_write;
 	calltable->seek    = NULL;

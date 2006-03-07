@@ -116,6 +116,11 @@ int dfs_close( struct VFS_HANDLE * handle )
 	return io_close( (struct IO_HANDLE *)handle->data_ptr );
 }
 
+int dfs_clone( struct VFS_HANDLE * handle, struct VFS_HANDLE * clone )
+{
+	return io_clone( (struct IO_HANDLE *)handle->data_ptr, (struct IO_HANDLE *)clone->data_ptr );
+}
+
 int dfs_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	return io_read( (struct IO_HANDLE *)handle->data_ptr, buffer, size );	
@@ -213,6 +218,7 @@ int dfs_init( void )
 	// setup the file system calltable
 	fs->calltable.open    = dfs_open;
 	fs->calltable.close   = dfs_close;
+	fs->calltable.clone   = dfs_clone;
 	fs->calltable.read    = dfs_read;
 	fs->calltable.write   = dfs_write;
 	fs->calltable.seek    = dfs_seek;

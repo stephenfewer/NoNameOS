@@ -156,15 +156,11 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 	struct VFS_HANDLE   * handle;
 	BYTE * buffer;
 	int size;
-	int test = FALSE;
 
-	if( strcmp( filename, "/fat/BOOT/TEST.BIN" ) == 0 )
-	{
-		kernel_printf("spawning TEST.BIN: filename=%s console_path=%s\n",filename,console_path);	
-		test = TRUE;
-	}
-	
-	console = vfs_open( console_path, VFS_MODE_READWRITE );
+	if( console_path == NULL )
+		console = vfs_clone( parent->handles[PROCESS_CONSOLEHANDLE] );
+	else
+		console = vfs_open( console_path, VFS_MODE_READWRITE );
 	if( console == NULL )
 		return FAIL;
 	// open the process image

@@ -130,12 +130,12 @@ static void shell_list( int argc, char **argv )
 	
 	if( list( dir, (DIRLIST_ENTRY *)&entry, TOTAL_ENTRYS ) == SUCCESS )
 	{
-		printf( "list: %s\n", dir );
+		//printf( "list: %s\n", dir );
 		for( i=0 ; i<TOTAL_ENTRYS ; i++ )
 		{
 			if( entry[i].name[0] == '\0' )
 				break;
-			printf( "\t%s\t%d\t\t%s\n", ( entry[i].attributes==DIRECTORY ? "Dir " : "File" ), entry[i].size, entry[i].name );	
+			printf( "\t%s %s\t\t%d\n",( entry[i].attributes==DIRECTORY ? "(D)" : "(F)" ), entry[i].name, entry[i].size );	
 		}
 	}
 	else
@@ -221,7 +221,7 @@ static void shell_spawn( int argc, char **argv )
 	//if( strcmp( argv[argc-1], "&" ) == SUCCESS )
 	//	shellwait = FALSE;
 
-	pid = spawn( argv[1], "/device/console2" );
+	pid = spawn( argv[1], NULL );
 	if( pid == FAIL )
 	{
 		printf("spawn: Failed to spawn process: %s.\n", argv[1] );

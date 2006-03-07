@@ -33,6 +33,7 @@ struct VFS_FILESYSTEM_CALLTABLE
 {
 	struct VFS_HANDLE * (*open)( struct VFS_HANDLE *, char * );
 	int (*close)(struct VFS_HANDLE *);
+	int (*clone)( struct VFS_HANDLE *, struct VFS_HANDLE * );
 	rw read;
 	rw write;
 	int (*seek)(struct VFS_HANDLE *, DWORD, BYTE );
@@ -91,6 +92,8 @@ int vfs_unmount( char * );
 struct VFS_HANDLE * vfs_open( char *, int );
 
 int vfs_close( struct VFS_HANDLE * );
+
+struct VFS_HANDLE * vfs_clone( struct VFS_HANDLE * );
 
 int vfs_read( struct VFS_HANDLE *, BYTE *, DWORD );
 

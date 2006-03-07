@@ -96,6 +96,20 @@ char * strstr( char *s1, char *s2 )
 	return NULL;
 }
 
+inline int toupper( int ch )
+{
+	if( (unsigned int)(ch - 'a') < 26u )
+		ch += 'A' - 'a';
+	return ch;
+}
+
+int tolower( int ch )
+{
+	if( (unsigned int)(ch - 'A') < 26u )
+		ch += 'a' - 'A';
+	return ch;
+}
+
 void * memset( void * dest, BYTE val, int count )
 {
     register char * d = (char *)dest;

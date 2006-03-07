@@ -17,6 +17,10 @@ char * strncpy( char *, char *, int );
 
 char *strstr( char *, char * );
 
+inline int toupper( int );
+
+int tolower( int );
+
 void * memset( void *, BYTE, int );
 
 void memcpy( void *, void *, int );

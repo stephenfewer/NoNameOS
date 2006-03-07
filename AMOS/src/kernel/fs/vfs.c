@@ -230,6 +230,29 @@ int vfs_close( struct VFS_HANDLE * handle )
 	return FAIL;	
 }
 
+struct VFS_HANDLE * vfs_clone( struct VFS_HANDLE * handle )
+{
+	struct VFS_HANDLE * clone = NULL;
+
+	if( handle == NULL )
+		return NULL;
+
+	if( handle->mount->fs->calltable.clone != NULL )
+	{
+		clone = (struct VFS_HANDLE *)mm_malloc( sizeof(struct VFS_HANDLE) );
+		clone->mount = handle->mount;
+		clone->mode = handle->mode;
+
+		if( handle->mount->fs->calltable.clone( handle, clone ) == FAIL )
+		{
+			mm_free( clone );
+			return NULL;
+		}
+	}
+
+	return clone;
+}
+
 int vfs_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	if( handle == NULL )

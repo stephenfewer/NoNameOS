@@ -149,7 +149,7 @@ void exit( void )
 int spawn( char * filename, char * console_path )
 {
 	int ret=FAIL;
-	if( filename == NULL || console_path == NULL )
+	if( filename == NULL )
 		return FAIL;
 	ASM( "int $0x30" : "=a" (ret) : "a" (SYSCALL_SPAWN), "b" (filename), "c" (console_path) );
 	return ret;			

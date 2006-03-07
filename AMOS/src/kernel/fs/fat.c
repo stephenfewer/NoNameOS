@@ -208,12 +208,14 @@ int fat_file2entry( struct FAT_MOUNTPOINT * mount, char * filename, struct FAT_E
 	char * curr_name;
 	struct FAT_ENTRY * curr_dir, prevEntry;
 	BYTE * clusterBuffer;
-	// to-do: convert to uppercase
 	// advance past the fisrt forward slash
 	if( filename[0] == '/' )
 		filename++;
 	// get the total length of the filename string
 	length = strlen( filename );
+	// convert to uppercase
+	for(i=0;i<length;i++)
+		filename[i] = toupper( filename[i] );
 	// allocate a buffer of memory the same size as a cluster
 	clusterBuffer = (BYTE *)mm_malloc( mount->cluster_size );
 	// point the curr_name pointer to the filename
@@ -553,6 +555,11 @@ int fat_close( struct VFS_HANDLE * handle )
 	return SUCCESS;
 }
 
+int fat_clone( struct VFS_HANDLE * handle, struct VFS_HANDLE * clone )
+{
+	return FAIL;
+}
+
 int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 {
 	int bytes_to_read=0, bytes_read=0, cluster_offset=0;
@@ -746,15 +753,15 @@ struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )
 		{
 			if( dir[dirIndex].name[nameIndex] == 0x20 )
 				break;
-			entry[entryIndex].name[nameIndex] = dir[dirIndex].name[nameIndex];
+			entry[entryIndex].name[nameIndex] = tolower( dir[dirIndex].name[nameIndex] );
 		}
 		// and the extension if their is one
 		if( dir[dirIndex].extention[0] != 0x20 )
 		{
 			entry[entryIndex].name[nameIndex] = '.';
-			entry[entryIndex].name[nameIndex+1] = ( dir[dirIndex].extention[0] == 0x20 ? 0x00 : dir[dirIndex].extention[0] );
-			entry[entryIndex].name[nameIndex+2] = ( dir[dirIndex].extention[1] == 0x20 ? 0x00 : dir[dirIndex].extention[1] );
-			entry[entryIndex].name[nameIndex+3] = ( dir[dirIndex].extention[2] == 0x20 ? 0x00 : dir[dirIndex].extention[2] );
+			entry[entryIndex].name[nameIndex+1] = ( dir[dirIndex].extention[0] == 0x20 ? 0x00 : tolower(dir[dirIndex].extention[0]) );
+			entry[entryIndex].name[nameIndex+2] = ( dir[dirIndex].extention[1] == 0x20 ? 0x00 : tolower(dir[dirIndex].extention[1]) );
+			entry[entryIndex].name[nameIndex+3] = ( dir[dirIndex].extention[2] == 0x20 ? 0x00 : tolower(dir[dirIndex].extention[2]) );
 		}
 		// fill in the attributes
 		if( dir[dirIndex].attribute.directory )
@@ -782,6 +789,7 @@ int fat_init( void )
 	// setup the file system calltable
 	fs->calltable.open    = fat_open;
 	fs->calltable.close   = fat_close;
+	fs->calltable.clone   = fat_clone;
 	fs->calltable.read    = fat_read;
 	fs->calltable.write   = fat_write;
 	fs->calltable.seek    = fat_seek;
