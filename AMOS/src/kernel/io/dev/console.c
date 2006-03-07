@@ -38,11 +38,10 @@ struct CONSOLE_BUFFER * console_addBuffer( struct CONSOLE_BUFFER * buffer )
 {
 	mutex_lock( &console_bufferLock );
 	
-	buffer->prev = NULL;
-	
 	if( console_bufferHead != NULL )
 		buffer->prev = console_bufferHead;
-	
+	else
+		buffer->prev = NULL;
 	console_bufferHead = buffer;
 	
 	mutex_unlock( &console_bufferLock );
@@ -360,10 +359,18 @@ int console_clone( struct IO_HANDLE * handle, struct IO_HANDLE * clone )
 		return FAIL;
 	
 	console_clone = (struct CONSOLE *)mm_malloc( sizeof(struct CONSOLE) );
+	if( console_clone == NULL )
+		return FAIL;
 	
 	console_clone->data = console_orig->data;
 	
 	console_clone->buffer = (struct CONSOLE_BUFFER *)mm_malloc( sizeof(struct CONSOLE_BUFFER) );
+	if( console_clone->buffer == NULL )
+	{
+		mm_free( console_clone );
+		return FAIL;
+	}
+	
 	memset( console_clone->buffer, 0x00, sizeof(struct CONSOLE_BUFFER) );
 		
 	console_clone->buffer->number = console_clone->data->number;

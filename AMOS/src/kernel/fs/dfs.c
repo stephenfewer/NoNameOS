@@ -25,10 +25,11 @@ struct DFS_ENTRY * dfs_add( char * name, struct IO_CALLTABLE * calltable, int ty
 	
 	device = (struct DFS_ENTRY *)mm_malloc( sizeof(struct DFS_ENTRY) );
 
-	device->prev = NULL;
-	
 	if( dfs_deviceHead != NULL )
 		device->prev = dfs_deviceHead;
+	else
+		device->prev = NULL;
+	
 	dfs_deviceHead = device;
 
 	device->calltable = calltable;
@@ -118,7 +119,7 @@ int dfs_close( struct VFS_HANDLE * handle )
 
 int dfs_clone( struct VFS_HANDLE * handle, struct VFS_HANDLE * clone )
 {
-	return io_clone( (struct IO_HANDLE *)handle->data_ptr, (struct IO_HANDLE *)clone->data_ptr );
+	return io_clone( (struct IO_HANDLE *)handle->data_ptr, (struct IO_HANDLE *)&clone->data_ptr );
 }
 
 int dfs_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )

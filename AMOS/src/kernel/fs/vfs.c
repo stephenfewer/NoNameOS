@@ -25,11 +25,11 @@ struct VFS_MOUNTPOINT * vfs_mpTail = NULL;
 // register a new file system with the VFS
 int vfs_register( struct VFS_FILESYSTEM * fs )
 {
-	// add the new file system to a linked list of file system
-	// drivers present in the system
-	fs->prev = NULL;
+	// add the new file system to a linked list of file system drivers present in the system
 	if( vfs_fsHead != NULL )
 		fs->prev = vfs_fsHead;
+	else
+		fs->prev = NULL;
 	vfs_fsHead = fs;
 	// we can now mount volumes of this file system type
 	return SUCCESS;
@@ -232,7 +232,7 @@ int vfs_close( struct VFS_HANDLE * handle )
 
 struct VFS_HANDLE * vfs_clone( struct VFS_HANDLE * handle )
 {
-	struct VFS_HANDLE * clone = NULL;
+	struct VFS_HANDLE * clone;
 
 	if( handle == NULL )
 		return NULL;
@@ -248,9 +248,11 @@ struct VFS_HANDLE * vfs_clone( struct VFS_HANDLE * handle )
 			mm_free( clone );
 			return NULL;
 		}
+		
+		return clone;
 	}
 
-	return clone;
+	return NULL;
 }
 
 int vfs_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )

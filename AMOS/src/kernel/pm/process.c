@@ -159,6 +159,7 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 
 	if( console_path == NULL )
 		console = vfs_clone( parent->handles[PROCESS_CONSOLEHANDLE] );
+		//console = vfs_open( "/device/console2", VFS_MODE_READWRITE );
 	else
 		console = vfs_open( console_path, VFS_MODE_READWRITE );
 	if( console == NULL )

@@ -26,11 +26,13 @@ void shell_args( int argc, char **argv );
 void shell_init( int argc, char **argv );
 int realmain(  int argc, char **argv );
 
-void main( void )
+int main( void )
 {
 	realmain( 0, NULL );
 	
 	exit();
+	
+	return 0;
 }
 
 int atoi( const char * s )

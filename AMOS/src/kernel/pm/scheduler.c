@@ -94,12 +94,11 @@ struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * process )
 {
 	mutex_lock( &scheduler_processTable.lock );
 	// if the process tabel is empty, set it as the bottom
-
-	process->prev = NULL;
 	if( scheduler_processTable.head != NULL )
 		process->prev = scheduler_processTable.head;
+	else
+		process->prev = NULL;
 	scheduler_processTable.head = process;
-
 	mutex_unlock( &scheduler_processTable.lock );
 	return process;
 }

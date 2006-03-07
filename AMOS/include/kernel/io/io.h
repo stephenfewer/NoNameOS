@@ -34,7 +34,7 @@ struct IO_HANDLE * io_open( struct DFS_ENTRY * );
 
 int io_close( struct IO_HANDLE * );
 
-int io_clone( struct IO_HANDLE *, struct IO_HANDLE * );
+int io_clone( struct IO_HANDLE *, struct IO_HANDLE ** );
 
 int io_read( struct IO_HANDLE *, BYTE *, DWORD );
 

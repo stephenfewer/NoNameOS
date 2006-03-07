@@ -62,18 +62,21 @@ int io_close( struct IO_HANDLE * handle )
 	return FAIL;
 }
 
-int io_clone( struct IO_HANDLE * handle, struct IO_HANDLE * clone )
+int io_clone( struct IO_HANDLE * handle, struct IO_HANDLE ** clone )
 {
 	int ret=FAIL;
 	if( handle->device->calltable->clone != NULL )
 	{
-		clone = (struct IO_HANDLE *)mm_malloc( sizeof(struct IO_HANDLE) );
-		clone->device = handle->device;
-		clone->data_ptr = NULL;
-		clone->data_arg = (DWORD)NULL;
-		ret = handle->device->calltable->clone( handle, clone );
+		struct IO_HANDLE * c = (struct IO_HANDLE *)mm_malloc( sizeof(struct IO_HANDLE) );
+		if( c == NULL )
+			return FAIL;
+		c->device = handle->device;
+		c->data_ptr = NULL;
+		c->data_arg = (DWORD)NULL;
+		ret = handle->device->calltable->clone( handle, c );
 		if( ret == FAIL )
-			mm_free( clone );
+			mm_free( c );
+		*clone = c;
 	}
 	return ret;	
 }

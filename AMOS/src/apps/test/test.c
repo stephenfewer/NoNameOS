@@ -2,11 +2,11 @@
 #include <lib/printf.h>
 #include <lib/string.h>
 
-int realmain( void );
+int realmain( int, char ** );
 
 int main( void )
 {
-	realmain();
+	realmain( 0, NULL );
 	
 	exit();
 	
@@ -32,16 +32,18 @@ int atoi( const char * s )
 	return sign==-1?-v:v;
 }
 
-int realmain( void )
+int realmain( int argc, char **argv )
 {
 	char buffer[16];
 
 	while( TRUE )
 	{
-		printf( "Test App, please enter your choice:\n" );
+		printf( "Test App\n" );
 		printf( "\t1. General Protection Fault\n" );
 		printf( "\t2. Page Fault\n" );
 		printf( "\t3. Divide By Zero\n" );
+		printf( "\t4. Exit Gracefully\n" );
+		printf( "Please enter your choice: " );
 
 		if( get( (char *)&buffer, 16 ) == FAIL )
 			break;
@@ -60,6 +62,9 @@ int realmain( void )
 				printf( "About to divide by zero...\n" );
 				ASM( "xor %ebx, %ebx; div %ebx" );
 				break;
+			case 4:	// Exit Gracefully
+				printf( "About to exit gacefully...\n" );
+				exit();
 			default:
 				printf( "Not a valid choice.\n" );
 				break;	
