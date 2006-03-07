@@ -51,6 +51,26 @@ int syscall_close( struct PROCESS_INFO * process, int handleIndex )
 	return vfs_close( process->handles[ handleIndex ] );	
 }
 
+int syscall_clone( struct PROCESS_INFO * process, int handle_origIndex )
+{
+	int handle_cloneIndex;
+	// make sure the handle index is in range
+	if( handle_origIndex < 0 || handle_origIndex >= PROCESS_MAXHANDLES )
+		return FAIL;
+	// find a free entry for the cloned handle
+	for( handle_cloneIndex=0; handle_cloneIndex<PROCESS_MAXHANDLES ; handle_cloneIndex++ )
+	{
+		if( process->handles[ handle_cloneIndex ] == NULL )
+			break;
+	}
+	// clone the origional handle and add it to the process's handle table
+	process->handles[ handle_cloneIndex ] = vfs_clone( process->handles[ handle_origIndex ] );
+	// return the cloned handle index if we succeed of fail if not
+	if( process->handles[ handle_cloneIndex ] == NULL )
+		return FAIL;
+	return handle_cloneIndex;
+}
+
 int syscall_read( struct PROCESS_INFO * process, int handleIndex, BYTE * buffer, DWORD size )
 {
 	// make sure the handle index is in range
@@ -223,6 +243,7 @@ int syscall_init( void )
 	// add in all our system calls... file operations
 	syscall_add( SYSCALL_OPEN,     syscall_open,	   2 );
 	syscall_add( SYSCALL_CLOSE,    syscall_close,	   1 );
+	syscall_add( SYSCALL_CLONE,    syscall_clone,	   1 );
 	syscall_add( SYSCALL_READ,     syscall_read,       3 );
 	syscall_add( SYSCALL_WRITE,    syscall_write,      3 );
 	syscall_add( SYSCALL_SEEK,     syscall_seek,       3 );

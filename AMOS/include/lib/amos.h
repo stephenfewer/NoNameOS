@@ -28,6 +28,8 @@ int open( char *, int );
 
 int close( int );
 
+int clone( int );
+
 int read( int, BYTE *, DWORD );
 
 int write( int, BYTE *, DWORD );

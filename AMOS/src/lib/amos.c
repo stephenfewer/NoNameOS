@@ -33,6 +33,15 @@ int close( int handle )
 	return ret;	
 }
 
+int clone( int handle )
+{
+	int ret=FAIL;
+	if( handle < 0 )
+		return FAIL;
+	ASM( "int $0x30" : "=a" (ret) : "a" (SYSCALL_CLONE), "b" (handle) );
+	return ret;		
+}
+
 int read( int handle, BYTE * buffer, DWORD size  )
 {
 	int ret=FAIL;
