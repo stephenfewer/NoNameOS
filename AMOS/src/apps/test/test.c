@@ -32,6 +32,17 @@ int atoi( const char * s )
 	return sign==-1?-v:v;
 }
 
+
+int stackoverflow( void )
+{
+	int i;
+	int buffer[1024];
+	// infinite recursion!!!
+	for(i=0;i<1024;i++)
+		buffer[i] = stackoverflow();
+	return 0;
+}
+
 int realmain( int argc, char **argv )
 {
 	char buffer[16];
@@ -39,10 +50,12 @@ int realmain( int argc, char **argv )
 	while( TRUE )
 	{
 		printf( "Test App\n" );
-		printf( "\t1. General Protection Fault\n" );
-		printf( "\t2. Page Fault\n" );
-		printf( "\t3. Divide By Zero\n" );
-		printf( "\t4. Exit Gracefully\n" );
+		printf( "\t1. Exit Gracefully!\n" );
+		printf( "\t2. General Protection Fault\n" );
+		printf( "\t3. Page Fault\n" );
+		printf( "\t4. Divide By Zero\n" );
+		printf( "\t5. Stack Overflow\n" );
+		printf( "\t6. Invalid Opcode\n" );
 		printf( "Please enter your choice: " );
 
 		if( get( (char *)&buffer, 16 ) == FAIL )
@@ -50,21 +63,31 @@ int realmain( int argc, char **argv )
 
 		switch( atoi( buffer ) )
 		{
-			case 1: // General Protection Fault
+			case 1:	// Exit Gracefully
+				printf( "About to exit gacefully...\n" );
+				exit();
+			case 2: // General Protection Fault
 				printf( "About to execute a privileged instruction...\n" );
 				ASM( "cli" );
 				break;
-			case 2:	// Page Fault
+			case 3:	// Page Fault
 				printf( "About to memset the kernel heap...\n" );
 				memset( (void *)0xD0000000, 0x00, 4096 );
 				break;
-			case 3:	// Divide By Zero
+			case 4:	// Divide By Zero
 				printf( "About to divide by zero...\n" );
 				ASM( "xor %ebx, %ebx; div %ebx" );
 				break;
-			case 4:	// Exit Gracefully
-				printf( "About to exit gacefully...\n" );
-				exit();
+			case 5:	// Stack Overflow
+				printf( "About to cause a stack overflow...\n" );
+				stackoverflow();
+				break;
+			case 6: // Invalid Opcode
+				printf( "About to execute an invalid instruction...\n" );
+				// undocumented instructions to generate an invalid
+				// opcode interrupt for testing purposes 
+				ASM( "ud2" );
+				break;
 			default:
 				printf( "Not a valid choice.\n" );
 				break;	
