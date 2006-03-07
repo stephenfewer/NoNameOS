@@ -19,21 +19,5 @@
 
 void mutex_init( struct MUTEX * m )
 {
-	m->flags = 0L;
-}
-
-void mutex_lock( struct MUTEX * m )
-{
-	// save the CPU flags
-	ASM( "pushfl" ::: "memory" );
-	ASM( "popl %0" : "=g" ( m->flags ) :: "memory" );
-	// disable interrupts locally
-	interrupt_disableAll();
-}
-
-void mutex_unlock( struct MUTEX * m )
-{
-	// restore the flags
-    ASM( "pushl %0" :: "g" ( m->flags ): "memory" );
-    ASM( "popfl" ::: "memory" );
+	m->foo = 0L;
 }

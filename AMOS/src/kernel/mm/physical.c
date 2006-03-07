@@ -16,6 +16,7 @@
 #include <kernel/mm/dma.h>
 #include <kernel/kernel.h>
 #include <kernel/pm/sync/mutex.h>
+#include <kernel/interrupt.h>
 #include <lib/string.h>
 
 extern void start;

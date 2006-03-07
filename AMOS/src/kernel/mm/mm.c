@@ -17,6 +17,7 @@
 #include <kernel/mm/paging.h>
 #include <kernel/pm/process.h>
 #include <kernel/pm/sync/mutex.h>
+#include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <lib/string.h>
 
