@@ -68,8 +68,8 @@ static void help_fnt(int argc, char **argv)
   puts("?            display help on given or available commands\n");
   puts("<TAB>        auto-completion\n");
   puts("<cr>         execute command line\n");
-  puts("CTRL-P       recall previous input line\n");
-  puts("CTRL-N       recall next input line\n");
+  //puts("CTRL-P       recall previous input line\n");
+  //puts("CTRL-N       recall next input line\n");
   puts("<any>        treat as input character\n");
 }
 

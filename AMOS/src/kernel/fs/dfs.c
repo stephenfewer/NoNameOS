@@ -145,12 +145,13 @@ int dfs_create( char * filename )
 
 int dfs_delete( char * filename )
 {
-	return dfs_remove( filename );	
+	return dfs_remove( filename );
 }
 
 int dfs_copy( char * src, char * dest )
 {
 	struct DFS_ENTRY * device;
+	char * name;
 	struct IO_CALLTABLE * calltable;
 	// find the source device
 	device = dfs_find( src );
@@ -159,8 +160,11 @@ int dfs_copy( char * src, char * dest )
 	// copy the calltable
 	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
 	memcpy( calltable, device->calltable, sizeof(struct IO_CALLTABLE) );
+	// copy the name
+	name = (char *)mm_malloc( strlen(dest) );
+	strcpy( name, dest );
 	// add a new device with the source devices calltable
-	dfs_add( dest, calltable, device->type );
+	dfs_add( name, calltable, device->type );
 	return SUCCESS;	
 }
 

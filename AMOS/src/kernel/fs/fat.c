@@ -708,16 +708,23 @@ struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )
 	struct FAT_ENTRY * dir;
 	struct VFS_DIRLIST_ENTRY * entry;
 
-	dir = (struct FAT_ENTRY *)mm_malloc( mount0->cluster_size );
-	
-	if( fat_file2entry( mount0, dirname, dir ) < 0 )
-	{
-		mm_free( dir );
-		return NULL;
+	if( strlen( dirname ) == 0 )
+	{	
+		dir = mount0->rootdir;
 	}
-	
-	fat_rwCluster( mount0, dir->start_cluster, (BYTE *)dir, FAT_READ );
-	 
+	else
+	{
+		dir = (struct FAT_ENTRY *)mm_malloc( mount0->cluster_size );
+		
+		if( fat_file2entry( mount0, dirname, dir ) < 0 )
+		{
+			mm_free( dir );
+			return NULL;
+		}
+
+		fat_rwCluster( mount0, dir->start_cluster, (BYTE *)dir, FAT_READ );
+	}
+
 	entry = (struct VFS_DIRLIST_ENTRY *)mm_malloc( sizeof(struct VFS_DIRLIST_ENTRY)*17 );
 	// clear it
 	memset( entry, 0x00, sizeof(struct VFS_DIRLIST_ENTRY)*17 );

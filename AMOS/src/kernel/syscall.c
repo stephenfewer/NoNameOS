@@ -143,6 +143,21 @@ int syscall_list( struct PROCESS_INFO * process, char * dir, struct VFS_DIRLIST_
 	return SUCCESS;
 }
 
+int syscall_copy( struct PROCESS_INFO * process, char * src, char * dest  )
+{
+	return vfs_copy( src, dest );
+}
+
+int syscall_rename( struct PROCESS_INFO * process, char * src, char * dest  )
+{
+	return vfs_rename( src, dest );
+}
+
+int syscall_delete( struct PROCESS_INFO * process, char * filename )
+{
+	return vfs_delete( filename );
+}
+
 struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 {
 	struct PROCESS_STACK kstack;
@@ -215,12 +230,11 @@ int syscall_init( void )
 	// file system operations
 	/*syscall_add( SYSCALL_MOUNT,    vfs_mount,          3 );
 	syscall_add( SYSCALL_UNMOUNT,  vfs_unmount,        1 );
-	syscall_add( SYSCALL_CREATE,   vfs_create,         1 );
-	syscall_add( SYSCALL_DELETE,   vfs_delete,         1 );
-	syscall_add( SYSCALL_RENAME,   vfs_rename,         2 );
-	syscall_add( SYSCALL_COPY,     vfs_copy,           2 );*/
+	syscall_add( SYSCALL_CREATE,   vfs_create,         1 );*/
+	syscall_add( SYSCALL_DELETE,   syscall_delete,     1 );
+	syscall_add( SYSCALL_RENAME,   syscall_rename,     2 );
+	syscall_add( SYSCALL_COPY,     syscall_copy,       2 );
 	syscall_add( SYSCALL_LIST,     syscall_list,       3 );
-	
 	// memory operations
 	syscall_add( SYSCALL_MORECORE, syscall_morecore,   1 );
 	// process operations
