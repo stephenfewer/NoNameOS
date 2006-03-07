@@ -157,6 +157,9 @@ int fat_compareName( struct FAT_ENTRY * entry, char * name )
 	if( entry->name[0] == 0x00 || entry->name[0] == FAT_ENTRY_DELETED )
 		return FALSE;
 		
+	for(i=0;i<strlen(name);i++)
+		name[i] = toupper( name[i] );
+	
 	//if( entry->name[0] == 0x05 )
 	//	entry->name[0] = FAT_ENTRY_DELETED;
 	
@@ -276,6 +279,9 @@ int fat_setName( struct FAT_ENTRY * entry, char * name )
 {
 	int i, x;
 	
+	for(i=0;i<strlen(name);i++)
+		name[i] = toupper( name[i] );
+		
 	// clear the name and extension (first 11 bytes of the structure)
 	memset( &entry->name[0], 0x20, 11 );
 	
