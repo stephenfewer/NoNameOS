@@ -56,6 +56,7 @@ int realmain( int argc, char **argv )
 		printf( "\t4. Divide By Zero\n" );
 		printf( "\t5. Stack Overflow\n" );
 		printf( "\t6. Invalid Opcode\n" );
+		printf( "\t7. Loop Forever\n" );
 		printf( "Please enter your choice: " );
 
 		if( get( (char *)&buffer, 16 ) == FAIL )
@@ -87,6 +88,15 @@ int realmain( int argc, char **argv )
 				// undocumented instructions to generate an invalid
 				// opcode interrupt for testing purposes 
 				ASM( "ud2" );
+				break;
+			case 7: // Loop Forever
+				printf( "About to loop forever...\n" );
+				while( TRUE )
+				{
+					int i=9999999;
+					while( --i );
+					printf( " loop" );	
+				}
 				break;
 			default:
 				printf( "Not a valid choice.\n" );

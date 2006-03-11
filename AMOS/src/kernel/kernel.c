@@ -40,6 +40,11 @@ void outportb( WORD port, BYTE data )
     ASM( "outb %1, %0" : : "dN" (port), "a" (data) );
 }
 
+void kernel_printInfo( void )
+{
+	scheduler_printProcessTable();
+}
+
 void kernel_printf( char * text, ... )
 {
 	va_list args;
@@ -64,6 +69,12 @@ void kernel_panic( struct PROCESS_STACK * stack, char * message )
 		process_printStack( stack );
 	// hang the system
 	while( TRUE );
+}
+
+void kernel_idle( void )
+{
+	while( TRUE )
+		ASM( "hlt" );	
 }
 
 // initilize the kernel and bring up all the subsystems
@@ -105,22 +116,6 @@ int kernel_init( struct MULTIBOOT_INFO * m )
 	return SUCCESS;
 }
 
-void printdir( char * dir )
-{
-	struct VFS_DIRLIST_ENTRY * entry;
-	kernel_printf( "vfs_list( \"%s\" )\n", dir );
-	entry = vfs_list( dir );
-	while( entry != NULL  )
-	{
-		if( entry->name[0] == '\0' )
-			break;
-		kernel_printf( "\t%d\t%s\t\t%d\n",  entry->attributes, entry->name, entry->size );
-		entry++;
-	}
-	kernel_printf( "\n" );
-	mm_free( entry );
-}
-
 void kernel_main( struct MULTIBOOT_INFO * m )
 {
 	// initilize the kernel, when we return we will be executing as the kernel process
@@ -134,16 +129,14 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 
 	kernel_printf( "\nWelcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
 	
+	// spawn a user shell on each virtual console
 	process_spawn( &kernel_process, "/BOOT/SHELL.BIN", "/device/console1" );
 	process_spawn( &kernel_process, "/BOOT/SHELL.BIN", "/device/console2" );
 	process_spawn( &kernel_process, "/BOOT/SHELL.BIN", "/device/console3" );
 	process_spawn( &kernel_process, "/BOOT/SHELL.BIN", "/device/console4" );
-
-	// we should really use sleep() but its not working yet :)
-	//process_sleep( &kernel_process );
 	
-	while( TRUE )
-		process_yield();
+	// enter an idle state, the kernel is now our idle process if theirs nothign to do
+	kernel_idle();
 	
 	// we should never reach here
 	kernel_panic( NULL, "Kernel trying to exit." );

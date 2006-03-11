@@ -137,7 +137,7 @@ int paging_createDirectory( struct PROCESS_INFO * p )
 	// clear out the page directory
 	paging_clearDirectory( p );
 	// identity map the physical address of the page directory
-	paging_setPageTableEntry( p, p->page_dir, p->page_dir, TRUE );
+	//paging_setPageTableEntry( p, p->page_dir, p->page_dir, TRUE );
 	// return success
 	return SUCCESS;
 }
@@ -156,7 +156,7 @@ void paging_destroyDirectory( struct PROCESS_INFO * p )
 	{
 		pde = &p->page_dir->entry[i];
 		pt = (struct PAGE_TABLE *)( TABLE_SHIFT_L(pde->address) );
-		if( pt != NULL )
+		if( pt != NULL && pde->present )
 		{
 			// loop through all entrys in the page table
 			for( x=0 ; x<PAGE_ENTRYS; x++ )
@@ -164,7 +164,7 @@ void paging_destroyDirectory( struct PROCESS_INFO * p )
 				pte = &pt->entry[x];
 				physicalAddress = (void *)TABLE_SHIFT_L( pte->address );
 				// free the memory mapped to the page table entry
-				if( physicalAddress != NULL )
+				if( physicalAddress != NULL && pte->present )
 					physical_pageFree( physicalAddress );
 			}
 			// free the page table
@@ -182,7 +182,7 @@ void paging_mapKernel( struct PROCESS_INFO * p )
 	// map in the bottom 4MB's ( which are identity mapped, see paging_init() )
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, NULL );
 	paging_setPageDirectoryEntry( p, NULL, (void *)TABLE_SHIFT_L(pde->address) );
-	
+
 	//pde = paging_getPageDirectoryEntry( kernel_process.page_dir, DMA_PAGE_VADDRESS );
 	//paging_setPageDirectoryEntry( p, DMA_PAGE_VADDRESS, (void *)TABLE_SHIFT_L(pde->address) );
 	

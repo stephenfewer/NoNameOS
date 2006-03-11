@@ -137,6 +137,9 @@ struct PROCESS_INFO * keyboard_handler( struct PROCESS_INFO * process )
 		case KEYBORAD_KEY_F4:
 			vfs_control( keyboard_output, CONSOLE_SETACTIVE, CONSOLE_4 );
 			break;
+		case KEYBORAD_KEY_F5:
+			kernel_printInfo();
+			break;
 		case 0xAA:
 			keyboard_shift = FALSE;
 			break;

@@ -12,8 +12,8 @@ p {
 </head>
 <body bgcolor="#FFFFFF" text="#000000" link="#0000FF" vlink="#FF00CC" alink="#FF0000">
 <h2>AMOS</h2>
-<p>Version 0.4.0<br>
-  3rd February 2006<br>
+<p>Version 0.5.0<br>
+  9th March 2006<br>
 </p>
 <h2>Contents<br>
 </h2>
@@ -84,24 +84,37 @@ p {
   <p>If you are building this on Windows you will need to install <a href="http://membres.lycos.fr/placr/binutils.html" target="_blank">binutils</a> for DJGPP in order to build ELF files.</p>
   <p>The linker will place the finished binary <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
     in the bin directory.</p>
-  <p>The make process will create the ELF kernel form the COFF file and it will 
-    then place <font face="Courier New, Courier, mono" size="2">kernel.bin</font> 
+  <p>The make process will create the ELF kernel and place <font face="Courier New, Courier, mono" size="2">kernel.elf</font> 
     in the disk image <font face="Courier New, Courier, mono" size="2">amos.ima</font>. 
     <a href="http://www.gnu.org/software/grub/" target="_blank">GRUB</a> is allready 
-    configured to boot the kernel.</p>
+    configured to boot the kernel. The make process will also create the user 
+    shell application <font face="Courier New, Courier, mono" size="2">shell.bin</font> 
+    and a test application <font face="Courier New, Courier, mono" size="2">test.bin</font>, 
+    both are flat binary format.</p>
   <p>You can now use bochs to boot off the disk image, the <font face="Courier New, Courier, mono" size="2">bochsrc.bxrc</font> 
     config script should be fine but go over it to make sure. In Eclipse you can 
-    set up an external tool to run thr run.bat file to automate this, otherwse 
-    double click on the <font face="Courier New, Courier, mono" size="2">bochsrc.bxrc</font> 
+    set up an external tool to run thr <font face="Courier New, Courier, mono" size="2">run_bochs.bat</font> 
+    file to automate this, otherwse double click on the <font face="Courier New, Courier, mono" size="2">bochsrc.bxrc</font> 
     config script or run it from the command line, e.g.</p>
-  <p><font face="Courier New, Courier, mono" size="2">C:\AMOS\bin\bochs 
-    -q -f bochsrc.bxrc</font></p>
+  <p><font face="Courier New, Courier, mono" size="2">C:\AMOS\bin\bochs -q -f 
+    bochsrc.bxrc</font></p>
+  <p>You can also run it in qemu using the <font size="2" face="Courier New, Courier, mono">run_qemu.bat</font> 
+    file also located in the bin directory. You may need to edit the path in both 
+    of these scripts to suit your system.</p>
   <p>You should now be running AMOS!<br>
   </p>
   </div>
 <h2><a name="Changelog"></a>Changelog<br>
 </h2>
 <div style="margin-left: 40px;"> 
+  <p>Version 0.5.0 - 9th March 2006<br>
+    Another large update, the near finished process manager subsystem is in place 
+    with user mode process spawning and killing. Nearly all the system calls are 
+    in place for file system operation like open(), read() and so on along with 
+    other calls such as morecore() and spawn(), wait() and kill(). A basic user 
+    shell application is included along with a test application for performing 
+    controlled crash tests. Lots of bug fixes in all subsystems. AMOS running 
+    successfully in VMWare Player, Bochs and Qemu.</p>
   <p>Version 0.4.0 - 3rd February 2006<br>
     Big update, added the IO Subsystem with drivers for floppy drive (currently 
     does not suppport write operations), virtual consoles and keyboard. Added 

@@ -83,10 +83,22 @@ int scheduler_setProcess( int id, int state, int ticks )
 void scheduler_printProcessTable( void )
 {
 	struct PROCESS_INFO * process;
-	kernel_printf("scheduler_printProcessTable()\n");
+	kernel_printf("\nScheduler Process Table:\n");
 	mutex_lock( &scheduler_processTable.lock );
-	for( process=scheduler_processTable.head ; process!=NULL ; process=process->prev )
-		kernel_printf("\tproc %d %x state: %d (%d)", process->id, process, process->state, process->tick_slice );
+	for(  process=scheduler_processTable.head ; process!=NULL ; process=process->prev )
+	{
+		char * state;
+		switch( process->state )
+		{
+			case CREATED: state="Created"; break;	
+			case READY: state="Ready"; break;
+			case RUNNING: state="Running"; break;
+			case BLOCKED: state="Blocked"; break;
+			case TERMINATED: state="Terminated"; break;
+			default: state="???"; break;
+		}
+		kernel_printf("\tPID %d (%s) is %s, ticks: %d\n", process->id, (process->privilege==USER?"User":"Kernel"), state, process->tick_slice );
+	}
 	mutex_unlock( &scheduler_processTable.lock );
 }
 
@@ -195,11 +207,17 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 				processCurrent->state = READY;
 		}
 		// we could set this higher/lower depending on its priority: LOW, NORMAL, HIGH
-		processNext->tick_slice = PROCESS_TICKS_NORMAL;
+		if( processNext->id == KERNEL_PID )
+			processNext->tick_slice = PROCESS_TICKS_LOW;
+		else
+			processNext->tick_slice = PROCESS_TICKS_NORMAL;
 		// set the process's state to running as we are switching into this process
 		processNext->state = RUNNING;
 	}
 
+	if( processNext->tick_slice < 0 )
+		processNext->tick_slice = PROCESS_TICKS_LOW;
+		
 	// unlock our critical section
 	mutex_unlock( &scheduler_processTable.lock );
 	// we return the new process (possibly) to indicate we may wish to perform a context switch, see isr.asm

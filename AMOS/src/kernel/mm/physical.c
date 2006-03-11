@@ -44,7 +44,7 @@ void * physical_pageAllocAddress( void * physicalAddress )
 		physical_bitmap[ BITMAP_BYTE_INDEX( physicalAddress ) ] |= ( 1 << BITMAP_BIT_INDEX( physicalAddress ) );
 		return physicalAddress;
 	}
-	return 0L;
+	return NULL;
 }
 
 int physical_getBitmapSize()

@@ -12,6 +12,7 @@
 #define KEYBORAD_KEY_F2			0x3C
 #define KEYBORAD_KEY_F3			0x3D
 #define KEYBORAD_KEY_F4			0x3E
+#define KEYBORAD_KEY_F5			0x3F
 #define KEYBORAD_KEY_NUM		0x45
 #define KEYBORAD_KEY_SCROLL		0x46
 

@@ -215,8 +215,9 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 
 void process_yield( void )
 {
-	// set the current process as ready but maintain its curren tick slice
-	if( scheduler_setProcess( PROCESS_CURRENT, READY, PROCESS_TICKS_CURRENT ) == SUCCESS )
+	// set the current process as ready 
+	// (but maintain its curren tick slice) - actually just set it to low
+	if( scheduler_setProcess( PROCESS_CURRENT, READY, PROCESS_TICKS_LOW ) == SUCCESS )
 	{
 		// force a context switch
 		scheduler_switch();
