@@ -23,7 +23,7 @@
 
 extern struct PROCESS_INFO kernel_process;
 
-struct MUTEX mm_mallocLock;
+struct MUTEX mm_kmallocLock;
 
 int mm_init( DWORD memUpper )
 {	
@@ -41,11 +41,11 @@ int mm_init( DWORD memUpper )
 	kernel_process.heap.heap_top    = NULL;
 	kernel_process.heap.heap_bottom = NULL;
 	
-	// inti the lock that the kernel mm_malloc/mm_free will use
-	// we cant use mutex_create() as it need mm_malloc()
-	mutex_init( &mm_mallocLock );
+	// inti the lock that the kernel mm_kmalloc/mm_kfree will use
+	// we cant use mutex_create() as it need mm_kmalloc()
+	mutex_init( &mm_kmallocLock );
 	
-	// from here on in we can use mm_malloc() & mm_free()
+	// from here on in we can use mm_kmalloc() & mm_kfree()
 	return SUCCESS;
 }
 
@@ -68,7 +68,7 @@ void * mm_morecore( struct PROCESS_INFO * process, DWORD size )
 		if( physicalAddress == NULL )
 			return NULL;
 		// map it onto the end of the processes heap
-		paging_setPageTableEntry( process, process->heap.heap_top, physicalAddress, TRUE );
+		paging_map( process, process->heap.heap_top, physicalAddress, TRUE );
 		// clear it for safety, relativly expensive operation
 		memset( process->heap.heap_top, 0x00, PAGE_SIZE );
 	}
@@ -77,14 +77,14 @@ void * mm_morecore( struct PROCESS_INFO * process, DWORD size )
 }
 
 // free a previously allocated item from the kernel heap
-void mm_free( void * address )
+void mm_kfree( void * address )
 {
 	struct MM_HEAPITEM * tmp_item, * item;
 	// sanity check
 	if( address == NULL )
 		return;
 	// lock this critical section as we are about to modify the kernels heap
-	mutex_lock( &mm_mallocLock );
+	mutex_lock( &mm_kmallocLock );
 	// set the item to remove
 	item = (struct MM_HEAPITEM *)( address - sizeof(struct MM_HEAPITEM) );
 	// find it
@@ -108,11 +108,11 @@ void mm_free( void * address )
 		}
 	}
 	// unlock this critical section
-	mutex_unlock( &mm_mallocLock );
+	mutex_unlock( &mm_kmallocLock );
 }
 
 // allocates an arbiturary size of memory (via first fit) from the kernel heap
-void * mm_malloc( DWORD size )
+void * mm_kmalloc( DWORD size )
 {
 	struct MM_HEAPITEM * new_item, * tmp_item;
 	int total_size;
@@ -120,7 +120,7 @@ void * mm_malloc( DWORD size )
 	if( size == 0 )
 		return NULL;
 	// lock this critical section as we are modifying the kernel heap
-	mutex_lock( &mm_mallocLock );
+	mutex_lock( &mm_kmallocLock );
 	// round up by 8 bytes and add header size
 	total_size = ( ( size + 7 ) & ~7 ) + sizeof(struct MM_HEAPITEM);
 	// search for first fit
@@ -148,7 +148,7 @@ void * mm_malloc( DWORD size )
 		if( new_item == NULL )
 		{
 			// unlock the critical section
-			mutex_unlock( &mm_mallocLock );
+			mutex_unlock( &mm_kmallocLock );
 			// return NULL as we are out of physical memory!
 			return NULL;
 		}
@@ -164,7 +164,7 @@ void * mm_malloc( DWORD size )
 		new_item->next = tmp_item;
 	}
 	// unlock our critical section
-	mutex_unlock( &mm_mallocLock );
+	mutex_unlock( &mm_kmallocLock );
 	// return the newly allocated memory location
 	return (void *)( (int)new_item + sizeof(struct MM_HEAPITEM) );
 }

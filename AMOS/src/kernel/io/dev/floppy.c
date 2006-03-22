@@ -400,7 +400,7 @@ int floppy_init( void )
 	BYTE i, floppy_type;
 	struct IO_CALLTABLE * calltable;
 	// create and initilise the call table
-	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
+	calltable = (struct IO_CALLTABLE *)mm_kmalloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open = floppy_open;
 	calltable->close = floppy_close;
 	calltable->clone = NULL;
@@ -416,7 +416,7 @@ int floppy_init( void )
 	floppy_type = i >> 4;
 	if( floppy_type != 0 )
 	{
-		floppy1 = (struct FLOPPY_DRIVE *)mm_malloc( sizeof(struct FLOPPY_DRIVE) );
+		floppy1 = (struct FLOPPY_DRIVE *)mm_kmalloc( sizeof(struct FLOPPY_DRIVE) );
 		// set the device name
 		floppy1->name = "floppy1";
 		// set the floppy command base address
@@ -432,7 +432,7 @@ int floppy_init( void )
     floppy_type = i & 0x0F;
  	if( floppy_type != 0 )
 	{
-		floppy2 = (struct FLOPPY_DRIVE *)mm_malloc( sizeof(struct FLOPPY_DRIVE) );
+		floppy2 = (struct FLOPPY_DRIVE *)mm_kmalloc( sizeof(struct FLOPPY_DRIVE) );
 		// set the device name
 		floppy2->name = "floppy2";
 		// set the floppy command base address

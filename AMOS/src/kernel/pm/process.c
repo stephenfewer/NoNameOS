@@ -53,9 +53,9 @@ int process_destroy( struct PROCESS_INFO * process )
 	// any user memory like the user code, user stack and user heap
 	paging_destroyDirectory( process );
 	// free the kernel stack
-	mm_free( process->kstack_base );
+	mm_kfree( process->kstack_base );
 	// free the process info structure
-	mm_free( process );
+	mm_kfree( process );
 	return SUCCESS;	
 }
 
@@ -65,7 +65,7 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 	void * physicalAddress;
 	int i;
 	// create a new process info structure
-	process = (struct PROCESS_INFO *)mm_malloc( sizeof( struct PROCESS_INFO ) );
+	process = (struct PROCESS_INFO *)mm_kmalloc( sizeof( struct PROCESS_INFO ) );
 	if( process == NULL )
 		return NULL;
 	// no link in the chain yet
@@ -100,7 +100,7 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 		if( physicalAddress == NULL )
 			kernel_panic( NULL, "No physical memory for process creation." );
 		//  map in the stack to the process's address space
-		paging_setPageTableEntry( process, PROCESS_USER_STACK_VADDRESS+(i*PAGE_SIZE), physicalAddress, TRUE );
+		paging_map( process, PROCESS_USER_STACK_VADDRESS+(i*PAGE_SIZE), physicalAddress, TRUE );
 	}
 	// copy the code segment from kernel space to user space
 	for( i=0 ; i<(size/PAGE_SIZE)+1 ; i++ )
@@ -113,16 +113,16 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 		if( physicalAddress == NULL )
 			kernel_panic( NULL, "No physical memory for process creation." );
 
-		paging_setPageTableEntry( parent, tempAddress, physicalAddress, TRUE );
+		paging_map( parent, tempAddress, physicalAddress, TRUE );
 		
 		memcpy( tempAddress, entrypoint+(i*PAGE_SIZE), PAGE_SIZE );
 		
-		paging_setPageTableEntry( parent, tempAddress, NULL, FALSE );
+		paging_map( parent, tempAddress, NULL, FALSE );
 		
-		paging_setPageTableEntry( process, linearAddress, physicalAddress, TRUE );
+		paging_map( process, linearAddress, physicalAddress, TRUE );
 	}
 	// create the process's initial kernel stack so we can perform a context switch
-	process->kstack_base = mm_malloc( PROCESS_STACKSIZE );
+	process->kstack_base = mm_kmalloc( PROCESS_STACKSIZE );
 	if( process->kstack_base == NULL )
 		kernel_panic( NULL, "No physical memory for process creation." );
 	// advance the pointer to the top of the stack, less the size of the stack structure, so we can begin filling it in
@@ -177,14 +177,14 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 	size = vfs_seek( handle, 0, VFS_SEEK_END );
 
 	// alloc a page extra for safety, will fix this up later
-	buffer = (BYTE *)mm_malloc( size + PAGE_SIZE );
+	buffer = (BYTE *)mm_kmalloc( size + PAGE_SIZE );
 	
 	vfs_seek( handle, 0, VFS_SEEK_START );
 	if( vfs_read( handle, buffer, size ) == FAIL )
 	{
 		vfs_close( console );
 		vfs_close( handle );
-		mm_free( buffer );
+		mm_kfree( buffer );
 		return FAIL;
 	}
 	//if( (i=elf_load( handle )) < 0 )
@@ -195,14 +195,14 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 	{
 		vfs_close( console );
 		vfs_close( handle );
-		mm_free( buffer );
+		mm_kfree( buffer );
 		return FAIL;
 	}
 	
 	// close the process images handle
 	vfs_close( handle );
 
-	mm_free( buffer );	
+	mm_kfree( buffer );	
 	
 	process->handles[PROCESS_CONSOLEHANDLE] = console;
 	

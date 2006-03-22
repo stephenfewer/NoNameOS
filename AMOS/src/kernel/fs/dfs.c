@@ -23,7 +23,7 @@ struct DFS_ENTRY * dfs_add( char * name, struct IO_CALLTABLE * calltable, int ty
 {
 	struct DFS_ENTRY * device;
 	
-	device = (struct DFS_ENTRY *)mm_malloc( sizeof(struct DFS_ENTRY) );
+	device = (struct DFS_ENTRY *)mm_kmalloc( sizeof(struct DFS_ENTRY) );
 
 	if( dfs_deviceHead != NULL )
 		device->prev = dfs_deviceHead;
@@ -78,9 +78,9 @@ int dfs_remove( char * name  )
 		}
 	}	
 	// free all memory allocated
-	mm_free( device->calltable );
-	mm_free( device->name );
-	mm_free( device );
+	mm_kfree( device->calltable );
+	mm_kfree( device->name );
+	mm_kfree( device );
 	// return success
 	return SUCCESS;
 }
@@ -164,10 +164,10 @@ int dfs_copy( char * src, char * dest )
 	if( device == NULL )
 		return FAIL;
 	// copy the calltable
-	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
+	calltable = (struct IO_CALLTABLE *)mm_kmalloc( sizeof(struct IO_CALLTABLE) );
 	memcpy( calltable, device->calltable, sizeof(struct IO_CALLTABLE) );
 	// copy the name
-	name = (char *)mm_malloc( strlen(dest) );
+	name = (char *)mm_kmalloc( strlen(dest) );
 	strcpy( name, dest );
 	// add a new device with the source devices calltable
 	dfs_add( name, calltable, device->type );
@@ -193,7 +193,7 @@ struct VFS_DIRLIST_ENTRY * dfs_list( char * dir )
 	if( i == 0 )
 		return NULL;
 	// create the array of entry structures
-	entry = (struct VFS_DIRLIST_ENTRY *)mm_malloc( (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1 );
+	entry = (struct VFS_DIRLIST_ENTRY *)mm_kmalloc( (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1 );
 	// clear it
 	memset( entry, 0x00, (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1 );
 	for( device=dfs_deviceHead, i=0 ; device!=NULL ; device=device->prev, i++ )
@@ -213,7 +213,7 @@ int dfs_init( void )
 {
 	struct VFS_FILESYSTEM * fs;
 	// create the file system structure
-	fs = (struct VFS_FILESYSTEM *)mm_malloc( sizeof(struct VFS_FILESYSTEM) );
+	fs = (struct VFS_FILESYSTEM *)mm_kmalloc( sizeof(struct VFS_FILESYSTEM) );
 	// set the file system type
 	fs->fstype = DFS_TYPE;
 	// setup the file system calltable

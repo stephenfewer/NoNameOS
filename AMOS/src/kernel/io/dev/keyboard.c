@@ -165,7 +165,7 @@ struct PROCESS_INFO * keyboard_handler( struct PROCESS_INFO * process )
 int keyboard_init( void )
 {
 	struct IO_CALLTABLE * calltable;
-	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
+	calltable = (struct IO_CALLTABLE *)mm_kmalloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open    = keyboard_open;
 	calltable->close   = keyboard_close;
 	calltable->clone   = NULL;

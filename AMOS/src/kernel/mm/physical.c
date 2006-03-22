@@ -86,7 +86,7 @@ int physical_init( DWORD memUpper )
 {
 	void * physicalAddress;
 	
-	// we cant create the lock as we dont have access to mm_malloc() yet so we just init it
+	// we cant create the lock as we dont have access to mm_kmalloc() yet so we just init it
 	mutex_init( &physical_bitmapLock );
 	
 	mutex_lock( &physical_bitmapLock );

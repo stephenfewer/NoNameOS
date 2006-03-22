@@ -31,6 +31,9 @@
 #define TABLE_SHIFT_R( address )			( (DWORD)address >> 12 )
 #define TABLE_SHIFT_L( address )			( (DWORD)address << 12 )
 
+#define GET_PDE(v)		(struct PAGE_DIRECTORY_ENTRY *)(0xFFFFF000 + DIRECTORY_SHIFT_R(v) * 4)
+#define GET_PTE(v)		(struct PAGE_TABLE_ENTRY *)(0xFFC00000 + TABLE_SHIFT_R(v) * 4)
+
 #define GET_DIRECTORY_INDEX( linearAddress )( ( DIRECTORY_SHIFT_R(linearAddress) ) & OFFSET_MASK )
 
 #define GET_TABLE_INDEX( linearAddress )( ( TABLE_SHIFT_R( linearAddress ) ) & OFFSET_MASK )
@@ -80,7 +83,7 @@ void paging_setCurrentPageDir( struct PAGE_DIRECTORY * );
 
 struct PROCESS_INFO;
 
-void paging_setPageTableEntry( struct PROCESS_INFO *, void *, void *, BOOL );
+void paging_map( struct PROCESS_INFO *, void *, void *, BOOL );
 
 int paging_createDirectory( struct PROCESS_INFO * );
 

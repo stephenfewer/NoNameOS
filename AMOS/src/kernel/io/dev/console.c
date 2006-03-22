@@ -257,14 +257,14 @@ struct CONSOLE * console_create( char * name, int number )
 {
 	struct CONSOLE * console;
 	// alloc memeory for the structure
-	console = (struct CONSOLE *)mm_malloc( sizeof(struct CONSOLE) );
-	console->data = (struct CONSOLE_DATA *)mm_malloc( sizeof(struct CONSOLE_DATA) );
+	console = (struct CONSOLE *)mm_kmalloc( sizeof(struct CONSOLE) );
+	console->data = (struct CONSOLE_DATA *)mm_kmalloc( sizeof(struct CONSOLE_DATA) );
 	// set the virtual console name
 	console->data->name = name;
 	// set the virtual console number
 	console->data->number = number;
 	// alloc some memory for the virtual console contents
-	console->data->mem = (BYTE *)mm_malloc( (CONSOLE_COLUMNS*CONSOLE_ROWS)*2 );
+	console->data->mem = (BYTE *)mm_kmalloc( (CONSOLE_COLUMNS*CONSOLE_ROWS)*2 );
 	// default to not being an active virtual console
 	console->data->active = FALSE;
 	// default to not echoing input to screen
@@ -291,7 +291,7 @@ struct IO_HANDLE * console_open( struct IO_HANDLE * handle, char * filename )
 	}
 	else
 	{
-		console = (struct CONSOLE *)mm_malloc( sizeof(struct CONSOLE) );
+		console = (struct CONSOLE *)mm_kmalloc( sizeof(struct CONSOLE) );
 		
 		if( strcmp( filename, console1->data->name ) == 0 )
 			console->data = console1->data;
@@ -302,11 +302,11 @@ struct IO_HANDLE * console_open( struct IO_HANDLE * handle, char * filename )
 		else if( strcmp( filename, console4->data->name ) == 0 )
 			console->data = console4->data;
 		else {
-			mm_free( console );
+			mm_kfree( console );
 			return NULL;
 		}
 
-		console->buffer = (struct CONSOLE_BUFFER *)mm_malloc( sizeof(struct CONSOLE_BUFFER) );
+		console->buffer = (struct CONSOLE_BUFFER *)mm_kmalloc( sizeof(struct CONSOLE_BUFFER) );
 		memset( console->buffer, 0x00, sizeof(struct CONSOLE_BUFFER) );
 		
 		console->buffer->number = console->data->number;
@@ -339,10 +339,10 @@ int console_close( struct IO_HANDLE * handle )
 	if( console->buffer != NULL )
 	{
 		console_removeBuffer( console->buffer );	
-		mm_free( console->buffer );
+		mm_kfree( console->buffer );
 	}
 	
-	mm_free( console );
+	mm_kfree( console );
 	
 	return SUCCESS;
 }
@@ -358,16 +358,16 @@ int console_clone( struct IO_HANDLE * handle, struct IO_HANDLE * clone )
 	else
 		return FAIL;
 	
-	console_clone = (struct CONSOLE *)mm_malloc( sizeof(struct CONSOLE) );
+	console_clone = (struct CONSOLE *)mm_kmalloc( sizeof(struct CONSOLE) );
 	if( console_clone == NULL )
 		return FAIL;
 	
 	console_clone->data = console_orig->data;
 	
-	console_clone->buffer = (struct CONSOLE_BUFFER *)mm_malloc( sizeof(struct CONSOLE_BUFFER) );
+	console_clone->buffer = (struct CONSOLE_BUFFER *)mm_kmalloc( sizeof(struct CONSOLE_BUFFER) );
 	if( console_clone->buffer == NULL )
 	{
-		mm_free( console_clone );
+		mm_kfree( console_clone );
 		return FAIL;
 	}
 	
@@ -409,7 +409,7 @@ int console_read( struct IO_HANDLE * handle, BYTE * ubuff, DWORD size  )
 		if( size == 1 )
 			buffer->in_kbuff = (BYTE *)&c;
 		else
-			buffer->in_kbuff = (BYTE *)mm_malloc( size );
+			buffer->in_kbuff = (BYTE *)mm_kmalloc( size );
 		
 		while( buffer->in_buffIndex < buffer->in_buffSize  )
 		{
@@ -424,7 +424,7 @@ int console_read( struct IO_HANDLE * handle, BYTE * ubuff, DWORD size  )
 		memcpy( ubuff, buffer->in_kbuff, buffer->in_buffIndex );
 		
 		if( size > 1 )
-			mm_free( buffer->in_kbuff );
+			mm_kfree( buffer->in_kbuff );
 
 		buffer->in_kbuff = NULL;	
 		buffer->in_break = FALSE;
@@ -522,7 +522,7 @@ int console_init( void )
 {
     struct IO_CALLTABLE * calltable;
 	// setup the calltable for this driver
-	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
+	calltable = (struct IO_CALLTABLE *)mm_kmalloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open    = console_open;
 	calltable->close   = console_close;
 	calltable->clone   = console_clone;

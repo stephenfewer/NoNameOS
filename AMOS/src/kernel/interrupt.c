@@ -77,6 +77,9 @@ struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
 	INTERRUPT_HANDLER handler;
 	int intnumber;
 	
+	if( process == NULL )
+		kernel_panic( NULL, "An exception has occurred in an unknown process!" );
+			
 	intnumber = process->kstack->intnumber;
 	
 	handler = interrupt_handlers[ intnumber ];
@@ -91,26 +94,18 @@ struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
 		// if its an exception we must do something by default if their is no appropriate handler
 		if( intnumber <= INT31 )
 		{
-			if( process == NULL )
-			{
-				kernel_panic( NULL, "An exception has occurred in an unknown process!" );
-			}
+			// if the process that caused the exception is the kernel, we must kernel panic
+			if( process->id == KERNEL_PID )
+				kernel_panic( process->kstack, interrupt_messages[ intnumber ] );
 			else
 			{
-				// if the process that caused the exception is the kernel, we must kernel panic
-				if( process->id == KERNEL_PID )
-					kernel_panic( process->kstack, interrupt_messages[ intnumber ] );
+				kernel_printf("Exception \"%s\" in process %d\n", interrupt_messages[ intnumber ], process->id );
+				process_printStack( process->kstack );
+				if( process_kill( process->id ) == SUCCESS )
+					newProcess = scheduler_select( NULL );
 				else
-				{
-					kernel_printf("Exception \"%s\" in process %d\n", interrupt_messages[ intnumber ], process->id );
-					process_printStack( process->kstack );
-					if( process_kill( process->id ) == SUCCESS )
-						newProcess = scheduler_select( NULL );
-					else
-						kernel_panic( NULL, "Failed to kill offending process." );
-				}
+					kernel_panic( NULL, "Failed to kill offending process." );
 			}
-			
 		}
 	}
 	

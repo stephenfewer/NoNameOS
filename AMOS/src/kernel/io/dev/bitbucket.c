@@ -39,7 +39,7 @@ int bitbucket_init( void )
 {
     struct IO_CALLTABLE * calltable;
 	// setup the calltable for this driver
-	calltable = (struct IO_CALLTABLE *)mm_malloc( sizeof(struct IO_CALLTABLE) );
+	calltable = (struct IO_CALLTABLE *)mm_kmalloc( sizeof(struct IO_CALLTABLE) );
 	calltable->open = bitbucket_open;
 	calltable->close = bitbucket_close;
 	calltable->clone = NULL;

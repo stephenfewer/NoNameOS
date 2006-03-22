@@ -60,7 +60,7 @@ int vfs_mount( char * device, char * mountpoint, int fstype )
 {
 	struct VFS_MOUNTPOINT * mount;
 	// create our mountpoint structure
-	mount = (struct VFS_MOUNTPOINT *)mm_malloc( sizeof(struct VFS_MOUNTPOINT) );
+	mount = (struct VFS_MOUNTPOINT *)mm_kmalloc( sizeof(struct VFS_MOUNTPOINT) );
 	if( mount == NULL )
 		return FAIL;
 	// find the correct file system driver for the mount command
@@ -68,12 +68,12 @@ int vfs_mount( char * device, char * mountpoint, int fstype )
 	if( mount->fs == NULL )
 	{
 		// failed to find it
-		mm_free( mount );
+		mm_kfree( mount );
 		return FAIL;	
 	}
-	mount->mountpoint = (char *)mm_malloc( strlen(mountpoint)+1 );
+	mount->mountpoint = (char *)mm_kmalloc( strlen(mountpoint)+1 );
 	strcpy( mount->mountpoint, mountpoint );
-	mount->device = (char *)mm_malloc( strlen(device)+1 );
+	mount->device = (char *)mm_kmalloc( strlen(device)+1 );
 	strcpy( mount->device, device );	
 
 	// add the fs and the mountpoint to a linked list
@@ -91,12 +91,12 @@ int vfs_mount( char * device, char * mountpoint, int fstype )
 	// call the file system driver to mount
 	if( mount->fs->calltable.mount == NULL )
 	{
-		mm_free( mount );
+		mm_kfree( mount );
 		return FAIL;
 	}
 	if( mount->fs->calltable.mount( device, mountpoint, fstype ) == FAIL )
 	{
-		mm_free( mount );
+		mm_kfree( mount );
 		return FAIL;
 	}
 	return SUCCESS;
@@ -143,9 +143,9 @@ int vfs_unmount( char * mountpoint )
 		}
 	}
 	// free the mount structure
-	mm_free( mount->mountpoint );
-	mm_free( mount->device );
-	mm_free( mount );
+	mm_kfree( mount->mountpoint );
+	mm_kfree( mount->device );
+	mm_kfree( mount );
 	return SUCCESS;	
 }
 
@@ -182,7 +182,7 @@ struct VFS_HANDLE * vfs_open( char * filename, int mode )
 	if( mount->fs->calltable.open == NULL )
 		return NULL;
 	// create the new virtual file handle	
-	handle = (struct VFS_HANDLE *)mm_malloc( sizeof(struct VFS_HANDLE) );
+	handle = (struct VFS_HANDLE *)mm_kmalloc( sizeof(struct VFS_HANDLE) );
 	handle->mount = mount;
 	handle->mode = mode;
 	// try to open the file on the mounted file system
@@ -212,7 +212,7 @@ struct VFS_HANDLE * vfs_open( char * filename, int mode )
 		}		
 	}
 	// if we fail, free the handle and return NULL
-	mm_free( handle );
+	mm_kfree( handle );
 	return NULL;
 }
 
@@ -224,7 +224,7 @@ int vfs_close( struct VFS_HANDLE * handle )
 	{
 		int ret;
 		ret = handle->mount->fs->calltable.close( handle );
-		mm_free( handle );
+		mm_kfree( handle );
 		return ret;
 	}
 	return FAIL;	
@@ -239,13 +239,13 @@ struct VFS_HANDLE * vfs_clone( struct VFS_HANDLE * handle )
 
 	if( handle->mount->fs->calltable.clone != NULL )
 	{
-		clone = (struct VFS_HANDLE *)mm_malloc( sizeof(struct VFS_HANDLE) );
+		clone = (struct VFS_HANDLE *)mm_kmalloc( sizeof(struct VFS_HANDLE) );
 		clone->mount = handle->mount;
 		clone->mode = handle->mode;
 
 		if( handle->mount->fs->calltable.clone( handle, clone ) == FAIL )
 		{
-			mm_free( clone );
+			mm_kfree( clone );
 			return NULL;
 		}
 		

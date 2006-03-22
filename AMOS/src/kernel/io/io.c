@@ -38,12 +38,12 @@ struct IO_HANDLE * io_open( struct DFS_ENTRY * device )
 	if( device->calltable->open != NULL )
 	{
 		struct IO_HANDLE * handle;
-		handle = (struct IO_HANDLE *)mm_malloc( sizeof(struct IO_HANDLE) );
+		handle = (struct IO_HANDLE *)mm_kmalloc( sizeof(struct IO_HANDLE) );
 		handle->device = device;
 		handle->data_ptr = NULL;
 		handle->data_arg = (DWORD)NULL;
 		if( handle->device->calltable->open( handle, device->name ) == NULL )
-			mm_free( handle );
+			mm_kfree( handle );
 		else
 			return handle;
 	}
@@ -56,7 +56,7 @@ int io_close( struct IO_HANDLE * handle )
 	{
 		int ret;
 		ret = handle->device->calltable->close( handle );
-		mm_free( handle );
+		mm_kfree( handle );
 		return ret;
 	}
 	return FAIL;
@@ -67,7 +67,7 @@ int io_clone( struct IO_HANDLE * handle, struct IO_HANDLE ** clone )
 	int ret=FAIL;
 	if( handle->device->calltable->clone != NULL )
 	{
-		struct IO_HANDLE * c = (struct IO_HANDLE *)mm_malloc( sizeof(struct IO_HANDLE) );
+		struct IO_HANDLE * c = (struct IO_HANDLE *)mm_kmalloc( sizeof(struct IO_HANDLE) );
 		if( c == NULL )
 			return FAIL;
 		c->device = handle->device;
@@ -75,7 +75,7 @@ int io_clone( struct IO_HANDLE * handle, struct IO_HANDLE ** clone )
 		c->data_arg = (DWORD)NULL;
 		ret = handle->device->calltable->clone( handle, c );
 		if( ret == FAIL )
-			mm_free( c );
+			mm_kfree( c );
 		*clone = c;
 	}
 	return ret;	

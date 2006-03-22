@@ -16,8 +16,8 @@ int mm_init( DWORD );
 
 void * mm_morecore( struct PROCESS_INFO *, DWORD );
 
-void mm_free( void * );
+void mm_kfree( void * );
 
-void * mm_malloc( DWORD );
+void * mm_kmalloc( DWORD );
 
 #endif

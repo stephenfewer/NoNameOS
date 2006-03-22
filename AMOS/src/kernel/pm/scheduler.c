@@ -265,7 +265,7 @@ int scheduler_init( void )
 	// with debugging enabled this would specify a breakpoint
 	ASM( "movl %%eax, %%dr0" :: "r" ( &kernel_process ) );
 	// create a TSS for our software task switching (6.2)
-	scheduler_tss = (struct SEGMENTATION_TSS *)mm_malloc( sizeof(struct SEGMENTATION_TSS) );
+	scheduler_tss = (struct SEGMENTATION_TSS *)mm_kmalloc( sizeof(struct SEGMENTATION_TSS) );
 	// clear it
 	memset( (void *)scheduler_tss, 0x00, sizeof(struct SEGMENTATION_TSS) );
 	// setup the TSS Descriptor (6.2.2)

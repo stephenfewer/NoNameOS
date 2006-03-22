@@ -6,14 +6,16 @@
 #include <kernel/pm/process.h>
 
 #define AMOS_VERSION_MAJOR			0
-#define AMOS_VERSION_MINOR			5
+#define AMOS_VERSION_MINOR			6
 #define AMOS_VERSION_PATCH			0
 
-#define AMOS_VERSION_STRING			"AMOS 0.5.0"
+#define AMOS_VERSION_STRING			"AMOS 0.6.0"
 
 #define KERNEL_PID					0
 
-#define KERNEL_CODE_VADDRESS		(void *)0xC0000000
+#define KERNEL_QUICKMAP_VADDRESS	0xC0000000
+
+#define KERNEL_CODE_VADDRESS		(void *)0xC0001000
 
 #define KERNEL_VGA_VADDRESS			(void *)0xE0000000
 

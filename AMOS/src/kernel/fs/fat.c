@@ -220,7 +220,7 @@ int fat_file2entry( struct FAT_MOUNTPOINT * mount, char * filename, struct FAT_E
 	for(i=0;i<length;i++)
 		filename[i] = toupper( filename[i] );
 	// allocate a buffer of memory the same size as a cluster
-	clusterBuffer = (BYTE *)mm_malloc( mount->cluster_size );
+	clusterBuffer = (BYTE *)mm_kmalloc( mount->cluster_size );
 	// point the curr_name pointer to the filename
 	curr_name = filename;
 	// point the curr_dir the the root directory where we begin the search
@@ -248,7 +248,7 @@ int fat_file2entry( struct FAT_MOUNTPOINT * mount, char * filename, struct FAT_E
 				if( fat_rwCluster( mount, curr_dir[index].start_cluster, clusterBuffer, FAT_READ ) < 0 )
 				{
 					// free our cluster buffer
-					mm_free( clusterBuffer );
+					mm_kfree( clusterBuffer );
 					// return fail
 					return FAIL;
 				}
@@ -263,14 +263,14 @@ int fat_file2entry( struct FAT_MOUNTPOINT * mount, char * filename, struct FAT_E
 	if( index == -1 && strlen( curr_name ) != 0 )
 	{
 		// free our cluster buffer
-		mm_free( clusterBuffer );
+		mm_kfree( clusterBuffer );
 		// return fail
 		return FAIL;
 	}
 	// copy the file entry into the entry truct to return to the caller
 	memcpy( entry, &prevEntry, sizeof(struct FAT_ENTRY) );
 	// free our cluster buffer
-	mm_free( clusterBuffer );
+	mm_kfree( clusterBuffer );
 	// return success
 	return SUCCESS;
 }
@@ -328,11 +328,11 @@ int fat_findEntry( struct FAT_MOUNTPOINT * mount, char * src_filename, char * de
 		dest_filename += 1;
 	}
 	// allcoate the directory structure
-	dir = (struct FAT_ENTRY *)mm_malloc( mount->cluster_size );
+	dir = (struct FAT_ENTRY *)mm_kmalloc( mount->cluster_size );
 	// try to read in the entry that points to this directory
 	if( fat_file2entry( mount, dirname, dir ) < 0 )
 	{
-		mm_free( dir );
+		mm_kfree( dir );
 		return FAIL;
 	}
 	// save the directory cluster so we can write it back later
@@ -362,7 +362,7 @@ int fat_findEntry( struct FAT_MOUNTPOINT * mount, char * src_filename, char * de
 			ret = FAIL;
 	}
 	// free the directory data structure
-	mm_free( dir );
+	mm_kfree( dir );
 	// return the success of the operation
 	return ret;	
 }
@@ -470,14 +470,14 @@ int fat_processRename( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * entry, 
 int fat_mount( char * device, char * mountpoint, int fstype )
 {
 	int root_dir_offset;
-	mount0 = (struct FAT_MOUNTPOINT *)mm_malloc( sizeof(struct FAT_MOUNTPOINT) );
+	mount0 = (struct FAT_MOUNTPOINT *)mm_kmalloc( sizeof(struct FAT_MOUNTPOINT) );
 	if( mount0 == NULL )
 		return FAIL;
 	//open the device we wish to mount
 	mount0->device = vfs_open( device, VFS_MODE_READWRITE );
 	if( mount0->device == NULL )
 	{
-		mm_free( mount0 );
+		mm_kfree( mount0 );
 		return FAIL;
 	}
 	// read in the bootsector
@@ -487,7 +487,7 @@ int fat_mount( char * device, char * mountpoint, int fstype )
 	{
 		kernel_printf("[fat_mount] fail 2\n");
 		vfs_close( mount0->device );
-		mm_free( mount0 );
+		mm_kfree( mount0 );
 		return FAIL;
 	}
 	// determine if we have a FAT 12, 16 or 32 filesystem
@@ -497,13 +497,13 @@ int fat_mount( char * device, char * mountpoint, int fstype )
 	// calculate the fat size
 	mount0->fat_size = mount0->bootsector.sectors_per_fat * mount0->bootsector.bytes_per_sector;
 	// malloc some space for the fat
-	mount0->fat_data = (BYTE *)mm_malloc( mount0->fat_size );
+	mount0->fat_data = (BYTE *)mm_kmalloc( mount0->fat_size );
 	// and clear it
 	memset( mount0->fat_data, 0x00, mount0->fat_size );
 	// read in the FAT
 	vfs_read( mount0->device, (void *)mount0->fat_data, mount0->fat_size );
 	// read in root directory
-	mount0->rootdir = (struct FAT_ENTRY *)mm_malloc( mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
+	mount0->rootdir = (struct FAT_ENTRY *)mm_kmalloc( mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
 	memset( mount0->rootdir, 0x00, mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
 	// find and read in the root directory	
 	root_dir_offset = (mount0->bootsector.num_fats * mount0->fat_size) + sizeof(struct FAT_BOOTSECTOR) + 1;
@@ -518,9 +518,9 @@ int fat_unmount( char * mountpoint )
 	// close the device
 	vfs_close( mount0->device );
 	// free the rootdir structure
-	mm_free( mount0->rootdir );
+	mm_kfree( mount0->rootdir );
 	// free the mount structure
-	mm_free( mount0 );
+	mm_kfree( mount0 );
 	// return
 	return SUCCESS;	
 }
@@ -528,12 +528,12 @@ int fat_unmount( char * mountpoint )
 struct VFS_HANDLE * fat_open( struct VFS_HANDLE * handle, char * filename )
 {
 	struct FAT_FILE * file;
-	file = (struct FAT_FILE *)mm_malloc( sizeof(struct FAT_FILE) );
+	file = (struct FAT_FILE *)mm_kmalloc( sizeof(struct FAT_FILE) );
 	// try to find the file
 	if( fat_file2entry( mount0, filename, &file->entry ) == FAIL )
 	{
 		// if we fail free the file entry structure
-		mm_free( file );
+		mm_kfree( file );
 		// return null
 		return NULL;
 	}
@@ -556,7 +556,7 @@ int fat_close( struct VFS_HANDLE * handle )
 	if( handle->data_ptr == NULL )
 		return FAIL;
 	// free the files fat entry
-	mm_free( handle->data_ptr );
+	mm_kfree( handle->data_ptr );
 	// return success
 	return SUCCESS;
 }
@@ -600,7 +600,7 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 	
 	//kernel_printf("fat_read: cluster_offset = %d\n",cluster_offset);
 	// allocate a buffer to read data into
-	clusterBuffer = (BYTE *)mm_malloc( file->mount->cluster_size );
+	clusterBuffer = (BYTE *)mm_kmalloc( file->mount->cluster_size );
 	// read in the data
 	while( TRUE )
 	{
@@ -623,7 +623,7 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 		{
 			kernel_printf("fat_read: fat_loadCluster failed\n");
 			// free the buffer
-			mm_free( clusterBuffer );
+			mm_kfree( clusterBuffer );
 			// return fail, should we reset the files offset position if its changed?
 			return FAIL;
 		}
@@ -653,7 +653,7 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 		cluster_offset = 0;
 	}
 	// free the buffer
-	mm_free( clusterBuffer );
+	mm_kfree( clusterBuffer );
 	// update the files offset position
 	file->current_pos += bytes_read;
 	// return the total bytes read
@@ -727,18 +727,18 @@ struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )
 	}
 	else
 	{
-		dir = (struct FAT_ENTRY *)mm_malloc( mount0->cluster_size );
+		dir = (struct FAT_ENTRY *)mm_kmalloc( mount0->cluster_size );
 		
 		if( fat_file2entry( mount0, dirname, dir ) < 0 )
 		{
-			mm_free( dir );
+			mm_kfree( dir );
 			return NULL;
 		}
 
 		fat_rwCluster( mount0, dir->start_cluster, (BYTE *)dir, FAT_READ );
 	}
 
-	entry = (struct VFS_DIRLIST_ENTRY *)mm_malloc( sizeof(struct VFS_DIRLIST_ENTRY)*17 );
+	entry = (struct VFS_DIRLIST_ENTRY *)mm_kmalloc( sizeof(struct VFS_DIRLIST_ENTRY)*17 );
 	// clear it
 	memset( entry, 0x00, sizeof(struct VFS_DIRLIST_ENTRY)*17 );
 	
@@ -780,7 +780,7 @@ struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )
 		entryIndex++;
 	}
 	// free
-	mm_free( dir );
+	mm_kfree( dir );
 	// return to caller. caller *must* free this structure
 	return entry;
 }
@@ -789,7 +789,7 @@ int fat_init( void )
 {
 	struct VFS_FILESYSTEM * fs;
 	// create the file system structure
-	fs = (struct VFS_FILESYSTEM *)mm_malloc( sizeof(struct VFS_FILESYSTEM) );
+	fs = (struct VFS_FILESYSTEM *)mm_kmalloc( sizeof(struct VFS_FILESYSTEM) );
 	// set the file system type
 	fs->fstype = FAT_TYPE;
 	// setup the file system calltable

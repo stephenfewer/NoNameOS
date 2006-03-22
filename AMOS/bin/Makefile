@@ -7,22 +7,24 @@ KERNEL_TXT=.\kernel\kernel.txt
 KERNEL_MAP=.\kernel\kernel.map
 
 IMAGE=grub.ima
-IMAGE_DIR=a:\boot
+IMAGE_DRIVE=a:
 IMAGE_MENU=menu.cfg
 
 COPY=copy
-MCOPY=..\tools\mcopy
+MCOPY=..\tools\mcopy -o
+MMD=..\tools\mmd
 RM=del
 OBJDUMP=objdump-elf
 
 all: $(TARGET)
-	$(MCOPY) -o $(KERNEL_ELF) $(IMAGE_DIR)
-	$(MCOPY) -o .\apps\test.bin $(IMAGE_DIR)
-	$(MCOPY) -o .\apps\shell.bin $(IMAGE_DIR)
+	$(MCOPY) $(KERNEL_ELF) $(IMAGE_DRIVE)\amos
+	$(MCOPY) .\apps\test.bin $(IMAGE_DRIVE)\amos
+	$(MCOPY) .\apps\shell.bin $(IMAGE_DRIVE)\amos
 	
 $(TARGET):
 	$(COPY) .\$(IMAGE) .\$(TARGET)
-	$(MCOPY) -o .\$(IMAGE_MENU) $(IMAGE_DIR)
+	$(MCOPY) .\$(IMAGE_MENU) $(IMAGE_DRIVE)\boot
+	$(MMD) $(IMAGE_DRIVE)\amos
 
 clean:
 	$(RM) $(TARGET)

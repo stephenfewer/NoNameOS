@@ -1,13 +1,13 @@
-;     AAA    M M    OOO    SSSS
-;    A   A  M M M  O   O  S 
-;    AAAAA  M M M  O   O   SSS
-;    A   A  M   M  O   O      S
-;    A   A  M   M   OOO   SSSS 
-;
-;    Author:  Stephen Fewer
-;    Contact: steve [AT] harmonysecurity [DOT] com
-;    Web:     http://amos.harmonysecurity.com/
-;    License: GNU General Public License (GPL)
+;//     AAA    M M    OOO    SSSS
+;//    A   A  M M M  O   O  S 
+;//    AAAAA  M M M  O   O   SSS
+;//    A   A  M   M  O   O      S
+;//    A   A  M   M   OOO   SSSS 
+;//
+;//    Author:  Stephen Fewer
+;//    Contact: steve [AT] harmonysecurity [DOT] com
+;//    Web:     http://amos.harmonysecurity.com/
+;//    License: GNU General Public License (GPL)
 
 BITS 32
 
@@ -33,30 +33,31 @@ GLOBAL _setup, _start
 
 SECTION .setup
 _setup:
-	push ebx					; store the pointer to the Grub multi boot header for later
-	mov eax, PAGE_TABLE_1		; create a page table that identity maps the first 4MB of mem
-	mov ebx, 0x00000000 | PRIV	; starting address of physical memory
+	push ebx					;// store the pointer to the Grub multi boot header for later
+	mov eax, PAGE_TABLE_1		;// create a page table that identity maps the first 4MB of mem
+	mov ebx, 0x00000000 | PRIV	;// starting address of physical memory
 	call map
-	mov eax, PAGE_TABLE_2		; create a page table that will map the kernel into the 3GB mark
+	mov eax, PAGE_TABLE_2		;// create a page table that will map the kernel into the 3GB mark
 	mov ebx, 0x00100000 | PRIV
 	call map
-	mov dword [PAGE_DIRCTORY], PAGE_TABLE_1 | PRIV			; store the first page table into the page directory
-	mov dword [PAGE_DIRCTORY + 768*4], PAGE_TABLE_2 | PRIV	; store the second page table into the page directory entry 768 (3GB mark)
-	mov eax, PAGE_DIRCTORY		; enable paging
+	mov dword [PAGE_DIRCTORY +   0*4], PAGE_TABLE_1 | PRIV ;// store the first page table into the page directory
+	mov dword [PAGE_DIRCTORY + 768*4], PAGE_TABLE_2 | PRIV ;// store the second page table into the page directory entry 768 (3GB mark)
+	mov dword [PAGE_DIRCTORY + 1023*4], PAGE_DIRCTORY | PRIV;// store the page dir as the last entry in itself (fractal mapping)
+	mov eax, PAGE_DIRCTORY		;// enable paging
 	mov cr3, eax
 	mov eax, cr0
 	or eax, 0x80000000
 	mov cr0, eax
-	pop ebx						; restore ebx with the pointer to the multi boot header
-	jmp KERNEL_CODE_SEL:KERNEL_VMA			; jump into the kenel at it virtual memory address
+	pop ebx						;// restore ebx with the pointer to the multi boot header
+	jmp KERNEL_CODE_SEL:KERNEL_VMA			;// jump into the kenel at it virtual memory address
 map:
-	mov ecx, 1024				; loop 1024 times (number of entry's in a page table)
+	mov ecx, 1024				;// loop 1024 times (number of entry's in a page table)
 lmap:
-	mov dword [eax], ebx		; move next entry (ebx) into the page table (eax)
-	add eax, 4					; move forward to next entry in table
-	add ebx, 4096				; move address forward by a page size
-	loop lmap					; go again untill ecx == 0
-	ret							; return to caller
+	mov dword [eax], ebx		;// move next entry (ebx) into the page table (eax)
+	add eax, 4					;// move forward to next entry in table
+	add ebx, 4096				;// move address forward by a page size
+	loop lmap					;// go again untill ecx == 0
+	ret							;// return to caller
 ALIGN 4
 boot:
     dd MULTIBOOT_HEADER_MAGIC
