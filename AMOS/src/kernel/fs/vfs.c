@@ -94,7 +94,8 @@ int vfs_mount( char * device, char * mountpoint, int fstype )
 		mm_kfree( mount );
 		return FAIL;
 	}
-	if( mount->fs->calltable.mount( device, mountpoint, fstype ) == FAIL )
+	mount->data_ptr = mount->fs->calltable.mount( device, mountpoint, fstype );
+	if( mount->data_ptr == NULL )
 	{
 		mm_kfree( mount );
 		return FAIL;
@@ -122,7 +123,7 @@ int vfs_unmount( char * mountpoint )
 	// call the file system driver to unmount
 	if( mount->fs->calltable.unmount == NULL )
 		return FAIL;
-	mount->fs->calltable.unmount( name_ptr );
+	mount->fs->calltable.unmount( mount, name_ptr );
 	// remove the mount point from the VFS
 	if( mount == vfs_mpTail )
 	{
@@ -158,7 +159,7 @@ struct VFS_MOUNTPOINT * vfs_file2mountpoint( char * filename )
 		// if we have a match we break from the search. we use strncmp instead of
 		// strcmp to avoid comparing the null char at the end of the mountpoint
 		if( strncmp( mount->mountpoint, filename, strlen(mount->mountpoint) ) == 0 )
-			return mount;
+			break;
 	}
 	// return the mountpoint
 	return mount;
@@ -203,10 +204,20 @@ struct VFS_HANDLE * vfs_open( char * filename, int mode )
 			if( mount->fs->calltable.create != NULL )
 			{
 				// try to create it
-				if( mount->fs->calltable.create( name_ptr ) != FAIL )
+				name_ptr = (char *)&name;
+				strcpy( name_ptr, filename );
+				name_ptr = (char *)( name_ptr + strlen(mount->mountpoint) );
+				
+				kernel_printf( "[vfs_open] VFS_MODE_CREATE -> create %s\n", name_ptr );
+				
+				if( mount->fs->calltable.create( mount, name_ptr ) != FAIL )
 				{
 					if( mount->fs->calltable.open( handle, name_ptr ) != NULL )
+					{
+						if( (handle->mode & VFS_MODE_APPEND) == VFS_MODE_APPEND )
+							vfs_seek( handle, 0, VFS_SEEK_END );
 						return handle;
+					}
 				}
 			}
 		}		
@@ -327,7 +338,7 @@ int vfs_create( char * filename )
 	name_ptr = (char *)( name_ptr + strlen(mount->mountpoint) );
 	// try to create the file on the mounted file system
 	if( mount->fs->calltable.create != NULL )
-		return mount->fs->calltable.create( name_ptr );
+		return mount->fs->calltable.create( mount, name_ptr );
 	// return fail
 	return FAIL;	
 }
@@ -347,7 +358,7 @@ int vfs_delete( char * filename )
 	name_ptr = (char *)( name_ptr + strlen(mount->mountpoint) );
 	// try to delete the file on the mounted file system
 	if( mount->fs->calltable.delete != NULL )
-		return mount->fs->calltable.delete( name_ptr );
+		return mount->fs->calltable.delete( mount, name_ptr );
 	// return fail
 	return FAIL;		
 }
@@ -371,7 +382,7 @@ int vfs_rename( char * src, char * dest )
 	destname_ptr = (char *)( destname_ptr + strlen(mount->mountpoint) );
 	// try to rename the file on the mounted file system
 	if( mount->fs->calltable.rename != NULL )
-		return mount->fs->calltable.rename( srcname_ptr, destname_ptr );
+		return mount->fs->calltable.rename( mount, srcname_ptr, destname_ptr );
 	// return fail
 	return FAIL;
 }
@@ -396,7 +407,7 @@ int vfs_copy( char * src, char * dest )
 	destname_ptr = (char *)( destname_ptr + strlen(mount->mountpoint) );
 	// try to copy the file on the mounted file system
 	if( mount->fs->calltable.copy != NULL )
-		return mount->fs->calltable.copy( srcname_ptr, destname_ptr );
+		return mount->fs->calltable.copy( mount, srcname_ptr, destname_ptr );
 	// return fail
 	return FAIL;	
 }
@@ -421,7 +432,7 @@ struct VFS_DIRLIST_ENTRY * vfs_list( char * dir )
 	if( mount->fs->calltable.list != NULL )
 	{
 		struct VFS_DIRLIST_ENTRY * entry;
-		entry = mount->fs->calltable.list( name_ptr );
+		entry = mount->fs->calltable.list( mount, name_ptr );
 		/*
 		// to-do: add any virtual mount points
 		struct VFS_MOUNTPOINT * mount;

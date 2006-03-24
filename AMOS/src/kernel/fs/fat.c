@@ -18,8 +18,6 @@
 #include <kernel/kernel.h>
 #include <lib/string.h>
 
-struct FAT_MOUNTPOINT * mount0;
-
 void fat_setFATCluster( struct FAT_MOUNTPOINT * mount, int cluster, int value, int commit )
 {
 	switch( mount->type )
@@ -138,13 +136,14 @@ int fat_rwCluster( struct FAT_MOUNTPOINT * mount, int cluster, BYTE * clusterBuf
 	// convert cluster to a logical block number
 	block = fat_cluster2block( mount, cluster );
 	// seek to the correct offset
-	vfs_seek( mount->device, (block*mount->bootsector.bytes_per_sector)+1, VFS_SEEK_START );
+	if( vfs_seek( mount->device, (block*mount->bootsector.bytes_per_sector)+1, VFS_SEEK_START ) == FAIL )
+		return FAIL;
 	// loop through the blocks
 	for( i=0 ; i<mount->bootsector.sectors_per_cluster ; i++ )
 	{
 		clusterBuffer += mount->bootsector.bytes_per_sector * i;
 		// perform the read or write
-		if( vfs_rw( mount->device, (void *)clusterBuffer, mount->bootsector.bytes_per_sector ) == -1 )
+		if( vfs_rw( mount->device, (void *)clusterBuffer, mount->bootsector.bytes_per_sector ) == FAIL )
 			return FAIL;
 	}
 	return SUCCESS;
@@ -155,7 +154,7 @@ int fat_compareName( struct FAT_ENTRY * entry, char * name )
 	int i, x;
 
 	if( entry->name[0] == 0x00 || entry->name[0] == FAT_ENTRY_DELETED )
-		return FALSE;
+		return FAIL;
 		
 	for(i=0;i<strlen(name);i++)
 		name[i] = toupper( name[i] );
@@ -170,10 +169,10 @@ int fat_compareName( struct FAT_ENTRY * entry, char * name )
 			break;
 			
 		if( name[i] != entry->name[i] )
-			return FALSE;
+			return FAIL;
 	}
-	//i++;
-	if( name[i] == '.' )
+
+	if( name[i] == '.' || entry->extention[0] != 0x20 )
 	{
 		i++;
 		for( x=0 ; x<3 ; x++ )
@@ -182,10 +181,10 @@ int fat_compareName( struct FAT_ENTRY * entry, char * name )
 				break;
 			
 			if( name[i+x] != entry->extention[x] )
-				return FALSE;
+				return FAIL;
 		}
 	}
-	return TRUE;
+	return SUCCESS;
 }
 
 int fat_getIndex( struct FAT_ENTRY * dir, char * name )
@@ -195,11 +194,14 @@ int fat_getIndex( struct FAT_ENTRY * dir, char * name )
 	{
 		if( dir[i].name[0] == 0x00 )
 			break;
-			
+		
+		if( dir[i].name[0] == FAT_ENTRY_DELETED )
+			continue;
+		
 		if( dir[i].start_cluster == 0x0000 )
 			continue;
-			
-		if( fat_compareName( &dir[i], name ) == TRUE )
+
+		if( fat_compareName( &dir[i], name ) == SUCCESS )
 			return i;
 	}
 	return FAIL;
@@ -235,7 +237,7 @@ int fat_file2entry( struct FAT_MOUNTPOINT * mount, char * filename, struct FAT_E
 			// set the forward slash to a null charachter
 			filename[i] = '\0';
 			// get the index in the entry to the next part of the file name
-			if( (index = fat_getIndex( curr_dir, curr_name )) == -1 )
+			if( (index = fat_getIndex( curr_dir, curr_name )) == FAIL )
 			{
 				// break out of the loop
 				break;
@@ -260,7 +262,7 @@ int fat_file2entry( struct FAT_MOUNTPOINT * mount, char * filename, struct FAT_E
 		}	
 	}
 	// test if we didnt find the file/directory
-	if( index == -1 && strlen( curr_name ) != 0 )
+	if( index == FAIL && strlen( curr_name ) != 0 )
 	{
 		// free our cluster buffer
 		mm_kfree( clusterBuffer );
@@ -268,7 +270,8 @@ int fat_file2entry( struct FAT_MOUNTPOINT * mount, char * filename, struct FAT_E
 		return FAIL;
 	}
 	// copy the file entry into the entry truct to return to the caller
-	memcpy( entry, &prevEntry, sizeof(struct FAT_ENTRY) );
+	if( entry != NULL )
+		memcpy( entry, &prevEntry, sizeof(struct FAT_ENTRY) );
 	// free our cluster buffer
 	mm_kfree( clusterBuffer );
 	// return success
@@ -420,7 +423,7 @@ int fat_processDelete( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * entry, 
 	// try and get a match
 	if( fat_compareName( &entry[index], src_filename ) )
 	{
-		// traverse the cluster chain and mark them all free
+// TO-DO: traverse the cluster chain and mark them all free
 		//int cluster = entry[index].start_cluster;
 		// set the first cluster to be free
 /*
@@ -467,85 +470,97 @@ int fat_processRename( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * entry, 
 	return FAT_PROCESS_CONTINUE;
 }
 
-int fat_mount( char * device, char * mountpoint, int fstype )
+int fat_processCopy( struct FAT_MOUNTPOINT * mount, struct FAT_ENTRY * entry, int index, char * src_filename, char * dest_filename )
 {
-	int root_dir_offset;
-	mount0 = (struct FAT_MOUNTPOINT *)mm_kmalloc( sizeof(struct FAT_MOUNTPOINT) );
-	if( mount0 == NULL )
-		return FAIL;
-	//open the device we wish to mount
-	mount0->device = vfs_open( device, VFS_MODE_READWRITE );
-	if( mount0->device == NULL )
-	{
-		mm_kfree( mount0 );
-		return FAIL;
-	}
-	// read in the bootsector
-	vfs_read( mount0->device, (void *)&mount0->bootsector, sizeof(struct FAT_BOOTSECTOR) );
-	// make sure we have a valid bootsector
-	if( mount0->bootsector.magic != FAT_MAGIC )
-	{
-		kernel_printf("[fat_mount] fail 2\n");
-		vfs_close( mount0->device );
-		mm_kfree( mount0 );
-		return FAIL;
-	}
-	// determine if we have a FAT 12, 16 or 32 filesystem
-	fat_determineType( mount0 );
-	// calculate clster size
-	mount0->cluster_size = mount0->bootsector.bytes_per_sector * mount0->bootsector.sectors_per_cluster;
-	// calculate the fat size
-	mount0->fat_size = mount0->bootsector.sectors_per_fat * mount0->bootsector.bytes_per_sector;
-	// malloc some space for the fat
-	mount0->fat_data = (BYTE *)mm_kmalloc( mount0->fat_size );
-	// and clear it
-	memset( mount0->fat_data, 0x00, mount0->fat_size );
-	// read in the FAT
-	vfs_read( mount0->device, (void *)mount0->fat_data, mount0->fat_size );
-	// read in root directory
-	mount0->rootdir = (struct FAT_ENTRY *)mm_kmalloc( mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
-	memset( mount0->rootdir, 0x00, mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
-	// find and read in the root directory	
-	root_dir_offset = (mount0->bootsector.num_fats * mount0->fat_size) + sizeof(struct FAT_BOOTSECTOR) + 1;
-	vfs_seek( mount0->device, root_dir_offset, VFS_SEEK_START );
-	vfs_read( mount0->device, (void *)(mount0->rootdir), mount0->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
-	// return success
-	return SUCCESS;
+	return FAT_PROCESS_BREAK;
 }
 
-int fat_unmount( char * mountpoint )
+void * fat_mount( char * device, char * mountpoint, int fstype )
 {
+	int root_dir_offset;
+	struct FAT_MOUNTPOINT * mount = (struct FAT_MOUNTPOINT *)mm_kmalloc( sizeof(struct FAT_MOUNTPOINT) );
+	if( mount == NULL )
+		return NULL;
+	//open the device we wish to mount
+	mount->device = vfs_open( device, VFS_MODE_READWRITE );
+	if( mount->device == NULL )
+	{
+		mm_kfree( mount );
+		return NULL;
+	}
+	// read in the bootsector
+	vfs_read( mount->device, (void *)&mount->bootsector, sizeof(struct FAT_BOOTSECTOR) );
+	// make sure we have a valid bootsector
+	if( mount->bootsector.magic != FAT_MAGIC )
+	{
+		vfs_close( mount->device );
+		mm_kfree( mount );
+		return NULL;
+	}
+	// determine if we have a FAT 12, 16 or 32 filesystem
+	fat_determineType( mount );
+	// calculate clster size
+	mount->cluster_size = mount->bootsector.bytes_per_sector * mount->bootsector.sectors_per_cluster;
+	// calculate the fat size
+	mount->fat_size = mount->bootsector.sectors_per_fat * mount->bootsector.bytes_per_sector;
+	// malloc some space for the fat
+	mount->fat_data = (BYTE *)mm_kmalloc( mount->fat_size );
+	// and clear it
+	memset( mount->fat_data, 0x00, mount->fat_size );
+	// read in the FAT
+	vfs_read( mount->device, (void *)mount->fat_data, mount->fat_size );
+	// read in root directory
+	mount->rootdir = (struct FAT_ENTRY *)mm_kmalloc( mount->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
+	memset( mount->rootdir, 0x00, mount->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
+	// find and read in the root directory	
+	root_dir_offset = (mount->bootsector.num_fats * mount->fat_size) + sizeof(struct FAT_BOOTSECTOR) + 1;
+	vfs_seek( mount->device, root_dir_offset, VFS_SEEK_START );
+	vfs_read( mount->device, (void *)(mount->rootdir), mount->bootsector.num_root_dir_ents * sizeof( struct FAT_ENTRY ) );
+	// successfully return the new FAT mount
+	return mount;
+}
+
+int fat_unmount( struct VFS_MOUNTPOINT * mount, char * mountpoint )
+{
+	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
+	if( fat_mount == NULL )
+		return FAIL;
 	// close the device
-	vfs_close( mount0->device );
+	vfs_close( fat_mount->device );
 	// free the rootdir structure
-	mm_kfree( mount0->rootdir );
+	mm_kfree( fat_mount->rootdir );
 	// free the mount structure
-	mm_kfree( mount0 );
+	mm_kfree( fat_mount );
 	// return
 	return SUCCESS;	
 }
 
 struct VFS_HANDLE * fat_open( struct VFS_HANDLE * handle, char * filename )
 {
+	struct FAT_MOUNTPOINT * fat_mount;
 	struct FAT_FILE * file;
+	// retrieve the fat mount structure
+	fat_mount = (struct FAT_MOUNTPOINT *)handle->mount->data_ptr;
+	if( fat_mount == NULL )
+		return NULL;
 	file = (struct FAT_FILE *)mm_kmalloc( sizeof(struct FAT_FILE) );
 	// try to find the file
-	if( fat_file2entry( mount0, filename, &file->entry ) == FAIL )
+	if( fat_file2entry( fat_mount, filename, &file->entry ) == FAIL )
 	{
 		// if we fail free the file entry structure
 		mm_kfree( file );
+		kernel_printf( "[fat_open] fat_file2entry failed. %s\n", filename );	
 		// return null
 		return NULL;
 	}
 	// set the mountpoint this file is on
-	file->mount = mount0;
+	file->mount = fat_mount;
 	// set the current file position to zero
 	file->current_pos = 0;
 	// associate the handle with the file entry
 	handle->data_ptr = file;
 	// if we open the file in truncate mode we need to set the size to 0
 	//if( (handle->mode & VFS_MODE_TRUNCATE) == VFS_MODE_TRUNCATE )
-	
 	// return success
 	return handle;	
 }
@@ -597,8 +612,6 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 	}
 	// handle reads that begin from some point inside a cluster
 	cluster_offset = file->current_pos % file->mount->cluster_size;
-	
-	//kernel_printf("fat_read: cluster_offset = %d\n",cluster_offset);
 	// allocate a buffer to read data into
 	clusterBuffer = (BYTE *)mm_kmalloc( file->mount->cluster_size );
 	// read in the data
@@ -609,7 +622,7 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 			bytes_to_read = file->mount->cluster_size;
 		else
 			bytes_to_read = size;
-		// test if we are reading accross 2 clusters, if we are we can only read up to the end of the
+		// test if we are reading accross 2 clusters. if we are, we can only read up to the end of the
 		// first cluster in this itteration of the loop, the next itteration will take care of the rest
 		// this solution is ugly, more then likely a much cleaner way of checking for this!
 		if( (cluster_offset + bytes_to_read) > (((file->current_pos / file->mount->cluster_size)+1)*file->mount->cluster_size) )
@@ -637,10 +650,7 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 		size -= bytes_to_read;
 		// if size has gone negative we have read enough
 		if( size <= 0 )
-		{
-			//kernel_printf("fat_read: size < 0 \n");
 			break;
-		}
 		// get the next cluster to read from
 		cluster = fat_getFATCluster( file->mount, cluster );
 		// if the cluster = FAT_FREECLUSTER we have reached the end of the cluster chain
@@ -662,7 +672,7 @@ int fat_read( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size  )
 
 int fat_write( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size )
 {
-	return FAIL;	
+	return FAIL;
 }
 
 int fat_seek( struct VFS_HANDLE * handle, DWORD offset, BYTE origin )
@@ -695,47 +705,77 @@ int fat_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 	return FAIL;
 }
 
-int fat_create( char * filename )
+int fat_create( struct VFS_MOUNTPOINT * mount, char * filename )
 {
-	return fat_findEntry( mount0, filename, NULL, fat_processCreate );
+	//char * name;
+	// retrieve the fat mount structure
+	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
+	if( fat_mount == NULL )
+		return FAIL;
+	// create a copy of filename as it will get mangled in the fat_file2entry() call
+	/*name = (char *)mm_kmalloc( strlen(filename)+1 );
+	strcpy( name, filename );
+	// try to find the file to see if it allready exists
+	if( fat_file2entry( fat_mount, name, NULL ) == FAIL )
+	{
+		mm_kfree( name );
+		return FAIL;
+	}
+	mm_kfree( name );*/
+	return fat_findEntry( fat_mount, filename, NULL, fat_processCreate );
 }
 
-int fat_delete( char * filename )
+int fat_delete( struct VFS_MOUNTPOINT * mount, char * filename )
 {
-	return fat_findEntry( mount0, filename, NULL, fat_processDelete );
+	// retrieve the fat mount structure
+	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
+	if( fat_mount == NULL )
+		return FAIL;
+	return fat_findEntry( fat_mount, filename, NULL, fat_processDelete );
 }
 
-int fat_rename( char * src, char * dest )
+int fat_rename( struct VFS_MOUNTPOINT * mount, char * src, char * dest )
 {
-	return fat_findEntry( mount0, src, dest, fat_processRename );
+	// retrieve the fat mount structure
+	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
+	if( fat_mount == NULL )
+		return FAIL;
+	return fat_findEntry( fat_mount, src, dest, fat_processRename );
 }
 
-int fat_copy( char * src, char * dest )
+int fat_copy( struct VFS_MOUNTPOINT * mount, char * src, char * dest )
 {
-	return FAIL;//fat_findEntry( mount0, src, dest, fat_processCopy );
+	// retrieve the fat mount structure
+	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
+	if( fat_mount == NULL )
+		return FAIL;
+	return fat_findEntry( fat_mount, src, dest, fat_processCopy );
 }
 
-struct VFS_DIRLIST_ENTRY * fat_list( char * dirname )
+struct VFS_DIRLIST_ENTRY * fat_list( struct VFS_MOUNTPOINT * mount, char * dirname )
 {
 	int dirIndex, entryIndex, nameIndex;
 	struct FAT_ENTRY * dir;
 	struct VFS_DIRLIST_ENTRY * entry;
-
+	// retrieve the fat mount structure
+	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
+	if( fat_mount == NULL )
+		return NULL;
 	if( strlen( dirname ) == 0 )
 	{	
-		dir = mount0->rootdir;
+		dir = fat_mount->rootdir;
 	}
 	else
 	{
-		dir = (struct FAT_ENTRY *)mm_kmalloc( mount0->cluster_size );
+		dir = (struct FAT_ENTRY *)mm_kmalloc( fat_mount->cluster_size );
 		
-		if( fat_file2entry( mount0, dirname, dir ) < 0 )
+		if( fat_file2entry( fat_mount, dirname, dir ) < 0 )
 		{
 			mm_kfree( dir );
 			return NULL;
 		}
 
-		fat_rwCluster( mount0, dir->start_cluster, (BYTE *)dir, FAT_READ );
+		fat_rwCluster( fat_mount, dir->start_cluster, (BYTE *)dir, FAT_READ );
 	}
 
 	entry = (struct VFS_DIRLIST_ENTRY *)mm_kmalloc( sizeof(struct VFS_DIRLIST_ENTRY)*17 );

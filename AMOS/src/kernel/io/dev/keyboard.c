@@ -140,6 +140,12 @@ struct PROCESS_INFO * keyboard_handler( struct PROCESS_INFO * process )
 		case KEYBORAD_KEY_F5:
 			kernel_printInfo();
 			break;
+		case KEYBORAD_KEY_UPARROW:
+			vfs_control( keyboard_output, CONSOLE_SENDCHAR, 14 );
+			break;
+		case KEYBORAD_KEY_DOWNARROW:
+			vfs_control( keyboard_output, CONSOLE_SENDCHAR, 16 );
+			break;
 		case 0xAA:
 			keyboard_shift = FALSE;
 			break;

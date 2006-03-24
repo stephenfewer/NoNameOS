@@ -85,14 +85,14 @@ int dfs_remove( char * name  )
 	return SUCCESS;
 }
 
-int dfs_mount( char * device, char * mountpoint, int fstype )
+void * dfs_mount( char * device, char * mountpoint, int fstype )
 {
 	if( fstype == DFS_TYPE )
-		return SUCCESS;
-	return FAIL;
+		return ((void *)!NULL);
+	return NULL;
 }
 
-int dfs_unmount( char * mountpoint )
+int dfs_unmount( struct VFS_MOUNTPOINT * mount, char * mountpoint )
 {
 	return FAIL;	
 }
@@ -142,19 +142,19 @@ int dfs_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 	return io_control( (struct IO_HANDLE *)handle->data_ptr, request, arg );		
 }
 
-int dfs_create( char * filename )
+int dfs_create( struct VFS_MOUNTPOINT * mount, char * filename )
 {
 	// we cant create a new file here. new devices are to be loaded
 	// into the system with the IO Subsystems load() system call.
 	return FAIL;	
 }
 
-int dfs_delete( char * filename )
+int dfs_delete( struct VFS_MOUNTPOINT * mount, char * filename )
 {
 	return dfs_remove( filename );
 }
 
-int dfs_copy( char * src, char * dest )
+int dfs_copy( struct VFS_MOUNTPOINT * mount, char * src, char * dest )
 {
 	struct DFS_ENTRY * device;
 	char * name;
@@ -174,14 +174,14 @@ int dfs_copy( char * src, char * dest )
 	return SUCCESS;	
 }
 
-int dfs_rename( char * src, char * dest )
+int dfs_rename( struct VFS_MOUNTPOINT * mount, char * src, char * dest )
 {
-	if( dfs_copy( src, dest ) == FAIL )
+	if( dfs_copy( mount, src, dest ) == FAIL )
 		return FAIL;
-	return dfs_delete( src );
+	return dfs_delete( mount, src );
 }
 
-struct VFS_DIRLIST_ENTRY * dfs_list( char * dir )
+struct VFS_DIRLIST_ENTRY * dfs_list( struct VFS_MOUNTPOINT * mount, char * dir )
 {
 	struct DFS_ENTRY * device;
 	struct VFS_DIRLIST_ENTRY * entry;

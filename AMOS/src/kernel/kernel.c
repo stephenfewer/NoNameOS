@@ -54,11 +54,11 @@ void kernel_printf( char * text, ... )
 	kprintf( kernel_process.handles[PROCESS_CONSOLEHANDLE], text, args );
 }
 
-void debug_putstr( char * str )
+/*void debug_putstr( char * str )
 {
 	while( *str )
 		outportb( 0xE9, *str++ );
-}
+}*/
 
 // ..."this is the end. beautiful friend, the end."
 void kernel_panic( struct PROCESS_STACK * stack, char * message )
@@ -72,8 +72,8 @@ void kernel_panic( struct PROCESS_STACK * stack, char * message )
 	{
 		kernel_printf( "%s\n", message );
 		// for testing in Bochs
-		debug_putstr( "[AMOS KP] " );
-		debug_putstr( message );
+		//debug_putstr( "[AMOS KP] " );
+		//debug_putstr( message );
 	}
 	// print out the stack contents
 	if( stack != NULL )
@@ -145,7 +145,7 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	process_spawn( &kernel_process, "/amos/shell.bin", "/device/console2" );
 	process_spawn( &kernel_process, "/amos/shell.bin", "/device/console3" );
 	process_spawn( &kernel_process, "/amos/shell.bin", "/device/console4" );
-	
+
 	// enter an idle state, the kernel is now our idle process if theirs nothing to do
 	kernel_idle();
 	

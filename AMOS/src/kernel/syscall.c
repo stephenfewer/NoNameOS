@@ -173,6 +173,11 @@ int syscall_rename( struct PROCESS_INFO * process, char * src, char * dest  )
 	return vfs_rename( src, dest );
 }
 
+int syscall_create( struct PROCESS_INFO * process, char * filename )
+{
+	return vfs_create( filename );
+}
+
 int syscall_delete( struct PROCESS_INFO * process, char * filename )
 {
 	return vfs_delete( filename );
@@ -250,8 +255,8 @@ int syscall_init( void )
 	syscall_add( SYSCALL_CONTROL,  syscall_control,    3 );	
 	// file system operations
 	/*syscall_add( SYSCALL_MOUNT,    vfs_mount,          3 );
-	syscall_add( SYSCALL_UNMOUNT,  vfs_unmount,        1 );
-	syscall_add( SYSCALL_CREATE,   vfs_create,         1 );*/
+	syscall_add( SYSCALL_UNMOUNT,  vfs_unmount,        1 );*/
+	syscall_add( SYSCALL_CREATE,   syscall_create,     1 );
 	syscall_add( SYSCALL_DELETE,   syscall_delete,     1 );
 	syscall_add( SYSCALL_RENAME,   syscall_rename,     2 );
 	syscall_add( SYSCALL_COPY,     syscall_copy,       2 );

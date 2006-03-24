@@ -105,20 +105,17 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 	// copy the code segment from kernel space to user space
 	for( i=0 ; i<(size/PAGE_SIZE)+1 ; i++ )
 	{
-		void * tempAddress = (void *)((DWORD)0xF0000000+(i*PAGE_SIZE));
-		
+		// get the next linear address for the code
 		void * linearAddress = (void *)((DWORD)PROCESS_USER_CODE_VADDRESS+(i*PAGE_SIZE));
-		
+		// alloc a physical page for the new process's code
 		physicalAddress = physical_pageAlloc();
 		if( physicalAddress == NULL )
 			kernel_panic( NULL, "No physical memory for process creation." );
-
-		paging_map( parent, tempAddress, physicalAddress, TRUE );
-		
+		// use quickMap() to map in the physical page into our current address space so we may write to it
+		void * tempAddress = paging_mapQuick( physicalAddress );
+		// copy the code page
 		memcpy( tempAddress, entrypoint+(i*PAGE_SIZE), PAGE_SIZE );
-		
-		paging_map( parent, tempAddress, NULL, FALSE );
-		
+		// map the code page into the new process's address space
 		paging_map( process, linearAddress, physicalAddress, TRUE );
 	}
 	// create the process's initial kernel stack so we can perform a context switch
@@ -157,11 +154,12 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 	BYTE * buffer;
 	int size;
 
+	// if we dont specify a console we clone the parent process's console handle
 	if( console_path == NULL )
 		console = vfs_clone( parent->handles[PROCESS_CONSOLEHANDLE] );
-		//console = vfs_open( "/device/console2", VFS_MODE_READWRITE );
 	else
 		console = vfs_open( console_path, VFS_MODE_READWRITE );
+	// test for failure
 	if( console == NULL )
 		return FAIL;
 	// open the process image

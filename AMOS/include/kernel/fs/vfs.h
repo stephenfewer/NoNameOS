@@ -38,13 +38,13 @@ struct VFS_FILESYSTEM_CALLTABLE
 	rw write;
 	int (*seek)(struct VFS_HANDLE *, DWORD, BYTE );
 	int (*control)(struct VFS_HANDLE *, DWORD, DWORD );
-	int (*create)( char * );
-	int (*delete)( char * );
-	int (*rename)( char *, char * );
-	int (*copy)( char *, char * );
-	struct VFS_DIRLIST_ENTRY * (*list)( char * );
-	int (*mount)( char *, char *, int );
-	int (*unmount)( char * );
+	int (*create)( struct VFS_MOUNTPOINT *, char * );
+	int (*delete)( struct VFS_MOUNTPOINT *,char * );
+	int (*rename)( struct VFS_MOUNTPOINT *,char *, char * );
+	int (*copy)( struct VFS_MOUNTPOINT *,char *, char * );
+	struct VFS_DIRLIST_ENTRY * (*list)( struct VFS_MOUNTPOINT *, char * );
+	void * (*mount)( char *, char *, int );
+	int (*unmount)( struct VFS_MOUNTPOINT *, char * );
 };
 
 struct VFS_FILESYSTEM
@@ -57,6 +57,7 @@ struct VFS_FILESYSTEM
 struct VFS_MOUNTPOINT
 {
 	struct VFS_FILESYSTEM * fs;
+	void * data_ptr;
 	char * mountpoint;
 	char * device;
 	struct VFS_MOUNTPOINT * next;

@@ -257,6 +257,40 @@ static void shell_kill( int argc, char **argv )
 		printf("kill: Failed to kill process %d.\n", id );
 }
 
+static void shell_write( int argc, char **argv )
+{
+	int handle, i, byteswrite;
+	char buffer[BUFFER_SIZE];
+
+	handle = open( "/amos/qwerty.txt", MODE_READWRITE | MODE_CREATE );
+	if( handle == FAIL )
+	{
+		printf("write: Failed to open file.\n" );
+		return;
+	}
+
+	i = seek( handle, 0, SEEK_END );
+	if( i <= FAIL )
+	{
+		printf("write: Failed to file seek to end.\n" );
+		close( handle );
+		return;
+	}
+
+	for(i=0;i<BUFFER_SIZE;i++)
+		buffer[i] = 'S';
+		
+	byteswrite = write( handle, (BYTE *)&buffer, BUFFER_SIZE );
+	if( byteswrite == FAIL )
+	{
+		printf("write: Failed to write.\n" );
+		close( handle );
+		return;
+	}
+
+	close( handle );
+}
+
 // create a directory
 // delete a directory
 static tinysh_cmd_t clearcmd    = { 0, "clear",    "clear the console",       0, shell_clear,    0, 0, 0 };
@@ -272,7 +306,7 @@ static tinysh_cmd_t dumpcmd    = { 0, "dump",    "dump a files contents to stand
 //static tinysh_cmd_t unmountcmd = { 0, "unmount", "unmount a volume", "[mountpoint]", shell_unmount, 0, 0, 0 };
 static tinysh_cmd_t spawncmd   = { 0, "spawn",   "spawn a process",  "[executable]", shell_spawn,   0, 0, 0 };
 static tinysh_cmd_t killcmd    = { 0, "kill",    "kill a process",   "[process id]", shell_kill,    0, 0, 0 };
-
+static tinysh_cmd_t writecmd    = { 0, "write",    "write fat test",   "", shell_write,    0, 0, 0 };
 void shell_exit( void )
 {
 	// perform any tidy up here
@@ -315,6 +349,7 @@ void shell_init( int argc, char **argv )
 	//tinysh_add_command( &unmountcmd );
 	tinysh_add_command( &spawncmd );
 	tinysh_add_command( &killcmd );
+	tinysh_add_command( &writecmd );
 	/*
 	if( argc > 0 )
 	{
