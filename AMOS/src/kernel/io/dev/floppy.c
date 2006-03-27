@@ -13,6 +13,7 @@
 
 #include <kernel/io/dev/floppy.h>
 #include <kernel/kernel.h>
+#include <kernel/mm/physical.h>
 #include <kernel/mm/mm.h>
 #include <kernel/io/io.h>
 #include <kernel/mm/dma.h>
@@ -213,15 +214,18 @@ void floppy_blockGeometry( struct FLOPPY_DRIVE * floppy, int block, struct FLOPP
 // based on Figure 8.5 (read/write) of the Intel 82077AA spec
 int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
 {
-	// To-Do: alloc this from the physical memory manager!
-	void * dma_address = DMA_PAGE_VADDRESS;
+	void * dma_address;
 	int tries = FLOPPY_RWTRIES;
 	struct FLOPPY_GEOMETRY blockGeometry;
+	// alloc a low physical memory address for the DMA buffer
+	dma_address = physical_pageAllocLow();
+	if( dma_address == NULL )
+		return FAIL;
 	// retrieve the block geometry
 	floppy_blockGeometry( floppy, floppy->current_block, &blockGeometry );
 	// if we are issuing a write command we copy the data into the DMA buffer first
 	if( mode == FLOPPY_WRITEBLOCK )
-		memcpy( dma_address, buffer, floppy->geometry->blocksize );
+		mm_pmemcpyto( dma_address, buffer, floppy->geometry->blocksize );
 	// we try this 3 times as laid out int the Intel documentation
     while( tries-- )
     {			
@@ -230,10 +234,9 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
     	// seek to the correct location
     	if( !floppy_seekcylinder( floppy, blockGeometry.cylinders ) )
     	{
-    		kernel_printf("floppy: read seek failed, block %d\n", floppy->current_block );
-    		// turn off the floppy motor
-    		floppy_off( floppy );
-    		return FAIL;	
+    		kernel_printf("[floppy_rwBlock] read seek failed, block %d\n", floppy->current_block );
+    		// break out off loop and fail
+			break;	
     	}
 		if( mode == FLOPPY_READBLOCK )
 		{
@@ -261,12 +264,11 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
 		// wait for the floppy drive to send back an interrupt
 		if( !floppy_wait( floppy, FALSE ) )
 		{
-			kernel_printf("floppy: read floppy_wait failed, block %d\n", floppy->current_block );
+			kernel_printf("[floppy_rwBlock] read floppy_wait failed, block %d\n", floppy->current_block );
 			// if this fails reset the drive
 			floppy_reset( floppy );
-			// turn off the floppy motor
-    		floppy_off( floppy );
-			return FAIL;
+			// break out off loop and fail
+			break;
 		}
 		// read in the result phase of the read command
 		// we dont need the bytes we just need to clear the FIFO queue
@@ -284,17 +286,21 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
     		floppy_off( floppy );
 			// copy back buffer if we were reading
 			if( mode == FLOPPY_READBLOCK )
-				memcpy( buffer, dma_address, floppy->geometry->blocksize );
+				mm_pmemcpyfrom( buffer, dma_address, floppy->geometry->blocksize );
+			// free the DMA buffer
+    		physical_pageFree( dma_address );
 			// return sucess :)
 			return SUCCESS;
 		}
     	// recalibrate the drive
 		floppy_recalibrate( floppy );
     }
-    kernel_printf("floppy: read failed 3 times, block %d\n", floppy->current_block );
-	// we fail if we cant read in three tries
+    kernel_printf("[floppy_rwBlock] read failed 3 times, block %d\n", floppy->current_block );
 	// turn off the floppy motor
     floppy_off( floppy );
+	// free the DMA buffer
+	physical_pageFree( dma_address );
+	// we fail if we cant read in three tries
 	return FAIL;
 }
 

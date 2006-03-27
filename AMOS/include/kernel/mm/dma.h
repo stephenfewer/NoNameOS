@@ -3,8 +3,6 @@
 
 #include <sys/types.h>
 
-#define DMA_PAGE_VADDRESS		(void *)0x00080000
-
 struct MRC_BITS
 {
 	unsigned int channel:2;

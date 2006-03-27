@@ -28,7 +28,7 @@ static int process_uniqueid = 0;
 
 extern struct PROCESS_INFO kernel_process;
 
-__inline__ void process_printStack( struct PROCESS_STACK * stack )
+inline void process_printStack( struct PROCESS_STACK * stack )
 {
 	kernel_printf( "\tCS:%x EIP:%x\n", stack->cs, stack->eip );
 	kernel_printf( "\tDS:%x ES:%x FS:%x GS:%x\n", stack->ds, stack->es, stack->fs, stack->gs );
@@ -111,10 +111,8 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 		physicalAddress = physical_pageAlloc();
 		if( physicalAddress == NULL )
 			kernel_panic( NULL, "No physical memory for process creation." );
-		// use quickMap() to map in the physical page into our current address space so we may write to it
-		void * tempAddress = paging_mapQuick( physicalAddress );
-		// copy the code page
-		memcpy( tempAddress, entrypoint+(i*PAGE_SIZE), PAGE_SIZE );
+		// copy the next page of code into the physical page allocated for it
+		mm_pmemcpyto( physicalAddress, entrypoint+(i*PAGE_SIZE), PAGE_SIZE );
 		// map the code page into the new process's address space
 		paging_map( process, linearAddress, physicalAddress, TRUE );
 	}

@@ -215,9 +215,6 @@ void paging_mapKernel( struct PROCESS_INFO * p )
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, NULL );
 	paging_setPageDirectoryEntry( p, NULL, (struct PAGE_TABLE *)TABLE_SHIFT_L(pde->address) );
 
-	// identity map in out dma address
-	paging_map( p, DMA_PAGE_VADDRESS, DMA_PAGE_VADDRESS, TRUE );
-	
 	// map in the kernel (which wont be > 4MB)
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_CODE_VADDRESS );
 	paging_setPageDirectoryEntry( p, KERNEL_CODE_VADDRESS, (struct PAGE_TABLE *)TABLE_SHIFT_L(pde->address) );
@@ -234,7 +231,7 @@ void paging_mapKernel( struct PROCESS_INFO * p )
 }
 
 // map a physical page into the current address space so we can read/write to it
-__inline__ void * paging_mapQuick( void * physicalAddress )
+inline void * paging_mapQuick( void * physicalAddress )
 {
 	// get the pte via a lookup possible because of the fractal mapping of the page dir
 	(GET_PTE( KERNEL_QUICKMAP_VADDRESS ))->address = TABLE_SHIFT_R( PAGE_ALIGN( physicalAddress ) );
@@ -272,9 +269,6 @@ int paging_init( void )
 	// map in the virtual address for vga
 	paging_map( &kernel_process, KERNEL_VGA_VADDRESS, KERNEL_VGA_PADDRESS, TRUE );
 
-	// identity map in our dma address
-	paging_map( &kernel_process, DMA_PAGE_VADDRESS, DMA_PAGE_VADDRESS, TRUE );
-	
 	// map in the kernel
 	physicalAddress = V2P( &start );
 	linearAddress = (void *)&start;

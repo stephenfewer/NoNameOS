@@ -28,23 +28,19 @@ char * physical_bitmap;
 
 int physical_bitmapSize;
 
+void * physical_maxAddress;
+
 inline int physical_isPageFree( void * physicalAddress )
 {
 	if( physical_bitmap[ BITMAP_BYTE_INDEX( physicalAddress ) ] & ( 1 << BITMAP_BIT_INDEX( physicalAddress ) ) )
-		return FALSE;
-	return TRUE;
+		return FAIL;
+	return SUCCESS;
 }
 
-void * physical_pageAllocAddress( void * physicalAddress )
+inline void * physical_pageAllocAddress( void * physicalAddress )
 {
-	physicalAddress = PAGE_ALIGN( physicalAddress );
-	
-	if( physical_isPageFree( physicalAddress ) )
-	{
-		physical_bitmap[ BITMAP_BYTE_INDEX( physicalAddress ) ] |= ( 1 << BITMAP_BIT_INDEX( physicalAddress ) );
-		return physicalAddress;
-	}
-	return NULL;
+	physical_bitmap[ BITMAP_BYTE_INDEX( physicalAddress ) ] |= ( 1 << BITMAP_BIT_INDEX( physicalAddress ) );
+	return physicalAddress;
 }
 
 int physical_getBitmapSize()
@@ -52,23 +48,64 @@ int physical_getBitmapSize()
 	return physical_bitmapSize;
 }
 
-// To-Do: return 0x00000000 (NULL) if no physical memory left
+void * physical_pageAllocLimit( void * low, void * high )
+{
+	// linear search from our low address untill our high address
+	while( low < high )
+	{
+		// test if the current physical address is free
+		if( physical_isPageFree( low ) == SUCCESS )
+			// if it is, allocate it and return the address
+			return physical_pageAllocAddress( low );
+		// increment the physical address to the next page
+		low += SIZE_4KB;
+	}
+	// return NULL if we couldn't allocate a page
+	return NULL;
+}
+
+void * physical_pageAllocHigh()
+{
+	void * physicalAddress = NULL;
+	// lock the critical section
+	mutex_lock( &physical_bitmapLock );
+	// try to allocate a page in high memory
+	if( physical_maxAddress > PHYSICAL_HIGH_PADDRESS )
+		physicalAddress = physical_pageAllocLimit( PHYSICAL_HIGH_PADDRESS, physical_maxAddress );	
+	// unlock the critical section
+	mutex_unlock( &physical_bitmapLock );
+	// return physical page address or NULL if no physical memory left
+	return physicalAddress;
+}
+
+// allocate a page in low memory, typically for DMA operations
+void * physical_pageAllocLow()
+{
+	void * physicalAddress;
+	// lock the critical section
+	mutex_lock( &physical_bitmapLock );
+	// try to allocate a page in low memory
+	if( PHYSICAL_HIGH_PADDRESS > physical_maxAddress )
+		physicalAddress = physical_pageAllocLimit( PHYSICAL_LOW_PADDRESS, physical_maxAddress );
+	else
+		physicalAddress = physical_pageAllocLimit( PHYSICAL_LOW_PADDRESS, PHYSICAL_HIGH_PADDRESS );
+	// unlock the critical section
+	mutex_unlock( &physical_bitmapLock );
+	// return physical page address or NULL if no physical memory left
+	return physicalAddress;
+}
+
+// allocate a physical page in either high memory or low memory. we try high first
+// to reserve as much low memory as possible for things like DMA that need low mem
 void * physical_pageAlloc()
 {
 	void * physicalAddress;
-	// lock this critical section so we cant allocate the same page twice!
-	mutex_lock( &physical_bitmapLock );
-	// better to reserver the address 0x00000000 so we can better
-	// detect null pointer exceptions...
-	physicalAddress = (void *)0x00001000;
-	// linear search! ohh dear :)
-	while( !physical_isPageFree( physicalAddress ) )
-		physicalAddress += SIZE_4KB;
-	// mark the page as allocated
-	physicalAddress = physical_pageAllocAddress( physicalAddress );
-	// unlock the critical section
-	mutex_unlock( &physical_bitmapLock );
-	// return the physical address we just allocated
+	// first try to alloc from high memory
+	physicalAddress = physical_pageAllocHigh();
+	// if no high mem available, try from low memory
+	if( physicalAddress == NULL )
+		physicalAddress = physical_pageAllocLow();
+	// return the allocated page address or NULL if no physical memory left
 	return physicalAddress;
 }
 
@@ -76,7 +113,8 @@ void physical_pageFree( void * physicalAddress )
 {
 	// lock the critical section
 	mutex_lock( &physical_bitmapLock );
-	if( !physical_isPageFree( physicalAddress ) )
+	// if the address has been allocated, mark it as freed
+	if( physical_isPageFree( physicalAddress ) == FAIL )
 		physical_bitmap[ BITMAP_BYTE_INDEX( physicalAddress ) ] &= ~( 1 << BITMAP_BIT_INDEX( physicalAddress ) );
 	// unlock the critical section
 	mutex_unlock( &physical_bitmapLock );
@@ -94,7 +132,11 @@ int physical_init( DWORD memUpper )
 	// calculate the size of the bitmap so we have 1bit
 	// for every 4KB page in actual physical memory
 	physical_bitmapSize = ( ( ( memUpper / SIZE_1KB ) + 1 ) * 256 ) / 8;
-
+	
+	// calculate the maximum physical memory address we can use
+	physical_maxAddress = (void *)( (SIZE_1KB * SIZE_1KB) * ( ( memUpper / SIZE_1KB ) + 1 ) );
+	
+	// set the address of the bitmap pointer to the end location of the kernel
 	physical_bitmap = (char *)&end;
 
 	// clear the bitmap so all pages are marked as free
@@ -104,10 +146,7 @@ int physical_init( DWORD memUpper )
 	for( physicalAddress=(void *)0xA0000 ; physicalAddress<(void *)0x100000 ; physicalAddress+=SIZE_4KB )
 		physical_pageAllocAddress( physicalAddress );
 	physical_pageAllocAddress( KERNEL_VGA_PADDRESS );
-		
-	// reserve the default DMA page address
-	physical_pageAllocAddress( DMA_PAGE_VADDRESS );
-	
+
 	// reserve all the physical memory currently being taken up by
 	// the kernel and the physical memory bitmap tacked on to the
 	// end of the kernel image, this avoids us allocating this memory

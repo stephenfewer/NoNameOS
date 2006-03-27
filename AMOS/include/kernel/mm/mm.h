@@ -14,6 +14,10 @@ struct MM_HEAPITEM
 
 int mm_init( DWORD );
 
+void mm_pmemcpyto( void *, void *, int );
+
+void mm_pmemcpyfrom( void *, void *, int );
+
 void * mm_morecore( struct PROCESS_INFO *, DWORD );
 
 void mm_kfree( void * );

@@ -89,7 +89,7 @@ void paging_destroyDirectory( struct PROCESS_INFO * );
 
 void paging_mapKernel( struct PROCESS_INFO * );
 
-__inline__ void * paging_mapQuick( void * );
+inline void * paging_mapQuick( void * );
 
 void paging_map( struct PROCESS_INFO *, void *, void *, BOOL );
 

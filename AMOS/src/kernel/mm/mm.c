@@ -49,6 +49,31 @@ int mm_init( DWORD memUpper )
 	return SUCCESS;
 }
 
+// rename these two functions!
+void mm_pmemcpyto( void * dest_paddress, void * src_vaddress, int size )
+{
+	// dissable interrupts for atomicity
+	interrupt_disableAll();
+	// use quickMap() to map in the physical page into our current address space so we may write to it
+	void * tempAddress = paging_mapQuick( dest_paddress );
+	// copy the data accross
+	memcpy( tempAddress, src_vaddress, size );
+	// enable interrupts
+	interrupt_enableAll();
+}
+
+void mm_pmemcpyfrom( void * dest_vaddress, void * src_paddress, int size )
+{
+	// dissable interrupts for atomicity
+	interrupt_disableAll();
+	// use quickMap() to map in the physical page into our current address space so we may read from it
+	void * tempAddress = paging_mapQuick( src_paddress );
+	// copy the data accross
+	memcpy( dest_vaddress, tempAddress, size );
+	// enable interrupts
+	interrupt_enableAll();
+}
+
 // increase the processes heap by some amount, this will be rounded up by the page size 
 void * mm_morecore( struct PROCESS_INFO * process, DWORD size )
 {
