@@ -9,16 +9,16 @@ static volatile int shell_canquit = FALSE;
 //char shell_workingdir[PROMPT_SIZE];
 
 void tinysh_char_out( unsigned char c );
-static void display_args(int argc, char **argv);
+//static void display_args(int argc, char **argv);
 static void shell_quit( int argc, char **argv );
-static void shell_create( int argc, char **argv );
+//static void shell_create( int argc, char **argv );
 static void shell_delete( int argc, char **argv );
 static void shell_rename( int argc, char **argv );
 static void shell_copy( int argc, char **argv );
 static void shell_list( int argc, char **argv );
-static void shell_cd( int argc, char **argv );
-static void shell_mount( int argc, char **argv );
-static void shell_unmount( int argc, char **argv );
+//static void shell_cd( int argc, char **argv );
+//static void shell_mount( int argc, char **argv );
+//static void shell_unmount( int argc, char **argv );
 static void shell_spawn( int argc, char **argv );
 static void shell_kill( int argc, char **argv );
 void shell_exit( void );
@@ -59,7 +59,7 @@ void tinysh_char_out( unsigned char c )
 //	printf( "%c", c );
 	write( CONSOLE, &c, 1 );
 }
-
+/*
 static void display_args(int argc, char **argv)
 {
   int i;
@@ -67,7 +67,7 @@ static void display_args(int argc, char **argv)
     {
       printf("argv[%d]=\"%s\"\n",i,argv[i]);
     }
-}
+}*/
 
 static void shell_quit( int argc, char **argv )
 {
@@ -79,12 +79,12 @@ static void shell_clear( int argc, char **argv )
 {
 	printf( "\f" );
 }
-
+/*
 static void shell_create( int argc, char **argv )
 {
 display_args(argc,argv);
 }
-
+*/
 static void shell_delete( int argc, char **argv )
 {
 	if( argc < 2 )
@@ -193,7 +193,7 @@ static void shell_dump( int argc, char **argv )
 	
 	printf( "\n" );
 }
-
+/*
 static void shell_cd( int argc, char **argv )
 {
 display_args(argc,argv);
@@ -208,7 +208,7 @@ static void shell_unmount( int argc, char **argv )
 {
 display_args(argc,argv);
 }
-
+*/
 static void shell_spawn( int argc, char **argv )
 {
 	int shellwait = TRUE;
@@ -260,12 +260,18 @@ static void shell_kill( int argc, char **argv )
 static void shell_write( int argc, char **argv )
 {
 	int handle, i, byteswrite;
-	char buffer[BUFFER_SIZE];
-
-	handle = open( "/amos/qwerty.txt", MODE_READWRITE | MODE_CREATE );
+	char buffer[32];
+	
+	if( argc < 2 )
+	{
+		printf("write: You must enter a filename to write to.\n");
+		return;
+	}
+	
+	handle = open( argv[1], MODE_READWRITE | MODE_CREATE );
 	if( handle == FAIL )
 	{
-		printf("write: Failed to open file.\n" );
+		printf("write: Failed to open file %s\n", argv[1] );
 		return;
 	}
 
@@ -277,10 +283,10 @@ static void shell_write( int argc, char **argv )
 		return;
 	}
 
-	for(i=0;i<BUFFER_SIZE;i++)
+	for(i=0;i<32;i++)
 		buffer[i] = 'S';
 		
-	byteswrite = write( handle, (BYTE *)&buffer, BUFFER_SIZE );
+	byteswrite = write( handle, (BYTE *)&buffer, 2 );
 	if( byteswrite == FAIL )
 	{
 		printf("write: Failed to write.\n" );
@@ -293,7 +299,7 @@ static void shell_write( int argc, char **argv )
 
 // create a directory
 // delete a directory
-static tinysh_cmd_t clearcmd    = { 0, "clear",    "clear the console",       0, shell_clear,    0, 0, 0 };
+static tinysh_cmd_t clearcmd   = { 0, "clear",    "clear the console",       0, shell_clear,    0, 0, 0 };
 static tinysh_cmd_t quitcmd    = { 0, "quit",    "exit the shell",       0, shell_quit,    0, 0, 0 };
 //static tinysh_cmd_t createcmd  = { 0, "create",  "create a file",    "[file]", shell_create,  0, 0, 0 };
 static tinysh_cmd_t deletecmd  = { 0, "delete",  "delete a file",    "[file]", shell_delete,  0, 0, 0 };
@@ -306,7 +312,8 @@ static tinysh_cmd_t dumpcmd    = { 0, "dump",    "dump a files contents to stand
 //static tinysh_cmd_t unmountcmd = { 0, "unmount", "unmount a volume", "[mountpoint]", shell_unmount, 0, 0, 0 };
 static tinysh_cmd_t spawncmd   = { 0, "spawn",   "spawn a process",  "[executable]", shell_spawn,   0, 0, 0 };
 static tinysh_cmd_t killcmd    = { 0, "kill",    "kill a process",   "[process id]", shell_kill,    0, 0, 0 };
-static tinysh_cmd_t writecmd    = { 0, "write",    "write fat test",   "", shell_write,    0, 0, 0 };
+static tinysh_cmd_t writecmd   = { 0, "write",    "write fat test",   "", shell_write,    0, 0, 0 };
+
 void shell_exit( void )
 {
 	// perform any tidy up here
@@ -370,14 +377,11 @@ void shell_init( int argc, char **argv )
 int realmain( int argc, char **argv )
 {
 	shell_init( argc, argv );
-	//char c;
 
 	tinysh_set_prompt( "AMOS:>" );
 	
 	while( !shell_canquit )
-	{
 		tinysh_char_in( getch() );
-	}
 
 	return 0;
 }
