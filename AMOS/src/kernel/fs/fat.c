@@ -516,8 +516,8 @@ void * fat_mount( char * device, char * mountpoint, int fstype )
 
 int fat_unmount( struct VFS_MOUNTPOINT * mount, char * mountpoint )
 {
-	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
-	if( fat_mount == NULL )
+	struct FAT_MOUNTPOINT * fat_mount;
+	if( (fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr) == NULL )
 		return FAIL;
 	// close the device
 	vfs_close( fat_mount->device );
@@ -534,8 +534,7 @@ struct VFS_HANDLE * fat_open( struct VFS_HANDLE * handle, char * filename )
 	struct FAT_MOUNTPOINT * fat_mount;
 	struct FAT_FILE * file;
 	// retrieve the fat mount structure
-	fat_mount = (struct FAT_MOUNTPOINT *)handle->mount->data_ptr;
-	if( fat_mount == NULL )
+	if( (fat_mount = (struct FAT_MOUNTPOINT *)handle->mount->data_ptr) == NULL )
 		return NULL;
 	file = (struct FAT_FILE *)mm_kmalloc( sizeof(struct FAT_FILE) );
 	// try to find the file
@@ -577,12 +576,11 @@ int fat_clone( struct VFS_HANDLE * handle, struct VFS_HANDLE * clone )
 int fat_rw( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size, int mode )
 {
 	int bytes_to_rw=0, bytes_rw=0, cluster_offset=0;
-	int cluster;
+	int cluster, i;
 	struct FAT_FILE * file;
 	BYTE * clusterBuffer;
 	// retrieve the file structure
-	file = (struct FAT_FILE *)handle->data_ptr;
-	if( file == NULL )
+	if( (file = (struct FAT_FILE *)handle->data_ptr) == NULL )
 		return FAIL;
 	// reduce size if we are trying to read past the end of the file
 	if( file->current_pos + size > file->entry.file_size )
@@ -593,7 +591,7 @@ int fat_rw( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size, int mode )
 	// initially set the cluster number to the first cluster as specified in the file entry
 	cluster = file->entry.start_cluster;
 	// get the correct cluster to begin reading/writing from
-	int i = file->current_pos / file->mount->cluster_size;
+	i = file->current_pos / file->mount->cluster_size;
 	// we traverse the cluster chain i times
 	while( i-- )
 	{
@@ -706,8 +704,7 @@ int fat_seek( struct VFS_HANDLE * handle, DWORD offset, BYTE origin )
 	struct FAT_FILE * file;
 	int saved_pos;
 	// retrieve the file structure
-	file = (struct FAT_FILE *)handle->data_ptr;
-	if( file == NULL )
+	if( (file = (struct FAT_FILE *)handle->data_ptr) == NULL )
 		return FAIL;
 	// save the origional position in case we nee to roll back
 	saved_pos = file->current_pos;
@@ -737,8 +734,8 @@ int fat_create( struct VFS_MOUNTPOINT * mount, char * filename )
 {
 	char * name;
 	// retrieve the fat mount structure
-	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
-	if( fat_mount == NULL )
+	struct FAT_MOUNTPOINT * fat_mount;
+	if( (fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr) == NULL )
 		return FAIL;
 	// create a copy of filename as it will get mangled in the fat_file2entry() call
 	name = (char *)mm_kmalloc( strlen(filename)+1 );
@@ -756,8 +753,8 @@ int fat_create( struct VFS_MOUNTPOINT * mount, char * filename )
 int fat_delete( struct VFS_MOUNTPOINT * mount, char * filename )
 {
 	// retrieve the fat mount structure
-	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
-	if( fat_mount == NULL )
+	struct FAT_MOUNTPOINT * fat_mount;
+	if( (fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr) == NULL )
 		return FAIL;
 	return fat_findEntry( fat_mount, filename, NULL, fat_processDelete );
 }
@@ -765,8 +762,8 @@ int fat_delete( struct VFS_MOUNTPOINT * mount, char * filename )
 int fat_rename( struct VFS_MOUNTPOINT * mount, char * src, char * dest )
 {
 	// retrieve the fat mount structure
-	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
-	if( fat_mount == NULL )
+	struct FAT_MOUNTPOINT * fat_mount;
+	if( (fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr) == NULL )
 		return FAIL;
 	return fat_findEntry( fat_mount, src, dest, fat_processRename );
 }
@@ -774,8 +771,8 @@ int fat_rename( struct VFS_MOUNTPOINT * mount, char * src, char * dest )
 int fat_copy( struct VFS_MOUNTPOINT * mount, char * src, char * dest )
 {
 	// retrieve the fat mount structure
-	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
-	if( fat_mount == NULL )
+	struct FAT_MOUNTPOINT * fat_mount;
+	if( (fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr) == NULL )
 		return FAIL;
 	return fat_findEntry( fat_mount, src, dest, fat_processCopy );
 }
@@ -786,8 +783,8 @@ struct VFS_DIRLIST_ENTRY * fat_list( struct VFS_MOUNTPOINT * mount, char * dirna
 	struct FAT_ENTRY * dir;
 	struct VFS_DIRLIST_ENTRY * entry;
 	// retrieve the fat mount structure
-	struct FAT_MOUNTPOINT * fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr;
-	if( fat_mount == NULL )
+	struct FAT_MOUNTPOINT * fat_mount;
+	if( (fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr) == NULL )
 		return NULL;
 	if( strlen( dirname ) == 0 )
 	{	

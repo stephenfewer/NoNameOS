@@ -23,15 +23,15 @@ int elf_load( struct VFS_HANDLE * handle )
 	
 	// read in the file header
 	if( vfs_read( handle, (void *)&hdr, sizeof(struct ELF_HDR) ) == FAIL )
-		return -1;
+		return FAIL;
 	
 	// make sure we are dealing with an ELF file
 	if( hdr.e_ident[0] != 0x7F && hdr.e_ident[1] != 'E' && hdr.e_ident[2] != 'L' && hdr.e_ident[3] != 'F' )
-		return -2;
+		return FAIL;
 	
 	// 32-bit object
 	if( hdr.e_ident[4] != ELF_CLASS_32 )
-		return -3;
+		return FAIL;
 
 	//kernel_printf("e_entry: %x\n", hdr.e_entry );
 	//kernel_printf("e_shoff: %d\n", hdr.e_shoff );
@@ -43,10 +43,10 @@ int elf_load( struct VFS_HANDLE * handle )
 	for( i=0 ; i<hdr.e_shnum ; i++)
 	{
 		if( vfs_read( handle, (void *)&section_hdr, hdr.e_phentsize ) == FAIL )
-			return -4-i;
+			return FAIL;
 		
 		kernel_printf("[%d] name index: %d addr: %x\n", i, section_hdr.sh_name, section_hdr.sh_addr );
 	}
 	
-	return 0;
+	return SUCCESS;
 }

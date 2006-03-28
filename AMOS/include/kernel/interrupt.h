@@ -151,9 +151,9 @@ extern void isr48();
 
 struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process );
 
-BOOL interrupt_enable( int, INTERRUPT_HANDLER, BYTE );
+int interrupt_enable( int, INTERRUPT_HANDLER, BYTE );
 
-BOOL interrupt_disable( int );
+int interrupt_disable( int );
 
 int interrupt_init( void );
 

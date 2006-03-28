@@ -118,14 +118,14 @@ struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
 	return newProcess;
 }
 
-BOOL interrupt_setHandler( int index, INTERRUPT_HANDLER handler )
+int interrupt_setHandler( int index, INTERRUPT_HANDLER handler )
 {
 	if( index < INTERRUPT_TABLE_ENTRYS && index >= 0 )
 	{
 		interrupt_handlers[index] = handler;
-		return TRUE;
+		return SUCCESS;
 	}	
-	return FALSE;
+	return FAIL;
 }
 
 void interrupt_setTableEntry( BYTE index, INTERRUPT_SERVICE_ROUTINE routine, BYTE privilege, BYTE present )
@@ -168,19 +168,19 @@ void interrupt_remapPIC( void )
     outportb( 0xA1, 0x00 );
 }
 
-BOOL interrupt_enable( int index, INTERRUPT_HANDLER handler, BYTE privilege )
+int interrupt_enable( int index, INTERRUPT_HANDLER handler, BYTE privilege )
 {
 	if( index < INTERRUPT_TABLE_ENTRYS && index >= 0 )
 	{
 		interrupt_setTableEntry( index, interrupt_stubs[index], privilege, TRUE );
 		if( handler != NULL )
 			return interrupt_setHandler( index, handler );
-		return TRUE;
+		return SUCCESS;
 	}
-	return FALSE;
+	return FAIL;
 }
 
-BOOL interrupt_disable( int index )
+int interrupt_disable( int index )
 {
 	if( index < INTERRUPT_TABLE_ENTRYS && index >= 0 )
 	{
@@ -196,10 +196,10 @@ BOOL interrupt_disable( int index )
 			stub = disable_intA;
 		interrupt_setTableEntry( index, stub, SUPERVISOR, TRUE );
 		// return success
-		return TRUE;
+		return SUCCESS;
 	}
 	// return fail
-	return FALSE;
+	return FAIL;
 }
 
 int interrupt_init( void )

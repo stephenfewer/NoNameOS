@@ -78,7 +78,7 @@ BYTE floppy_getbyte( struct FLOPPY_DRIVE * floppy )
 	    // delay
 		inportb( 0x80 );
     }
-    return -1;	
+    return FAIL;	
 }
 
 int floppy_on( struct FLOPPY_DRIVE * floppy )
@@ -98,7 +98,7 @@ int floppy_on( struct FLOPPY_DRIVE * floppy )
 	
 	outportb( floppy->base + FLOPPY_DOR, dor.data );
 	
-	return TRUE;
+	return SUCCESS;
 }
 
 int floppy_off( struct FLOPPY_DRIVE * floppy )
@@ -113,7 +113,7 @@ int floppy_off( struct FLOPPY_DRIVE * floppy )
 	
 	outportb( floppy->base + FLOPPY_DOR, dor.data );
 	
-	return TRUE;
+	return SUCCESS;
 }
 
 struct PROCESS_INFO * floppy_handler( struct PROCESS_INFO * process )
@@ -145,7 +145,7 @@ int floppy_wait( struct FLOPPY_DRIVE * floppy, BYTE sence )
 	    // get the current cylinder
 	    floppy->current_cylinder = floppy_getbyte( floppy );
     }
-    return TRUE;
+    return SUCCESS;
 }
 
 int floppy_recalibrate( struct FLOPPY_DRIVE * floppy )
@@ -160,14 +160,14 @@ int floppy_recalibrate( struct FLOPPY_DRIVE * floppy )
     floppy_wait( floppy, TRUE );
     // turn off the motor
     floppy_off( floppy );
-    return TRUE;
+    return SUCCESS;
 }
 
 int floppy_seekcylinder( struct FLOPPY_DRIVE * floppy, BYTE cylinder )
 {
 	// check if we actually need to perform this operation
 	if( floppy->current_cylinder == cylinder )
-		return TRUE;
+		return SUCCESS;
 	// issue a seek command
 	floppy_sendbyte( floppy, FLOPPY_SEEK );
 	// specify drive
@@ -178,8 +178,8 @@ int floppy_seekcylinder( struct FLOPPY_DRIVE * floppy, BYTE cylinder )
 	floppy_wait( floppy, TRUE );
 	// test if the seek operation performed correctly
 	if( floppy->current_cylinder != cylinder )
-		return FALSE;
-	return TRUE;
+		return FAIL;
+	return SUCCESS;
 }
 
 int floppy_reset( struct FLOPPY_DRIVE * floppy )
@@ -198,7 +198,7 @@ int floppy_reset( struct FLOPPY_DRIVE * floppy )
 	outportb( floppy->base + FLOPPY_CCR, 0x00 );
 	// recalibrate the drive
 	floppy_recalibrate( floppy );
-	return TRUE;
+	return SUCCESS;
 }
 
 void floppy_blockGeometry( struct FLOPPY_DRIVE * floppy, int block, struct FLOPPY_GEOMETRY * geometry )
@@ -232,7 +232,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
     	// turn on the floppy motor
     	floppy_on( floppy );
     	// seek to the correct location
-    	if( !floppy_seekcylinder( floppy, blockGeometry.cylinders ) )
+    	if( floppy_seekcylinder( floppy, blockGeometry.cylinders ) == FAIL )
     	{
     		kernel_printf("[floppy_rwBlock] read seek failed, block %d\n", floppy->current_block );
     		// break out off loop and fail
@@ -262,7 +262,7 @@ int floppy_rwBlock( struct FLOPPY_DRIVE * floppy, void * buffer, int mode )
 		floppy_sendbyte( floppy, 0x1B );
 		floppy_sendbyte( floppy, 0xFF );
 		// wait for the floppy drive to send back an interrupt
-		if( !floppy_wait( floppy, FALSE ) )
+		if( floppy_wait( floppy, FALSE ) == FAIL )
 		{
 			kernel_printf("[floppy_rwBlock] read floppy_wait failed, block %d\n", floppy->current_block );
 			// if this fails reset the drive
