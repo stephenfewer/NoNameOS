@@ -384,7 +384,7 @@ int console_clone( struct IO_HANDLE * handle, struct IO_HANDLE * clone )
 	return SUCCESS;	
 }
 
-int console_read( struct IO_HANDLE * handle, BYTE * ubuff, DWORD size  )
+int console_read( struct IO_HANDLE * handle, BYTE * ubuff, DWORD size )
 {
 	struct CONSOLE * console;
 	struct CONSOLE_BUFFER * buffer;
@@ -437,7 +437,7 @@ int console_read( struct IO_HANDLE * handle, BYTE * ubuff, DWORD size  )
 	return FAIL;
 }
 
-int console_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
+int console_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size )
 {
 	int i=0;
 	struct CONSOLE * console;
@@ -453,6 +453,11 @@ int console_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size  )
 		console_putch( console, buffer[i++] );
 	// return the number of bytes written
 	return i;
+}
+
+int console_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin )
+{
+	return 0;
 }
 
 int console_putchBuffer( int number, BYTE byte )
@@ -528,7 +533,7 @@ int console_init( void )
 	calltable->clone   = console_clone;
 	calltable->read    = console_read;
 	calltable->write   = console_write;
-	calltable->seek    = NULL;
+	calltable->seek    = console_seek;
 	calltable->control = console_control;
 	// init the buffer lock
 	mutex_init( &console_bufferLock );

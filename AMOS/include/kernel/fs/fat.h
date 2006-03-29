@@ -13,23 +13,14 @@
 #define FAT_PROCESS_CONTINUE	-2
 #define FAT_PROCESS_SUCCESS		0
 
-#define FAT_CLUSTER12(c)		( c & 0x00000FFF )	// 12 bits
-#define FAT_CLUSTER16(c)		( c & 0x0000FFFF )	// 16 bits
-#define FAT_CLUSTER31(c)		( c & 0x0FFFFFFF )	// 28 bits
+#define FAT_CLUSTER12(c)		( c & 0x00000FFF )	// get the low 12 bits
+#define FAT_CLUSTER16(c)		( c & 0x0000FFFF )	// get the low 16 bits
+#define FAT_CLUSTER31(c)		( c & 0x0FFFFFFF )	// get the low 28 bits
 
-#define FAT_FREECLUSTER			0x0000
-
-#define FAT_12_ENDOFCLUSTER		0x0FFF
-#define FAT_12_BADCLUSTER		0x0FF7
-#define FAT_12_RESERVERCLUSTER	0x0FF8
-
-#define FAT_16_ENDOFCLUSTER		0xFFFF
-#define FAT_16_BADCLUSTER		0xFFF7
-#define FAT_16_RESERVERCLUSTER	0xFFF8
-
-#define FAT_32_ENDOFCLUSTER		0xFFFFFFFF
-#define FAT_32_BADCLUSTER		0x0FFFFFF7
-#define FAT_32_RESERVERCLUSTER	0x0FFFFFF8
+#define FAT_FREECLUSTER			0x00000000
+#define FAT_ENDOFCLUSTER		0xFFFFFFFF
+#define FAT_BADCLUSTER			0x0FFFFFF7
+#define FAT_RESERVERCLUSTER		0x0FFFFFF8
 
 #define FAT_ENTRY_DELETED		0xE5
 
@@ -118,10 +109,12 @@ struct FAT_ATTRIBUTE
 	int reserved:2;
 } PACKED;
 
+#define FAT_NAMESIZE		8
+#define FAT_EXTENSIONSIZE	3
 struct FAT_ENTRY
 {
-	BYTE name[8];
-	BYTE extention[3];
+	BYTE name[FAT_NAMESIZE];
+	BYTE extention[FAT_EXTENSIONSIZE];
 	struct FAT_ATTRIBUTE attribute;
 	BYTE reserved[10];
 	struct FAT_DOSTIME time;
@@ -139,16 +132,19 @@ struct FAT_MOUNTPOINT
 	BYTE * fat_data;
 	int fat_size;
 	int cluster_size;
+	int total_clusters;
 };
 
 struct FAT_FILE
 {
 	struct FAT_MOUNTPOINT * mount;
 	struct FAT_ENTRY entry;
+	int dir_cluster;
+	int dir_index;
 	int current_pos;
 };
 
-typedef int (*processEntry)( struct FAT_MOUNTPOINT *, struct FAT_ENTRY *, int, char *, char * );
+typedef int (*processEntry)( struct FAT_MOUNTPOINT *, struct FAT_ENTRY *, int, char *, char *, int );
 
 int fat_init( void );
 

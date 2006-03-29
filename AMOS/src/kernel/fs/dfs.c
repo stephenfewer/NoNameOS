@@ -199,7 +199,7 @@ struct VFS_DIRLIST_ENTRY * dfs_list( struct VFS_MOUNTPOINT * mount, char * dir )
 	for( device=dfs_deviceHead, i=0 ; device!=NULL ; device=device->prev, i++ )
 	{
 		// fill in the name
-		strncpy( entry[i].name, device->name, 32 );
+		strncpy( entry[i].name, device->name, VFS_NAMESIZE );
 		// fill in the attributes
 		entry[i].attributes = VFS_DEVICE;
 		// fill in the size

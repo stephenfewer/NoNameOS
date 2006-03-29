@@ -71,9 +71,12 @@ struct VFS_DIRLIST
 	struct VFS_DIRLIST_ENTRY entry[];
 };
 */
+
+#define VFS_NAMESIZE		32
+
 struct VFS_DIRLIST_ENTRY
 {
-	char name[32];
+	char name[VFS_NAMESIZE];
 	int attributes;
 	int size;
 };

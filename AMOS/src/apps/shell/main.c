@@ -11,7 +11,7 @@ static volatile int shell_canquit = FALSE;
 void tinysh_char_out( unsigned char c );
 //static void display_args(int argc, char **argv);
 static void shell_quit( int argc, char **argv );
-//static void shell_create( int argc, char **argv );
+static void shell_create( int argc, char **argv );
 static void shell_delete( int argc, char **argv );
 static void shell_rename( int argc, char **argv );
 static void shell_copy( int argc, char **argv );
@@ -79,17 +79,23 @@ static void shell_clear( int argc, char **argv )
 {
 	printf( "\f" );
 }
-/*
+
 static void shell_create( int argc, char **argv )
 {
-display_args(argc,argv);
+	if( argc < 2 )
+	{
+		printf("create: You must enter a file to create.\n");
+		return;
+	}
+	if( create( argv[1] ) == FAIL )
+		printf("create: Failed to create file %s.\n", argv[1] );
 }
-*/
+
 static void shell_delete( int argc, char **argv )
 {
 	if( argc < 2 )
 	{
-		printf("delete: You must enter a source file to delete.\n");
+		printf("delete: You must enter a file to delete.\n");
 		return;
 	}
 	if( delete( argv[1] ) == FAIL )
@@ -260,7 +266,7 @@ static void shell_kill( int argc, char **argv )
 static void shell_write( int argc, char **argv )
 {
 	int handle, i, byteswrite;
-	char buffer[32];
+	char buffer[BUFFER_SIZE];
 	
 	if( argc < 2 )
 	{
@@ -283,10 +289,10 @@ static void shell_write( int argc, char **argv )
 		return;
 	}
 
-	for(i=0;i<32;i++)
+	for(i=0;i<BUFFER_SIZE;i++)
 		buffer[i] = 'S';
 		
-	byteswrite = write( handle, (BYTE *)&buffer, 2 );
+	byteswrite = write( handle, (BYTE *)&buffer, BUFFER_SIZE );
 	if( byteswrite == FAIL )
 	{
 		printf("write: Failed to write.\n" );
@@ -301,7 +307,7 @@ static void shell_write( int argc, char **argv )
 // delete a directory
 static tinysh_cmd_t clearcmd   = { 0, "clear",    "clear the console",       0, shell_clear,    0, 0, 0 };
 static tinysh_cmd_t quitcmd    = { 0, "quit",    "exit the shell",       0, shell_quit,    0, 0, 0 };
-//static tinysh_cmd_t createcmd  = { 0, "create",  "create a file",    "[file]", shell_create,  0, 0, 0 };
+static tinysh_cmd_t createcmd  = { 0, "create",  "create a file",    "[file]", shell_create,  0, 0, 0 };
 static tinysh_cmd_t deletecmd  = { 0, "delete",  "delete a file",    "[file]", shell_delete,  0, 0, 0 };
 static tinysh_cmd_t renamecmd  = { 0, "rename",  "rename a file",    "[source file] [destination file]", shell_rename,  0, 0, 0 };
 static tinysh_cmd_t copycmd    = { 0, "copy",    "copy a file",      "[source file] [destination file]", shell_copy,    0, 0, 0 };
@@ -345,7 +351,7 @@ void shell_init( int argc, char **argv )
 	// add the default commands
 	tinysh_add_command( &clearcmd );
 	tinysh_add_command( &quitcmd );    
-	//tinysh_add_command( &createcmd );
+	tinysh_add_command( &createcmd );
 	tinysh_add_command( &deletecmd );
 	tinysh_add_command( &renamecmd );
 	tinysh_add_command( &copycmd );
