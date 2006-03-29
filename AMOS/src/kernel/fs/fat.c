@@ -49,20 +49,15 @@ int fat_getFATCluster( struct FAT_MOUNTPOINT * mount, int cluster )
 	switch( mount->type )
 	{
 		case FAT_12:
-
 			next_cluster = *(WORD *)((BYTE *)&mount->fat_data[ ( (cluster * 3) / 2 ) ]);
-
 			// if cluster is odd
 			if( cluster & 1 )
 				next_cluster >>= 4;
 			else
 				next_cluster = FAT_CLUSTER12( next_cluster );
-		
 			if( next_cluster == FAT_CLUSTER12( FAT_ENDOFCLUSTER ) )
 				return FAIL;
-			
 			break;
-			
 		case FAT_16:
 			next_cluster = ((WORD *)mount->fat_data)[ cluster ];
 			if( next_cluster == FAT_CLUSTER16( FAT_ENDOFCLUSTER ) )
@@ -170,19 +165,19 @@ int fat_compareName( struct FAT_ENTRY * entry, char * name )
 	//to do: check past the end of the extension
 	for( i=0 ; i<FAT_NAMESIZE ; i++ )
 	{
-		if( entry->name[i] == 0x20 )
+		if( entry->name[i] == FAT_PADBYTE )
 			break;
 			
 		if( name[i] != entry->name[i] )
 			return FAIL;
 	}
 
-	if( name[i] == '.' || entry->extention[0] != 0x20 )
+	if( name[i] == '.' || entry->extention[0] != FAT_PADBYTE )
 	{
 		i++;
 		for( x=0 ; x<FAT_EXTENSIONSIZE ; x++ )
 		{
-			if( entry->extention[x] == 0x20 )
+			if( entry->extention[x] == FAT_PADBYTE )
 				break;
 			
 			if( name[i+x] != entry->extention[x] )
@@ -295,12 +290,24 @@ int fat_file2entry( struct FAT_MOUNTPOINT * mount, char * filename, struct FAT_E
 int fat_setName( struct FAT_ENTRY * entry, char * name )
 {
 	int i, x;
-	// convert the name to UPPERCASE
+	// these are defined in the offical FAT spec
+	//BYTE illegalBytes[16] = { 0x22, 0x2A, 0x2B, 0x2C, 0x2E, 0x2F, 0x3A, 0x3B, 
+	//						  0x3C, 0x3D, 0x3E, 0x3F, 0x5B, 0x5C, 0x5D, 0x7C };
+	// convert the name to UPPERCASE and test for illegal bytes
 	for(i=0;i<strlen(name);i++)
+	{
+		/*if( name[i] < FAT_PADBYTE )
+			return FAIL;
+		for( x=0 ; x<16 ; x++ )
+		{
+			if( (BYTE)name[i] == illegalBytes[x] )
+				return FAIL;
+		}*/
 		name[i] = toupper( name[i] );
+	}
 	// clear the entry's name and extension
-	memset( &entry->name, 0x20, FAT_NAMESIZE );
-	memset( &entry->extention, 0x20, FAT_EXTENSIONSIZE );
+	memset( &entry->name, FAT_PADBYTE, FAT_NAMESIZE );
+	memset( &entry->extention, FAT_PADBYTE, FAT_EXTENSIONSIZE );
 	// set the name
 	for( i=0 ; i<FAT_NAMESIZE ; i++ )
 	{
@@ -496,8 +503,7 @@ int fat_rw( struct VFS_HANDLE * handle, BYTE * buffer, DWORD size, int mode )
 		// but if we are writing we will need to expand the file size
 		if( mode == FAT_WRITE )
 		{
-			int new_size = file->current_pos + size;
-			int new_clusters = ((new_size - size) / file->mount->cluster_size ) + 1;
+			int new_clusters = (size / file->mount->cluster_size ) + 1;
 			int prev_cluster = cluster, next_cluster;
 			// alloc more clusters
 			while( new_clusters-- )
@@ -645,6 +651,7 @@ int fat_control( struct VFS_HANDLE * handle, DWORD request, DWORD arg )
 int fat_create( struct VFS_MOUNTPOINT * mount, char * filename )
 {
 	int ret=FAIL;
+	BOOL create_dir=FALSE;
 	char * dirname;
 	struct FAT_FILE * file;
 	struct FAT_DOSTIME time;
@@ -653,55 +660,85 @@ int fat_create( struct VFS_MOUNTPOINT * mount, char * filename )
 	// retrieve the fat mount structure
 	if( (fat_mount = (struct FAT_MOUNTPOINT *)mount->data_ptr) == NULL )
 		return FAIL;
+	// alloc a file structure
+	file = (struct FAT_FILE *)mm_kmalloc( sizeof(struct FAT_FILE) );
+	// alloc a string for the dir name
 	dirname = (char *)mm_kmalloc( strlen(filename)+1 );
 	strcpy( dirname, filename );
 	// check if we are trying to create a file that allready exists
-	if( fat_file2entry( fat_mount, filename, NULL, NULL ) == SUCCESS )
+	if( fat_file2entry( fat_mount, filename, NULL, NULL ) == FAIL )
 	{
-		mm_kfree( dirname );
-		return FAIL;
-	}
-	// alloc a file structure
-	file = (struct FAT_FILE *)mm_kmalloc( sizeof(struct FAT_FILE) );
-	// decompose the filename into its directory portion and the filename portion
-	// redo this!
-	strcpy( filename, dirname );
-	// BAD BAD BAD!!!
-	strrchr( dirname, '/' )[1] = 0x00;
-	filename = strrchr( filename, '/' ) + 1;
-	// try to find the directory we wish to create the file in
-	if( fat_file2entry( fat_mount, dirname, NULL, file ) == SUCCESS )
-	{
-		// set the FAT mount it exists on
-		file->mount = fat_mount;
-		// we dont have a directory index yet
-		file->dir_index = FAIL;
-		// set the new files directory cluster
-		file->dir_cluster = file->entry.start_cluster;
-		// set the current position to zero
-		file->current_pos = 0;
-		// clear the entry structure so we can fill in the new files details
-		memset( &file->entry, 0x00, sizeof(struct FAT_ENTRY) );
-		// set a default attribte
-		file->entry.attribute.archive = TRUE;
-		// set default time
-		time.hours   = 0;
-		time.minutes = 0;
-		time.twosecs = 0;
-		memcpy( &file->entry.time, &time, sizeof(struct FAT_DOSTIME) );
-		// set default date
-		date.date  = 0;
-		date.month = 0;
-		date.year  = 0;
-		memcpy( &file->entry.date, &date, sizeof(struct FAT_DOSTIME) );
-		// set the file name and extension	
-		fat_setName( &file->entry, filename );
-		// set its initial size to zero
-		file->entry.file_size = 0;
-		// we have no start cluster yet
-		file->entry.start_cluster = FAT_FREECLUSTER;	
-		// update the new files entry to disk
-		ret = fat_updateFileEntry( file );
+		// decompose the filename into its directory portion and the filename portion
+		// redo this!
+		strcpy( filename, dirname );
+		if( filename[ strlen( filename ) - 1 ] == '/' )
+		{
+			create_dir = TRUE;
+			filename[ strlen( filename ) - 1 ] = 0x00;
+			strcpy( dirname, filename );
+		}
+		// BAD BAD BAD!!!
+		strrchr( dirname, '/' )[1] = 0x00;
+		filename = strrchr( filename, '/' ) + 1;
+		// try to find the directory we wish to create the file in
+		if( fat_file2entry( fat_mount, dirname, NULL, file ) == SUCCESS )
+		{
+			// set the FAT mount it exists on
+			file->mount = fat_mount;
+			// we dont have a directory index yet
+			file->dir_index = FAIL;
+			// set the new files directory cluster
+			file->dir_cluster = file->entry.start_cluster;
+			// set the current position to zero
+			file->current_pos = 0;
+			// clear the entry structure so we can fill in the new files details
+			memset( &file->entry, 0x00, sizeof(struct FAT_ENTRY) );
+			// set the file name and extension	
+			if( fat_setName( &file->entry, filename ) == SUCCESS )
+			{
+				// set default time
+				time.hours   = 0;
+				time.minutes = 0;
+				time.twosecs = 0;
+				memcpy( &file->entry.time, &time, sizeof(struct FAT_DOSTIME) );
+				// set default date
+				date.date  = 0;
+				date.month = 0;
+				date.year  = 0;
+				memcpy( &file->entry.date, &date, sizeof(struct FAT_DOSTIME) );
+				// set its initial size to zero
+				file->entry.file_size = 0;
+				if( create_dir )
+				{
+					// set the attribute as a directory
+					file->entry.attribute.directory = TRUE;
+					// alloc an initial cluster for the directory and its entrys
+					file->entry.start_cluster = fat_getFreeCluster( file->mount );
+					if( file->entry.start_cluster != (WORD)FAIL )
+					{
+						struct FAT_ENTRY * entry = (struct FAT_ENTRY *)mm_kmalloc( file->mount->cluster_size );
+						
+						memset( entry, 0x00, file->mount->cluster_size );
+						
+						fat_rwCluster( file->mount, file->entry.start_cluster, (BYTE *)entry, FAT_WRITE );
+						// terminate the cluster chain and commit the FAT to disk
+						fat_setFATCluster( file->mount, file->entry.start_cluster, FAT_ENDOFCLUSTER, TRUE );
+						
+						mm_kfree( entry );
+					} else {
+						// fail
+						kernel_printf("[create] start_cluster fail\n");
+					}
+				} else {
+					// set the attribute as a archive file
+					file->entry.attribute.archive = TRUE;
+					// we have no start cluster yet
+					file->entry.start_cluster = FAT_FREECLUSTER;
+				}
+				// update the new files entry to disk
+				ret = fat_updateFileEntry( file );
+			}
+		}
 	}
 	mm_kfree( dirname );
 	mm_kfree( file );
@@ -763,9 +800,9 @@ int fat_rename( struct VFS_MOUNTPOINT * mount, char * src, char * dest )
 		if( (dest = strrchr( dest, '/' )) != NULL )
 		{
 			// rename the entry (advancing the dest pointer past the /)
-			fat_setName( &file->entry, ++dest );
-			// update the files entry to disk
-			ret = fat_updateFileEntry( file );
+			if( fat_setName( &file->entry, ++dest ) == SUCCESS )
+				// update the files entry to disk
+				ret = fat_updateFileEntry( file );
 		}
 	}
 	mm_kfree( file );
@@ -822,16 +859,16 @@ struct VFS_DIRLIST_ENTRY * fat_list( struct VFS_MOUNTPOINT * mount, char * dirna
 		memset( entry[entryIndex].name, 0x00, VFS_NAMESIZE );
 		for( nameIndex=0 ; nameIndex<FAT_NAMESIZE ; nameIndex++ )
 		{
-			if( dir[dirIndex].name[nameIndex] == 0x20 )
+			if( dir[dirIndex].name[nameIndex] == FAT_PADBYTE )
 				break;
 			entry[entryIndex].name[nameIndex] = tolower( dir[dirIndex].name[nameIndex] );
 		}
 		// and the extension if their is one
-		if( dir[dirIndex].extention[0] != 0x20 )
+		if( dir[dirIndex].extention[0] != FAT_PADBYTE )
 		{
 			entry[entryIndex].name[nameIndex++] = '.';
 			for( extIndex=0 ; extIndex<FAT_EXTENSIONSIZE ; extIndex++ )
-				entry[entryIndex].name[nameIndex+extIndex] = ( dir[dirIndex].extention[extIndex] == 0x20 ? 0x00 : tolower(dir[dirIndex].extention[extIndex]) );
+				entry[entryIndex].name[nameIndex+extIndex] = ( dir[dirIndex].extention[extIndex] == FAT_PADBYTE ? 0x00 : tolower(dir[dirIndex].extention[extIndex]) );
 		}
 		// fill in the attributes
 		if( dir[dirIndex].attribute.directory )

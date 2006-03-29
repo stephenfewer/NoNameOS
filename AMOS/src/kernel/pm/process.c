@@ -41,8 +41,6 @@ int process_destroy( struct PROCESS_INFO * process )
 {
 	int i;
 	// should we kill a processes children?
-	
-	kernel_printf("destroying process %d... \n", process->id );
 	// close any open handles
 	for( i=0 ; i<PROCESS_MAXHANDLES ; i++ )
 	{

@@ -20,6 +20,7 @@ all: $(TARGET)
 	$(MCOPY) $(KERNEL_ELF) $(IMAGE_DRIVE)\amos
 	$(MCOPY) .\apps\test.bin $(IMAGE_DRIVE)\amos
 	$(MCOPY) .\apps\shell.bin $(IMAGE_DRIVE)\amos
+	$(MCOPY) .\apps\init.bin $(IMAGE_DRIVE)\amos
 	$(MCOPY) .\a.txt $(IMAGE_DRIVE)\amos
 
 $(TARGET):

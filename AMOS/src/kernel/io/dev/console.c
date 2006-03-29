@@ -455,11 +455,6 @@ int console_write( struct IO_HANDLE * handle, BYTE * buffer, DWORD size )
 	return i;
 }
 
-int console_seek( struct IO_HANDLE * handle, DWORD offset, BYTE origin )
-{
-	return 0;
-}
-
 int console_putchBuffer( int number, BYTE byte )
 {
 	struct CONSOLE_BUFFER * buffer;
@@ -533,7 +528,7 @@ int console_init( void )
 	calltable->clone   = console_clone;
 	calltable->read    = console_read;
 	calltable->write   = console_write;
-	calltable->seek    = console_seek;
+	calltable->seek    = NULL;
 	calltable->control = console_control;
 	// init the buffer lock
 	mutex_init( &console_bufferLock );

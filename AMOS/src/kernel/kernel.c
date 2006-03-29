@@ -133,19 +133,12 @@ void kernel_main( struct MULTIBOOT_INFO * m )
 	kernel_init( m );
 
 	// mount the primary file system
-	kernel_printf( "Mounting primary file system. " );
 	if( vfs_mount( "/device/floppy1", "/", FAT_TYPE ) == FAIL )
 		kernel_panic( NULL, "Kernel failed to mount primary file system." );
-	kernel_printf( "Done.\n" );	
 
-	kernel_printf( "\nWelcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
+	// spawn the user init process
+	process_spawn( &kernel_process, "/amos/init.bin", "/device/console0" );
 	
-	// spawn a user shell on each virtual console
-	process_spawn( &kernel_process, "/amos/shell.bin", "/device/console1" );
-	process_spawn( &kernel_process, "/amos/shell.bin", "/device/console2" );
-	process_spawn( &kernel_process, "/amos/shell.bin", "/device/console3" );
-	process_spawn( &kernel_process, "/amos/shell.bin", "/device/console4" );
-
 	// enter an idle state, the kernel is now our idle process if theirs nothing to do
 	kernel_idle();
 	

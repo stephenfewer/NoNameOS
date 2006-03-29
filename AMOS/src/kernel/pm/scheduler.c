@@ -83,7 +83,8 @@ int scheduler_setProcess( int id, int state, int ticks )
 void scheduler_printProcessTable( void )
 {
 	struct PROCESS_INFO * process;
-	kernel_printf("\nScheduler Process Table:\n");
+	kernel_printf("\n");
+	kernel_printf("Scheduler Process Table:\n");
 	mutex_lock( &scheduler_processTable.lock );
 	for(  process=scheduler_processTable.head ; process!=NULL ; process=process->prev )
 	{
@@ -124,7 +125,6 @@ int scheduler_removeProcesss( struct PROCESS_INFO * process )
 	// we cant remove the kernel
 	if( process->id == KERNEL_PID )
 		return FAIL;
-	kernel_printf("remove process %d... \n", process->id );
 	// remove the process from the schedulers process table
 	if( process == scheduler_processTable.head )
 	{

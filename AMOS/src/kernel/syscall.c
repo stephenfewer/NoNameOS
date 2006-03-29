@@ -183,6 +183,16 @@ int syscall_delete( struct PROCESS_INFO * process, char * filename )
 	return vfs_delete( filename );
 }
 
+int syscall_mount( struct PROCESS_INFO * process, char * device, char * mountpoint, int fstype )
+{
+	return vfs_mount( device, mountpoint, fstype );
+}
+
+int syscall_unmount( struct PROCESS_INFO * process, char * mountpoint )
+{
+	return vfs_unmount( mountpoint );
+}
+
 struct PROCESS_INFO * syscall_handler( struct PROCESS_INFO * process )
 {
 	struct PROCESS_STACK kstack;
@@ -254,8 +264,8 @@ int syscall_init( void )
 	syscall_add( SYSCALL_SEEK,     syscall_seek,       3 );
 	syscall_add( SYSCALL_CONTROL,  syscall_control,    3 );	
 	// file system operations
-	/*syscall_add( SYSCALL_MOUNT,    vfs_mount,          3 );
-	syscall_add( SYSCALL_UNMOUNT,  vfs_unmount,        1 );*/
+	syscall_add( SYSCALL_MOUNT,    syscall_mount,      3 );
+	syscall_add( SYSCALL_UNMOUNT,  syscall_unmount,    1 );
 	syscall_add( SYSCALL_CREATE,   syscall_create,     1 );
 	syscall_add( SYSCALL_DELETE,   syscall_delete,     1 );
 	syscall_add( SYSCALL_RENAME,   syscall_rename,     2 );

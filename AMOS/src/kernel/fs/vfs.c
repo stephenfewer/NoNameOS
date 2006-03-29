@@ -13,6 +13,7 @@
 
 #include <kernel/fs/vfs.h>
 #include <kernel/fs/fat.h>
+#include <kernel/fs/dfs.h>
 #include <kernel/mm/mm.h>
 #include <kernel/pm/process.h>
 #include <lib/string.h>
@@ -207,9 +208,7 @@ struct VFS_HANDLE * vfs_open( char * filename, int mode )
 				name_ptr = (char *)&name;
 				strcpy( name_ptr, filename );
 				name_ptr = (char *)( name_ptr + strlen(mount->mountpoint) );
-				
-				kernel_printf( "[vfs_open] VFS_MODE_CREATE -> create %s\n", name_ptr );
-				
+
 				if( mount->fs->calltable.create( mount, name_ptr ) != FAIL )
 				{
 					if( mount->fs->calltable.open( handle, name_ptr ) != NULL )

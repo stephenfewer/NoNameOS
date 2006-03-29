@@ -77,13 +77,19 @@ void kprintf_puthex( struct VFS_HANDLE * h, DWORD i )
 
 void kprintf( struct VFS_HANDLE * h, char * text, va_list args )
 {
-	int i=0;
+	int i=0, print_header=TRUE;
 	BYTE * string;
 
 	// sanity check
 	if( h == NULL )
 		return;
 
+	if( strlen( text ) <= 1 )
+		print_header = FALSE;
+
+	if( print_header )
+		vfs_write( h, (BYTE *)"[KERNEL] ", 9 );
+		
 	while( text[i] )
 	{
 		if( text[i] == '%' )
@@ -97,7 +103,7 @@ void kprintf( struct VFS_HANDLE * h, char * text, va_list args )
 					vfs_write( h, string, strlen( (char *)string ) );
 					break;
 				case 'c':
-					// To-Do: fix this!
+					// To-Do: fix this! "warning: cast to pointer from integer of different size"
 					vfs_write( h, (BYTE*)(va_arg( args, BYTE )), 1 );
 					break;
 				case 'd':

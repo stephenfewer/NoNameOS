@@ -9,78 +9,77 @@ Linker script and memory map
                 0x00000000                phys = 0x0
                 0x10000000                virt = 0x10000000
 
-.text           0x10000000     0x3800 load address 0x00000000
+.text           0x10000000     0x39d0 load address 0x00000000
  *(.text)
- .text          0x10000000      0xbe0 main.o
+ .text          0x10000000      0xd90 main.o
                 0x100000b2                _tinysh_char_out
-                0x10000afb                _shell_init
                 0x10000021                _atoi
-                0x10000a7b                _shell_args
-                0x10000b83                _realmain
+                0x10000c1d                _shell_args
+                0x10000ca9                _realmain
                 0x10000000                _main
-                0x10000a47                _shell_exit
- .text          0x10000be0      0xea0 tinysh.o
-                0x100019e4                _tinysh_atoxi
-                0x10000d90                _strstart
-                0x1000198e                _tinysh_set_prompt
-                0x10001948                _tinysh_add_command
-                0x1000192f                _tinysh_char_in
-                0x100019da                _tinysh_get_arg
- .text          0x10001a80      0x2b0 ../../lib/amos.o
-                0x10001c85                _morecore
-                0x10001ce2                _sleep
-                0x10001c39                _mount
-                0x10001cab                _spawn
-                0x10001a80                _open
-                0x10001ab7                _clone
-                0x10001c07                _list
-                0x10001bd8                _copy
-                0x10001b8f                _delete
-                0x10001b35                _seek
-                0x10001d08                _wait
-                0x10001cee                _wake
-                0x10001ba9                _rename
-                0x10001b75                _create
-                0x10001c6b                _unmount
-                0x10001b55                _control
-                0x10001b03                _write
-                0x10001cc8                _kill
-                0x10001ad1                _read
-                0x10001c9f                _exit
-                0x10001a9d                _close
- .text          0x10001d30      0x430 ../../lib/printf.o
-                0x100020d7                _get
-                0x10001d30                _printf_putuint
-                0x10001e54                _printf_puthex
-                0x10001dfa                _printf_putint
-                0x100020ba                _getch
-                0x10001efc                _print
-                0x100020a1                _printf
- .text          0x10002160      0x230 ../../lib/string.o
-                0x100021a2                _strcmp
-                0x100022c7                _toupper
-                0x1000222c                _strncpy
-                0x10002318                _memcpy
-                0x100022f1                _memset
-                0x100022dc                _tolower
-                0x10002214                _strcpy
-                0x1000233e                _memcmp
-                0x100021c2                _strncmp
-                0x10002179                _strrchr
-                0x10002160                _strlen
-                0x1000226d                _strstr
-                0x10002390                . = ALIGN (0x10)
+                0x10000be6                _shell_exit
+ .text          0x10000d90      0xea0 tinysh.o
+                0x10001b94                _tinysh_atoxi
+                0x10000f40                _strstart
+                0x10001b3e                _tinysh_set_prompt
+                0x10001af8                _tinysh_add_command
+                0x10001adf                _tinysh_char_in
+                0x10001b8a                _tinysh_get_arg
+ .text          0x10001c30      0x2b0 ../../lib/amos.o
+                0x10001e35                _morecore
+                0x10001e92                _sleep
+                0x10001de9                _mount
+                0x10001e5b                _spawn
+                0x10001c30                _open
+                0x10001c67                _clone
+                0x10001db7                _list
+                0x10001d88                _copy
+                0x10001d3f                _delete
+                0x10001ce5                _seek
+                0x10001eb8                _wait
+                0x10001e9e                _wake
+                0x10001d59                _rename
+                0x10001d25                _create
+                0x10001e1b                _unmount
+                0x10001d05                _control
+                0x10001cb3                _write
+                0x10001e78                _kill
+                0x10001c81                _read
+                0x10001e4f                _exit
+                0x10001c4d                _close
+ .text          0x10001ee0      0x430 ../../lib/printf.o
+                0x10002287                _get
+                0x10001ee0                _printf_putuint
+                0x10002004                _printf_puthex
+                0x10001faa                _printf_putint
+                0x1000226a                _getch
+                0x100020ac                _print
+                0x10002251                _printf
+ .text          0x10002310      0x230 ../../lib/string.o
+                0x10002352                _strcmp
+                0x10002477                _toupper
+                0x100023dc                _strncpy
+                0x100024c8                _memcpy
+                0x100024a1                _memset
+                0x1000248c                _tolower
+                0x100023c4                _strcpy
+                0x100024ee                _memcmp
+                0x10002372                _strncmp
+                0x10002329                _strrchr
+                0x10002310                _strlen
+                0x1000241d                _strstr
+                0x10002540                . = ALIGN (0x10)
  *(.data)
- .data          0x10002390      0x140 main.o
- .data          0x100024d0       0xa0 tinysh.o
-                0x10002570                . = ALIGN (0x10)
-                0x10002570                bss = .
+ .data          0x10002540      0x160 main.o
+ .data          0x100026a0       0xa0 tinysh.o
+                0x10002740                . = ALIGN (0x10)
+                0x10002740                bss = .
  *(.bss)
- .bss           0x10002570       0x10 main.o
- .bss           0x10002580     0x1280 tinysh.o
-                0x10003800                . = ALIGN (0x10)
+ .bss           0x10002740       0x10 main.o
+ .bss           0x10002750     0x1280 tinysh.o
+                0x100039d0                . = ALIGN (0x10)
  *(COMMON)
-                0x10003800                . = ALIGN (0x10)
+                0x100039d0                . = ALIGN (0x10)
 LOAD main.o
 LOAD tinysh.o
 LOAD ../../lib/amos.o

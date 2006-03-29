@@ -2,7 +2,6 @@
 #define _KERNEL_IO_FS_FAT_H_
 
 #include <sys/types.h>
-#include <kernel/io/io.h>
 
 #define FAT_TYPE				1
 
@@ -23,6 +22,8 @@
 #define FAT_RESERVERCLUSTER		0x0FFFFFF8
 
 #define FAT_ENTRY_DELETED		0xE5
+
+#define FAT_PADBYTE				0x20
 
 #define FAT_12					12
 #define FAT_16					16
@@ -86,16 +87,16 @@ struct FAT_BOOTSECTOR
 
 struct FAT_DOSTIME
 {
-	unsigned int twosecs:5;   /* low 5 bits: 2-second increments */
-	unsigned int minutes:6;   /* middle 6 bits: minutes */
-	unsigned int hours:5;     /* high 5 bits: hours (0-23) */
+	unsigned int twosecs:5;   // 2-second increments
+	unsigned int minutes:6;   // minutes
+	unsigned int hours:5;     // hours (0-23)
 } PACKED;
 
 struct FAT_DOSDATE
 {
-	unsigned int date:5;      /* low 5 bits: date (1-31) */
-	unsigned int month:4;     /* middle 4 bits: month (1-12) */
-	unsigned int year:7;      /* high 7 bits: year - 1980 */
+	unsigned int date:5;      // date (1-31)
+	unsigned int month:4;     // month (1-12)
+	unsigned int year:7;      // year - 1980
 } PACKED;  
 
 struct FAT_ATTRIBUTE
@@ -111,6 +112,7 @@ struct FAT_ATTRIBUTE
 
 #define FAT_NAMESIZE		8
 #define FAT_EXTENSIONSIZE	3
+
 struct FAT_ENTRY
 {
 	BYTE name[FAT_NAMESIZE];
@@ -143,8 +145,6 @@ struct FAT_FILE
 	int dir_index;
 	int current_pos;
 };
-
-typedef int (*processEntry)( struct FAT_MOUNTPOINT *, struct FAT_ENTRY *, int, char *, char *, int );
 
 int fat_init( void );
 

@@ -3,27 +3,23 @@
 #include <lib/string.h>
 #include <apps/shell/tinysh.h>
 
+#define SHELL_TITLE		"Shell Version 1.0"
+
 static volatile int shell_canquit = FALSE;
 
-//static volatile char * shell_pworkingdir;
-//char shell_workingdir[PROMPT_SIZE];
-
 void tinysh_char_out( unsigned char c );
-//static void display_args(int argc, char **argv);
 static void shell_quit( int argc, char **argv );
 static void shell_create( int argc, char **argv );
 static void shell_delete( int argc, char **argv );
 static void shell_rename( int argc, char **argv );
 static void shell_copy( int argc, char **argv );
 static void shell_list( int argc, char **argv );
-//static void shell_cd( int argc, char **argv );
 //static void shell_mount( int argc, char **argv );
 //static void shell_unmount( int argc, char **argv );
 static void shell_spawn( int argc, char **argv );
 static void shell_kill( int argc, char **argv );
 void shell_exit( void );
 void shell_args( int argc, char **argv );
-void shell_init( int argc, char **argv );
 int realmain(  int argc, char **argv );
 
 int main( void )
@@ -56,18 +52,8 @@ int atoi( const char * s )
 
 void tinysh_char_out( unsigned char c )
 {
-//	printf( "%c", c );
 	write( CONSOLE, &c, 1 );
 }
-/*
-static void display_args(int argc, char **argv)
-{
-  int i;
-  for(i=0;i<argc;i++)
-    {
-      printf("argv[%d]=\"%s\"\n",i,argv[i]);
-    }
-}*/
 
 static void shell_quit( int argc, char **argv )
 {
@@ -84,11 +70,11 @@ static void shell_create( int argc, char **argv )
 {
 	if( argc < 2 )
 	{
-		printf("create: You must enter a file to create.\n");
+		printf("create: You must enter a file or directory to create.\n");
 		return;
 	}
 	if( create( argv[1] ) == FAIL )
-		printf("create: Failed to create file %s.\n", argv[1] );
+		printf("create: Failed to create %s.\n", argv[1] );
 }
 
 static void shell_delete( int argc, char **argv )
@@ -200,39 +186,37 @@ static void shell_dump( int argc, char **argv )
 	printf( "\n" );
 }
 /*
-static void shell_cd( int argc, char **argv )
-{
-display_args(argc,argv);
-}
-
 static void shell_mount( int argc, char **argv )
 {
-display_args(argc,argv);
+
 }
 
 static void shell_unmount( int argc, char **argv )
 {
-display_args(argc,argv);
+
 }
 */
 static void shell_spawn( int argc, char **argv )
 {
 	int shellwait = TRUE;
-	int pid;
+	int pid, i;
 	
 	if( argc < 2 )
 	{
-		printf("spawn: you must enter an executable filename to spawn.\n");
+		printf("spawn: You must enter an executable filename to spawn.\n");
 		return;
 	}
-	
-	//if( strcmp( argv[argc-1], "&" ) == SUCCESS )
-	//	shellwait = FALSE;
 
-	pid = spawn( argv[1], NULL );
+	for( i=0 ; i<argc ; i++ )
+	{
+		if( strcmp( argv[i], "-b" ) == 0 )
+			shellwait = FALSE;
+	}
+	
+	pid = spawn( argv[argc-1], NULL );
 	if( pid == FAIL )
 	{
-		printf("spawn: Failed to spawn process: %s.\n", argv[1] );
+		printf("spawn: Failed to spawn process: %s.\n", argv[argc-1] );
 	}
 	else
 	{
@@ -244,29 +228,30 @@ static void shell_spawn( int argc, char **argv )
 
 static void shell_kill( int argc, char **argv )
 {
-	int id = 0;
+	int pid = 0;
 
 	if( argc < 2 )
 	{
 		printf("kill: you must enter a process id to kill.\n");
 		return;
 	}
-	//unlucky for some
-	id = atoi( argv[1] );
-	if( id == 0 )
+	// unlucky for some
+	pid = atoi( argv[1] );
+	if( pid == 0 )
 	{
 		printf("kill: you must enter a valid process id.\n");
 		return;
 	}
 	
-	if( kill( id ) == FAIL )
-		printf("kill: Failed to kill process %d.\n", id );
+	if( kill( pid ) == FAIL )
+		printf("kill: Failed to kill process %d.\n", pid );
 }
 
 static void shell_write( int argc, char **argv )
 {
 	int handle, i, byteswrite;
 	char buffer[BUFFER_SIZE];
+	int append=FALSE;
 	
 	if( argc < 2 )
 	{
@@ -274,21 +259,29 @@ static void shell_write( int argc, char **argv )
 		return;
 	}
 	
-	handle = open( argv[1], MODE_READWRITE | MODE_CREATE );
+	for( i=0 ; i<argc ; i++ )
+	{
+		if( strcmp( argv[i], "-a" ) == 0 )
+			append = TRUE;
+	}
+	
+	handle = open( argv[argc-1], MODE_READWRITE | MODE_CREATE );
 	if( handle == FAIL )
 	{
-		printf("write: Failed to open file %s\n", argv[1] );
+		printf("write: Failed to open file %s\n", argv[argc-1] );
 		return;
 	}
 
-	i = seek( handle, 0, SEEK_END );
-	if( i <= FAIL )
+	if( append )
 	{
-		printf("write: Failed to file seek to end.\n" );
-		close( handle );
-		return;
+		if( seek( handle, 0, SEEK_END ) <= FAIL )
+		{
+			printf("write: Failed to file seek to end.\n" );
+			close( handle );
+			return;
+		}
 	}
-
+	
 	for(i=0;i<BUFFER_SIZE;i++)
 		buffer[i] = 'S';
 		
@@ -303,22 +296,19 @@ static void shell_write( int argc, char **argv )
 	close( handle );
 }
 
-// create a directory
-// delete a directory
-static tinysh_cmd_t clearcmd   = { 0, "clear",    "clear the console",       0, shell_clear,    0, 0, 0 };
-static tinysh_cmd_t quitcmd    = { 0, "quit",    "exit the shell",       0, shell_quit,    0, 0, 0 };
-static tinysh_cmd_t createcmd  = { 0, "create",  "create a file",    "[file]", shell_create,  0, 0, 0 };
-static tinysh_cmd_t deletecmd  = { 0, "delete",  "delete a file",    "[file]", shell_delete,  0, 0, 0 };
-static tinysh_cmd_t renamecmd  = { 0, "rename",  "rename a file",    "[source file] [destination file]", shell_rename,  0, 0, 0 };
-static tinysh_cmd_t copycmd    = { 0, "copy",    "copy a file",      "[source file] [destination file]", shell_copy,    0, 0, 0 };
-static tinysh_cmd_t listcmd    = { 0, "list",    "list directory contents", "<directory>", shell_list,    0, 0, 0 };
-static tinysh_cmd_t dumpcmd    = { 0, "dump",    "dump a files contents to standard output",   "[file]", shell_dump,    0, 0, 0 };
-//static tinysh_cmd_t cdcmd      = { 0, "cd",      "change working directory", "[directory]", shell_cd,    0, 0, 0 };
-//static tinysh_cmd_t mountcmd   = { 0, "mount",   "mount a volume",   "[device] [mountpoint] [file system]", shell_mount,   0, 0, 0 };
+static tinysh_cmd_t clearcmd   = { 0, "clear",  "clear the console", 0, shell_clear, 0, 0, 0 };
+static tinysh_cmd_t quitcmd    = { 0, "quit",   "exit the shell", 0, shell_quit, 0, 0, 0 };
+static tinysh_cmd_t createcmd  = { 0, "create", "create a file or directory", "[name]", shell_create, 0, 0, 0 };
+static tinysh_cmd_t deletecmd  = { 0, "delete", "delete a file", "[file]", shell_delete, 0, 0, 0 };
+static tinysh_cmd_t renamecmd  = { 0, "rename", "rename a file", "[source file] [destination file]", shell_rename, 0, 0, 0 };
+static tinysh_cmd_t copycmd    = { 0, "copy",   "copy a file", "[source file] [destination file]", shell_copy, 0, 0, 0 };
+static tinysh_cmd_t listcmd    = { 0, "list",   "list directory contents", "<directory>", shell_list, 0, 0, 0 };
+static tinysh_cmd_t dumpcmd    = { 0, "dump",   "dump a files contents to standard output", "[file]", shell_dump, 0, 0, 0 };
+//static tinysh_cmd_t mountcmd   = { 0, "mount",  "mount a volume",   "[device] [mountpoint] [file system]", shell_mount, 0, 0, 0 };
 //static tinysh_cmd_t unmountcmd = { 0, "unmount", "unmount a volume", "[mountpoint]", shell_unmount, 0, 0, 0 };
-static tinysh_cmd_t spawncmd   = { 0, "spawn",   "spawn a process",  "[executable]", shell_spawn,   0, 0, 0 };
-static tinysh_cmd_t killcmd    = { 0, "kill",    "kill a process",   "[process id]", shell_kill,    0, 0, 0 };
-static tinysh_cmd_t writecmd   = { 0, "write",    "write fat test",   "", shell_write,    0, 0, 0 };
+static tinysh_cmd_t spawncmd   = { 0, "spawn",  "spawn a process (-b background process)",  "-b [executable]", shell_spawn, 0, 0, 0 };
+static tinysh_cmd_t killcmd    = { 0, "kill",   "kill a process",   "[process id]", shell_kill, 0, 0, 0 };
+static tinysh_cmd_t writecmd   = { 0, "write",  "write fat test (-a append file)", "-a [file]", shell_write, 0, 0, 0 };
 
 void shell_exit( void )
 {
@@ -338,17 +328,14 @@ void shell_args( int argc, char **argv )
 			shell_exit();
 		} else if( strcmp( argv[i], "-v" ) == 0 )
 		{
-			printf("Shell Version 1.0\n");
+			printf("%s\n", SHELL_TITLE );
 			shell_exit();
 		}
 	}
 }
 
-void shell_init( int argc, char **argv )
+int realmain( int argc, char **argv )
 {
-	//char * p;
-	
-	// add the default commands
 	tinysh_add_command( &clearcmd );
 	tinysh_add_command( &quitcmd );    
 	tinysh_add_command( &createcmd );
@@ -357,37 +344,18 @@ void shell_init( int argc, char **argv )
 	tinysh_add_command( &copycmd );
 	tinysh_add_command( &listcmd );
 	tinysh_add_command( &dumpcmd );
-	//tinysh_add_command( &cdcmd );
 	//tinysh_add_command( &mountcmd );
 	//tinysh_add_command( &unmountcmd );
 	tinysh_add_command( &spawncmd );
 	tinysh_add_command( &killcmd );
 	tinysh_add_command( &writecmd );
-	/*
-	if( argc > 0 )
-	{
-		// set the default working directory
-		// chomp off the end file name
-		//p = strrchr( argv[0], '/' );
-		//if( p != NULL )
-		//	*p = '\0';
-		//strcpy( shell_workingdir, argv[0] );
-		//shell_pworkingdir = &shell_workingdir;
-		
-		// process the arguments
-		if( argc > 1 )
-			shell_args( argc, argv );
-	}*/
-}
- 
-int realmain( int argc, char **argv )
-{
-	shell_init( argc, argv );
+
+	printf("%s\n", SHELL_TITLE );
 
 	tinysh_set_prompt( "AMOS:>" );
 	
 	while( !shell_canquit )
 		tinysh_char_in( getch() );
 
-	return 0;
+	return SUCCESS;
 }

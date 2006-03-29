@@ -1,0 +1,74 @@
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+                0x00000000                phys = 0x0
+                0x10000000                virt = 0x10000000
+
+.text           0x10000000      0xa30 load address 0x00000000
+ *(.text)
+ .text          0x10000000      0x120 init.o
+                0x100000b6                _realmain
+                0x10000000                _main
+ .text          0x10000120      0x2b0 ../../lib/amos.o
+                0x10000325                _morecore
+                0x10000382                _sleep
+                0x100002d9                _mount
+                0x1000034b                _spawn
+                0x10000120                _open
+                0x10000157                _clone
+                0x100002a7                _list
+                0x10000278                _copy
+                0x1000022f                _delete
+                0x100001d5                _seek
+                0x100003a8                _wait
+                0x1000038e                _wake
+                0x10000249                _rename
+                0x10000215                _create
+                0x1000030b                _unmount
+                0x100001f5                _control
+                0x100001a3                _write
+                0x10000368                _kill
+                0x10000171                _read
+                0x1000033f                _exit
+                0x1000013d                _close
+ .text          0x100003d0      0x430 ../../lib/printf.o
+                0x10000777                _get
+                0x100003d0                _printf_putuint
+                0x100004f4                _printf_puthex
+                0x1000049a                _printf_putint
+                0x1000075a                _getch
+                0x1000059c                _print
+                0x10000741                _printf
+ .text          0x10000800      0x230 ../../lib/string.o
+                0x10000842                _strcmp
+                0x10000967                _toupper
+                0x100008cc                _strncpy
+                0x100009b8                _memcpy
+                0x10000991                _memset
+                0x1000097c                _tolower
+                0x100008b4                _strcpy
+                0x100009de                _memcmp
+                0x10000862                _strncmp
+                0x10000819                _strrchr
+                0x10000800                _strlen
+                0x1000090d                _strstr
+                0x10000a30                . = ALIGN (0x10)
+ *(.data)
+                0x10000a30                . = ALIGN (0x10)
+                0x10000a30                bss = .
+ *(.bss)
+                0x10000a30                . = ALIGN (0x10)
+ *(COMMON)
+                0x10000a30                . = ALIGN (0x10)
+LOAD init.o
+LOAD ../../lib/amos.o
+LOAD ../../lib/printf.o
+LOAD ../../lib/string.o
+OUTPUT(../../../bin/apps/init.bin binary)
+
+.comment
