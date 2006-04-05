@@ -1,6 +1,6 @@
 MAKEFILE=Makefile
 
-TARGET_BIN=shell.bin
+TARGET_BIN=hanoi.bin
 
 TARGET_DIR=../../../bin/apps/
 
@@ -12,10 +12,10 @@ CC=gcc
 LD=ld
 RM=del
 
-LDFLAGS=-T ../apps.ld -s -nostdlib -Map $(TARGET_DIR)shell.map
+LDFLAGS=-T ../apps.ld -s -nostdlib -Map $(TARGET_DIR)hanoi.map
 CCFLAGS=-Wall -O -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
 
-OBJ=main.o tinysh.o
+OBJ=hanoi.o
 	
 all: $(TARGET_BIN)
 

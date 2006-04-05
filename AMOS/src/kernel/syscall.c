@@ -18,7 +18,7 @@
 #include <kernel/fs/vfs.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <lib/string.h>
+#include <lib/libc/string.h>
 
 struct SYSCALL syscall_table[SYSCALL_MAXCALLS];
 

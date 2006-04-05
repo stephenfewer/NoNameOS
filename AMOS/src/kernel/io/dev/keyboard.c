@@ -21,12 +21,12 @@
 
 struct VFS_HANDLE * keyboard_output;
 
-BYTE keyboard_shift;
-BYTE keyboard_caps;
-BYTE keyboard_num;
-BYTE keyboard_scroll;
+static BYTE keyboard_shift;
+static BYTE keyboard_caps;
+static BYTE keyboard_num;
+static BYTE keyboard_scroll;
 
-BYTE keyboard_upperMap[256] =
+static const BYTE keyboard_upperMap[256] =
 {
       0,  27, '!', '"',  '€',  '$', '%', '^',  '&', '*', '(', ')', '_', '+', '\b', '\t', 'Q', 'W',  'E', 'R',
 	'T', 'Y', 'U', 'I',  'O',  'P', '{', '}', '\n',   0, 'A', 'S', 'D', 'F',  'G',  'H', 'J', 'K',  'L', ':',
@@ -43,7 +43,7 @@ BYTE keyboard_upperMap[256] =
       0,   0,   0,   0,   0,     0,   0,   0,    0,   0,   0,   0,   0,   0,   0,     0
 };
 
-BYTE keyboard_lowerMap[256] =
+static const BYTE keyboard_lowerMap[256] =
 {
       0,  27, '1', '2',  '3',  '4', '5', '6',  '7', '8', '9', '0', '-', '=', '\b', '\t', 'q', 'w',  'e', 'r',
    	't', 'y', 'u', 'i',  'o',  'p', '[', ']', '\n',   0, 'a', 's', 'd', 'f',  'g',  'h', 'j', 'k',  'l', ';',
@@ -186,11 +186,11 @@ int keyboard_init( void )
 	keyboard_scroll = FALSE;
 	//keyboard_setLED( 0 );
 	
-	keyboard_output = vfs_open( "/device/console0", VFS_MODE_WRITE );
+	keyboard_output = vfs_open( "/amos/device/console0", VFS_MODE_WRITE );
 	if( keyboard_output == NULL )
 		return FAIL;
 	// setup the keyboard handler
-	interrupt_enable( IRQ1, keyboard_handler, SUPERVISOR );
+	interrupt_enable( IRQ1, keyboard_handler, KERNEL );
 	// add the keyboard device
 	io_add( "keyboard1", calltable, IO_CHAR );
 	// return success

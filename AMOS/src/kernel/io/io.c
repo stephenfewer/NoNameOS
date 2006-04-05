@@ -112,16 +112,20 @@ int io_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 int io_init( void )
 {
 	// init the console driver
-	console_init();
+	if( console_init() == FAIL )
+		return FAIL;
 
 	// init the keyboard driver
-	keyboard_init();
+	if( keyboard_init() == FAIL )
+		return FAIL;
 
 	// init the floppy driver
-	floppy_init();
+	if( floppy_init() == FAIL )
+		return FAIL;
 
 	// init the bit bucket driver
-	bitbucket_init();
+	if( bitbucket_init() == FAIL )
+		return FAIL;
 	
 	return SUCCESS;
 }

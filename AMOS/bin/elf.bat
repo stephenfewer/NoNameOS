@@ -1,1 +1,1 @@
-objdump-elf -d .\bin\kernel\kernel.elf > .\bin\kernel\kernel.txt
+objdump-elf -d .\kernel\kernel.elf > .\kernel\kernel.txt

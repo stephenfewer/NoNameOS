@@ -14,7 +14,7 @@
 #include <kernel/kprintf.h>
 #include <kernel/fs/vfs.h>
 #include <kernel/io/dev/console.h>
-#include <lib/string.h>
+#include <lib/libc/string.h>
 
 void kprintf_putuint( struct VFS_HANDLE * h, int i )
 {
@@ -81,7 +81,7 @@ void kprintf( struct VFS_HANDLE * h, char * text, va_list args )
 	BYTE * string;
 
 	// sanity check
-	if( h == NULL )
+	if( h == NULL || text == NULL )
 		return;
 
 	if( strlen( text ) <= 1 )
@@ -89,7 +89,7 @@ void kprintf( struct VFS_HANDLE * h, char * text, va_list args )
 
 	if( print_header )
 		vfs_write( h, (BYTE *)"[KERNEL] ", 9 );
-		
+
 	while( text[i] )
 	{
 		if( text[i] == '%' )

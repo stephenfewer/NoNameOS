@@ -21,60 +21,36 @@
  */
 
 #include <apps/shell/tinysh.h>
-//#include <sys/types.h>
+#include <lib/libc/stdio.h>
+#include <lib/libc/string.h>
+#include <lib/libc/stdlib.h>
 
-typedef unsigned char uchar;
-/* redefine some useful and maybe missing utilities to avoid conflicts */
-#define strlen tinysh_strlen
-#define puts tinysh_puts
-#define putchar tinysh_char_out
+static void help_fnt( int argc, char **argv );
 
-static void help_fnt(int argc, char **argv);
+static tinysh_cmd_t help_cmd={ 0, "help", "display help", "<cr>", help_fnt, 0, 0, 0 };
 
-static tinysh_cmd_t help_cmd={ 
-  0,"help","display help","<cr>",help_fnt,0,0,0 };
-
-static uchar input_buffers[HISTORY_DEPTH][BUFFER_SIZE+1]={0};
-static uchar trash_buffer[BUFFER_SIZE+1]={0};
+static char input_buffers[HISTORY_DEPTH][BUFFER_SIZE+1]={0};
+static char trash_buffer[BUFFER_SIZE+1]={0};
 static int cur_buf_index=0;
-static uchar context_buffer[BUFFER_SIZE+1]={0};
+static char context_buffer[BUFFER_SIZE+1]={0};
 static int cur_context=0;
 static int cur_index=0;
 static int echo=1;
-static char prompt[PROMPT_SIZE+1]="$ ";
-static tinysh_cmd_t *root_cmd=&help_cmd;
-static tinysh_cmd_t *cur_cmd_ctx=0;
-static void *tinysh_arg=0;
+static char prompt[PROMPT_SIZE+1]="> ";
+static tinysh_cmd_t * root_cmd=&help_cmd;
+static tinysh_cmd_t * cur_cmd_ctx=0;
+static void * tinysh_arg=0;
 
-/* few useful utilities that may be missing */
-
-static int strlen(uchar *s)
-{
-  int i;
-  for(i=0;*s;s++,i++);
-  return i;
-}
-
-static void puts(char *s)
-{
-  while(*s)
-    putchar(*s++);
-}
-
-/* callback for help function
- */
-static void help_fnt(int argc, char **argv)
+// callback for help function
+static void help_fnt( int argc, char **argv )
 {
   puts("?            display help on given or available commands\n");
   puts("<TAB>        auto-completion\n");
-  puts("<cr>         execute command line\n");
+  puts("<RETURN>     execute command line\n");
   puts("<UP>         recall previous input line\n");
   puts("<DOWN>       recall next input line\n");
   puts("<any>        treat as input character\n");
 }
-
-/*
- */
 
 enum { NULLMATCH,FULLMATCH,PARTMATCH,UNMATCH,MATCH,AMBIG };
 
@@ -84,7 +60,7 @@ enum { NULLMATCH,FULLMATCH,PARTMATCH,UNMATCH,MATCH,AMBIG };
  * but there are remaining chars in s1, UNMATCH if s1 does not start with
  * s2
  */
-int strstart(uchar *s1, uchar *s2)
+int strstart(char *s1, char *s2)
 {
   while(*s1 && *s1==*s2) { s1++; s2++; }
 
@@ -104,9 +80,9 @@ int strstart(uchar *s1, uchar *s2)
  * _cmd: point to first command at this level, return matched cmd
  * _str: point to current unprocessed input, return next unprocessed
  */
-static int parse_command(tinysh_cmd_t **_cmd, uchar **_str)
+static int parse_command(tinysh_cmd_t **_cmd, char **_str)
 {
-  uchar *str=*_str;
+  char *str=*_str;
   tinysh_cmd_t *cmd;
   //int matched_len=0;
   tinysh_cmd_t *matched_cmd=0;
@@ -122,7 +98,7 @@ static int parse_command(tinysh_cmd_t **_cmd, uchar **_str)
   /* first pass: count matches */
   for(cmd=*_cmd;cmd;cmd=cmd->next)
     {
-      int ret=strstart((uchar *)cmd->name,str);
+      int ret=strstart((char *)cmd->name,str);
 
       if(ret==FULLMATCH)
         {
@@ -161,9 +137,8 @@ static int parse_command(tinysh_cmd_t **_cmd, uchar **_str)
     return UNMATCH;
 }
 
-/* create a context from current input line
- */
-static void do_context(tinysh_cmd_t *cmd, uchar *str)
+// create a context from current input line
+static void do_context(tinysh_cmd_t *cmd, char *str)
 {
   while(*str) 
     context_buffer[cur_context++]=*str++;
@@ -171,10 +146,8 @@ static void do_context(tinysh_cmd_t *cmd, uchar *str)
   cur_cmd_ctx=cmd;
 }
 
-/* execute the given command by calling callback with appropriate 
- * arguments
- */
-static void exec_command(tinysh_cmd_t *cmd, uchar *str)
+// execute the given command by calling callback with appropriate arguments
+static void exec_command(tinysh_cmd_t *cmd, char *str)
 {
   char *argv[MAX_ARGS];
   int argc=0;
@@ -184,7 +157,7 @@ static void exec_command(tinysh_cmd_t *cmd, uchar *str)
   for(i=0;i<BUFFER_SIZE;i++)
     trash_buffer[i]=str[i];
   str=trash_buffer;
-  
+
 /* cut into arguments */
   argv[argc++]=cmd->name;
   while(*str && argc<MAX_ARGS)
@@ -207,11 +180,11 @@ static void exec_command(tinysh_cmd_t *cmd, uchar *str)
 
 /* try to execute the current command line
  */
-static int exec_command_line(tinysh_cmd_t *cmd, uchar *_str)
+static int exec_command_line(tinysh_cmd_t *cmd, char *_str)
 {
-  uchar *str=_str;
+  char *str=_str;
 
-  while(1)
+  while(TRUE)
     {
       int ret;
       ret=parse_command(&cmd,&str);
@@ -286,11 +259,11 @@ static void display_child_help(tinysh_cmd_t *cmd)
 
 /* try to display help for current comand line
  */
-static int help_command_line(tinysh_cmd_t *cmd, uchar *_str)
+static int help_command_line(tinysh_cmd_t *cmd, char *_str)
 {
-  uchar *str=_str;
+  char *str=_str;
 
-  while(1)
+  while(TRUE)
     {
       int ret;
       ret=parse_command(&cmd,&str);
@@ -348,19 +321,18 @@ static int help_command_line(tinysh_cmd_t *cmd, uchar *_str)
     }
 }
 
-/* try to complete current command line
- */
-static int complete_command_line(tinysh_cmd_t *cmd, uchar *_str)
+// try to complete current command line
+static int complete_command_line(tinysh_cmd_t *cmd, char *_str)
 {
-  uchar *str=_str;
+  char *str=_str;
 
-  while(1)
+  while( TRUE )
     {
       int ret;
       int common_len=BUFFER_SIZE;
       int _str_len;
       int i;
-      uchar *__str=str;
+      char *__str=str;
 
      // tinysh_cmd_t *_cmd=cmd;
       ret=parse_command(&cmd,&str);
@@ -453,36 +425,34 @@ static int complete_command_line(tinysh_cmd_t *cmd, uchar *_str)
     }
 }
 
-/* start a new line 
- */
+// start a new line 
 static void start_of_line()
 {
-  /* display start of new line */
-  puts(prompt);
-  if(cur_context)
+	// display start of new line
+	puts( prompt );
+	if( cur_context )
     {
-      puts(context_buffer);
-      puts("> ");
+    	puts( context_buffer );
+    	puts( "> " );
     }
-  cur_index=0;
+    cur_index = 0;
 }
 
-/* character input 
- */
-static void _tinysh_char_in(uchar c)
+// character input 
+void tinysh_char_in( char c )
 {
-  uchar *line=input_buffers[cur_buf_index];
+  char * line=input_buffers[cur_buf_index];
 
-  if(c=='\n' || c=='\r') /* validate command */
+  if(c=='\n' || c=='\r') // validate command
     {
       tinysh_cmd_t *cmd;
       
-/* first, echo the newline */
+// first, echo the newline
       if(echo)
         putchar(c);
 
       while(*line && *line==' ') line++;
-      if(*line) /* not empty line */
+      if(*line) // not empty line
         {
           cmd=cur_cmd_ctx?cur_cmd_ctx->child:root_cmd;
           exec_command_line(cmd,line);
@@ -492,7 +462,7 @@ static void _tinysh_char_in(uchar c)
         }
       start_of_line();
     }
-  else if(c==TOPCHAR) /* return to top level */
+  else if(c==TOPCHAR) // return to top level
     {
       if(echo)
         putchar(c);
@@ -500,7 +470,7 @@ static void _tinysh_char_in(uchar c)
       cur_context=0;
       cur_cmd_ctx=0;
     }
-  else if(c==8 || c==127) /* backspace */
+  else if(c==8 || c==127) // backspace
     {
       if(cur_index>0)
         {
@@ -509,14 +479,14 @@ static void _tinysh_char_in(uchar c)
           line[cur_index]=0;
         }
     }
-  else if(c==16) /* CTRL-P: back in history */
+  else if(c==16) // CTRL-P: back in history
     {
       int prevline=(cur_buf_index+HISTORY_DEPTH-1)%HISTORY_DEPTH;
 
       if(input_buffers[prevline][0])
         {
           line=input_buffers[prevline];
-          /* fill the rest of the line with spaces */
+          // fill the rest of the line with spaces
           while(cur_index-->strlen(line))
             puts("\b \b");
           putchar('\r');
@@ -526,14 +496,14 @@ static void _tinysh_char_in(uchar c)
           cur_buf_index=prevline;
         }
     }
-  else if(c==14) /* CTRL-N: next in history */
+  else if(c==14) // CTRL-N: next in history
     {
       int nextline=(cur_buf_index+1)%HISTORY_DEPTH;
 
       if(input_buffers[nextline][0])
         {
           line=input_buffers[nextline];
-          /* fill the rest of the line with spaces */
+          // fill the rest of the line with spaces
           while(cur_index-->strlen(line))
             puts("\b \b");
           putchar('\r');
@@ -543,7 +513,7 @@ static void _tinysh_char_in(uchar c)
           cur_buf_index=nextline;
         }
     }
-  else if(c=='?') /* display help */
+  else if(c=='?') // display help
     {
       tinysh_cmd_t *cmd;
       cmd=cur_cmd_ctx?cur_cmd_ctx->child:root_cmd;
@@ -552,7 +522,7 @@ static void _tinysh_char_in(uchar c)
       puts(line);
       cur_index=strlen(line);
     }
-  else if(c==9 || c=='!') /* TAB: autocompletion */
+  else if(c==9 || c=='!') // TAB: autocompletion
     {
       tinysh_cmd_t *cmd;
       cmd=cur_cmd_ctx?cur_cmd_ctx->child:root_cmd;
@@ -563,7 +533,7 @@ static void _tinysh_char_in(uchar c)
         }
       cur_index=strlen(line);
     }      
-  else /* any input character */
+  else // any input character
     {
       if(cur_index<BUFFER_SIZE)
         {
@@ -575,16 +545,7 @@ static void _tinysh_char_in(uchar c)
     }
 }
 
-/* new character input */
-void tinysh_char_in(uchar c)
-{
-  /*
-   * filter characters here
-   */
-  _tinysh_char_in(c);
-}
-
-/* add a new command */
+// add a new command
 void tinysh_add_command(tinysh_cmd_t *cmd)
 {
   tinysh_cmd_t *cm;
@@ -598,7 +559,8 @@ void tinysh_add_command(tinysh_cmd_t *cmd)
         }
       else
         {
-          while(cm->next) cm=cm->next;
+          while(cm->next)
+          	cm=cm->next;
           cm->next=cmd;
         }
     }
@@ -614,28 +576,26 @@ void tinysh_add_command(tinysh_cmd_t *cmd)
     }
 }
 
-/* modify shell prompt
- */
-void tinysh_set_prompt(char *str)
+// modify shell prompt
+void tinysh_set_prompt( char * str )
 {
   int i;
   for(i=0;str[i] && i<PROMPT_SIZE;i++)
     prompt[i]=str[i];
   prompt[i]=0;
-  /* force prompt display by generating empty command */
-  tinysh_char_in('\r');
+  // force prompt display by generating empty command
+  tinysh_char_in( '\r' );
 }
 
-/* return current command argument
- */
-void *tinysh_get_arg()
+// return current command argument
+void * tinysh_get_arg()
 {
   return tinysh_arg;
 }
 
-/* string to decimal/hexadecimal conversion
- */
-unsigned long tinysh_atoxi(char *s)
+// string to decimal/hexadecimal conversion
+
+unsigned long tinysh_atoxi( char * s )
 {
   int ishex=0;
   unsigned long res=0;

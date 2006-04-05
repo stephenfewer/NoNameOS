@@ -11,7 +11,7 @@
  *    License: GNU General Public License (GPL)
  */
 
-// DOS has NUL:, Amiga OS has NIL:, Unix has /dev/null, we have /device/bitbucket
+// DOS has NUL:, Amiga OS has NIL:, Unix has /dev/null, we have /amos/device/bitbucket
 
 #include <kernel/io/dev/bitbucket.h>
 #include <kernel/io/io.h>

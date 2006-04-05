@@ -19,7 +19,7 @@
 #include <kernel/mm/mm.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <lib/string.h>
+#include <lib/libc/string.h>
 
 extern struct PROCESS_INFO kernel_process;
 
@@ -98,7 +98,7 @@ void scheduler_printProcessTable( void )
 			case TERMINATED: state="Terminated"; break;
 			default: state="???"; break;
 		}
-		kernel_printf("\tPID %d (%s) is %s, ticks: %d\n", process->id, (process->privilege==USER?"User":"Kernel"), state, process->tick_slice );
+		kernel_printf("\t%d %s (%s) is %s, ticks: %d\n", process->id, process->name,  (process->privilege==USER?"User":"Kernel"), state, process->tick_slice );
 	}
 	mutex_unlock( &scheduler_processTable.lock );
 }
@@ -281,7 +281,7 @@ int scheduler_init( void )
 	// set the high interval for timer 0
 	outportb( INTERRUPT_PIT_TIMER_0, interval >> 8 );
 	// enable the scheduler handler
-	interrupt_enable( SCHEDULER_INTERRUPT, scheduler_handler, SUPERVISOR );
+	interrupt_enable( SCHEDULER_INTERRUPT, scheduler_handler, KERNEL );
 	// return with pre emptive scheduling now active
 	return SUCCESS;
 }

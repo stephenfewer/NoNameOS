@@ -20,7 +20,7 @@
 #include <kernel/pm/scheduler.h>
 #include <kernel/pm/process.h>
 #include <kernel/pm/sync/mutex.h>
-#include <lib/string.h>
+#include <lib/libc/string.h>
 
 // our currently active console will point to one of the four virtual consoles below
 struct CONSOLE ** console0 = NULL;
@@ -102,7 +102,7 @@ void console_putChar( struct CONSOLE * console, int x, int y, BYTE c )
     
     if( console->data->active == TRUE )
     {
-    	BYTE * mem = (BYTE *)KERNEL_VGA_VADDRESS;
+    	BYTE * mem = KERNEL_VGA_VADDRESS;
     	mem[ index ] = c;
     	mem[ index + 1 ] = console->data->attributes;
     }
@@ -110,7 +110,7 @@ void console_putChar( struct CONSOLE * console, int x, int y, BYTE c )
 
 void console_beep( struct CONSOLE * console )
 {
-
+	// ..."beep"!
 }
 
 BYTE console_getChar( struct CONSOLE * console, int x, int y )
@@ -244,7 +244,7 @@ int console_activate( DWORD number )
 	// set the one we are changeing to as active
 	console->data->active = TRUE;
 	// copy in the new contents
-	memcpy( (BYTE *)KERNEL_VGA_VADDRESS, console->data->mem, CONSOLE_COLUMNS*CONSOLE_ROWS*2 );
+	memcpy( KERNEL_VGA_VADDRESS, console->data->mem, CONSOLE_COLUMNS*CONSOLE_ROWS*2 );
 	// update the cursor to the correct new position
 	console_setCursor( console, console->data->x, console->data->y );
 	// set the currenty active virtual console to the one we just changed to
@@ -474,7 +474,10 @@ int console_putchBuffer( int number, BYTE byte )
 				}
 			}
 			if( buffer->in_buffIndex < buffer->in_buffSize )
-				buffer->in_kbuff[ buffer->in_buffIndex++ ] = byte;				
+			{
+				if( buffer->in_kbuff != NULL )
+					buffer->in_kbuff[ buffer->in_buffIndex++ ] = byte;
+			}
 		}
 	}
 	

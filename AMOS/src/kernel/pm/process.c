@@ -20,9 +20,8 @@
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/fs/vfs.h>
-#include <kernel/pm/elf.h>
 #include <kernel/pm/scheduler.h>
-#include <lib/string.h>
+#include <lib/libc/string.h>
 
 static int process_uniqueid = 0;
 
@@ -94,9 +93,6 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 	{
 		// allocate a page for the process's user stack
 		physicalAddress = physical_pageAlloc();
-		// TO-DO: exit gracefully
-		if( physicalAddress == NULL )
-			kernel_panic( NULL, "No physical memory for process creation." );
 		//  map in the stack to the process's address space
 		paging_map( process, PROCESS_USER_STACK_VADDRESS+(i*PAGE_SIZE), physicalAddress, TRUE );
 	}
@@ -107,8 +103,6 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 		void * linearAddress = (void *)((DWORD)PROCESS_USER_CODE_VADDRESS+(i*PAGE_SIZE));
 		// alloc a physical page for the new process's code
 		physicalAddress = physical_pageAlloc();
-		if( physicalAddress == NULL )
-			kernel_panic( NULL, "No physical memory for process creation." );
 		// copy the next page of code into the physical page allocated for it
 		mm_pmemcpyto( physicalAddress, entrypoint+(i*PAGE_SIZE), PAGE_SIZE );
 		// map the code page into the new process's address space
@@ -148,8 +142,8 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 	struct PROCESS_INFO * process;
 	struct VFS_HANDLE   * handle;
 	BYTE * buffer;
+	char * name;
 	int size;
-
 	// if we dont specify a console we clone the parent process's console handle
 	if( console_path == NULL )
 		console = vfs_clone( parent->handles[PROCESS_CONSOLEHANDLE] );
@@ -165,14 +159,13 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 		vfs_close( console );
 		return FAIL;
 	}
-		
-	// determine what type: elf/coff/flat/...
+	// TO-DO: determine what type: elf/coff/flat/...
 
+	// get the file size
 	size = vfs_seek( handle, 0, VFS_SEEK_END );
-
 	// alloc a page extra for safety, will fix this up later
 	buffer = (BYTE *)mm_kmalloc( size + PAGE_SIZE );
-	
+	// seek back to the start and read in all the images contents
 	vfs_seek( handle, 0, VFS_SEEK_START );
 	if( vfs_read( handle, buffer, size ) == FAIL )
 	{
@@ -181,9 +174,7 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 		mm_kfree( buffer );
 		return FAIL;
 	}
-	//if( (i=elf_load( handle )) < 0 )
-	//	kernel_printf("Failed to load ELF [%d]: %s\n", i, filename );
-
+	// create a process from this binary image
 	process = process_create( parent, (void *)buffer, size );
 	if( process == NULL )
 	{
@@ -192,17 +183,23 @@ int process_spawn( struct PROCESS_INFO * parent, char * filename, char * console
 		mm_kfree( buffer );
 		return FAIL;
 	}
-	
 	// close the process images handle
 	vfs_close( handle );
-
-	mm_kfree( buffer );	
-	
+	// free the images data buffer
+	mm_kfree( buffer );
+	// set the process's file name
+	name = strrchr( filename, '/' );
+	if( name != NULL )
+	{
+		int len = strlen( ++name );
+		if( len >= VFS_NAMESIZE )
+			len = VFS_NAMESIZE-1;
+		strncpy( (char *)&process->name, name, len );
+	}
+	// set the process's console handle
 	process->handles[PROCESS_CONSOLEHANDLE] = console;
-	
 	// add the process to the scheduler
 	scheduler_addProcess( process );
-
 	// return success
 	return process->id;
 }

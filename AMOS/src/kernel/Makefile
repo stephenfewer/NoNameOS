@@ -6,7 +6,7 @@ TARGET_DIR=../../bin/kernel/
 
 INCLUDE_DIR=../../include/
 
-AMOS_LIB=../lib/
+AMOS_LIBC=./../../bin/lib/libc.a
 
 MM=mm
 PM=pm
@@ -24,7 +24,7 @@ ASFLAGS=-f elf
 LDFLAGS=-T kernel.ld -Map $(TARGET_DIR)kernel.map -nostdlib
 CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
 
-OBJ=loader.o isr.o kernel.o interrupt.o syscall.o kprintf.o
+OBJ=loader.o isr.o kernel.o interrupt.o syscall.o kprintf.o debug.o
 	
 all: $(TARGET_ELF)
 
@@ -33,7 +33,7 @@ $(TARGET_ELF): $(OBJ)
 	$(MAKE) -C $(MM)
 	$(MAKE) -C $(PM)
 	$(MAKE) -C $(IO)
-	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_ELF) $(AMOS_LIB)*.o $(OBJ) ./$(MM)/*.o ./$(PM)/*.o ./$(PM)/$(SYNC)/*.o ./$(IO)/*.o ./$(IO)/$(DEV)/*.o ./$(FS)/*.o
+	$(LD) $(LDFLAGS) -o $(TARGET_DIR)$(TARGET_ELF) $(OBJ) ./$(MM)/*.o ./$(PM)/*.o ./$(PM)/$(SYNC)/*.o ./$(IO)/*.o ./$(IO)/$(DEV)/*.o ./$(FS)/*.o $(AMOS_LIBC)
 	
 %.o: %.c
 	$(CC) $(CCFLAGS) -c -o $@ $<

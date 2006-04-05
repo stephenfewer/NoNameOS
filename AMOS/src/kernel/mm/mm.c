@@ -19,16 +19,16 @@
 #include <kernel/pm/sync/mutex.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
-#include <lib/string.h>
+#include <lib/libc/string.h>
 
 extern struct PROCESS_INFO kernel_process;
 
 struct MUTEX mm_kmallocLock;
 
-int mm_init( DWORD memUpper )
+int mm_init( struct MULTIBOOT_INFO * m )
 {	
 	// setup the physical memory manager, after this we can use physical_pageAlloc()
-	physical_init( memUpper );
+	physical_init( m );
 	
 	// setup and initilise segmentation
 	segmentation_init();
@@ -41,7 +41,7 @@ int mm_init( DWORD memUpper )
 	kernel_process.heap.heap_top    = NULL;
 	kernel_process.heap.heap_bottom = NULL;
 	
-	// inti the lock that the kernel mm_kmalloc/mm_kfree will use
+	// init the lock that the kernel mm_kmalloc/mm_kfree will use
 	// we cant use mutex_create() as it need mm_kmalloc()
 	mutex_init( &mm_kmallocLock );
 	
@@ -89,9 +89,6 @@ void * mm_morecore( struct PROCESS_INFO * process, DWORD size )
 	{
 		// alloc a physical page in mamory
 		void * physicalAddress = physical_pageAlloc();
-		// return NULL if we are are out of physical memory
-		if( physicalAddress == NULL )
-			return NULL;
 		// map it onto the end of the processes heap
 		paging_map( process, process->heap.heap_top, physicalAddress, TRUE );
 		// clear it for safety, relativly expensive operation

@@ -25,6 +25,9 @@ BYTE dma_addressport[8] = { 0x00, 0x02, 0x04, 0x06, 0xC0, 0xC4, 0xC8, 0xCC };
 // the count port for the amount of data
 BYTE dma_countport[8]   = { 0x01, 0x03, 0x05, 0x07, 0xC2, 0xC6, 0xCA, 0xCE };
 
+// memory used by 8bit DMA (channels 0-3) may not cross a 64K boundary
+// memory used by 16bit DMA (channels 4-7) may not cross a 128K boundary
+
 void dma_transfer( BYTE channel, void * address, DWORD length, struct MODE mode )
 {
 	BYTE page;

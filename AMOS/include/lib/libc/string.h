@@ -1,5 +1,5 @@
-#ifndef _LIB_STRING_H_
-#define _LIB_STRING_H_
+#ifndef _LIB_LIBC_STRING_H_
+#define _LIB_LIBC_STRING_H_
 
 #include <sys/types.h>
 
@@ -16,10 +16,6 @@ char * strcpy( char *, char * );
 char * strncpy( char *, char *, int );
 
 char *strstr( char *, char * );
-
-inline int toupper( int );
-
-int tolower( int );
 
 void * memset( void *, BYTE, int );
 

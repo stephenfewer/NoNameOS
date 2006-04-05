@@ -19,7 +19,7 @@
 #include <kernel/mm/dma.h>
 #include <kernel/interrupt.h>
 #include <kernel/pm/process.h>
-#include <lib/string.h>
+#include <lib/libc/string.h>
 
 struct FLOPPY_DRIVE * floppy1 = NULL;
 struct FLOPPY_DRIVE * floppy2 = NULL;
@@ -451,7 +451,7 @@ int floppy_init( void )
 		io_add( floppy2->name, calltable, IO_BLOCK );
 	}
     // setup the floppy handler
-	interrupt_enable( IRQ6, floppy_handler, SUPERVISOR );
+	interrupt_enable( IRQ6, floppy_handler, KERNEL );
 	// return success
 	return SUCCESS;
 }

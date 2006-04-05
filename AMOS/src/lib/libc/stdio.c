@@ -11,8 +11,8 @@
  *    License: GNU General Public License (GPL)
  */
 
-#include <lib/printf.h>
-#include <lib/string.h>
+#include <lib/libc/stdio.h>
+#include <lib/libc/string.h>
 #include <lib/amos.h>
 
 #define CONSOLE_SETACTIVE		1
@@ -101,7 +101,7 @@ void print( int h, char * text, va_list args )
 					write( h, string, strlen( (char *)string ) );
 					break;
 				case 'c':
-					// To-Do: fix this!
+					// To-Do: fix this! "warning: cast to pointer from integer of different size"
 					write( h, (BYTE*)(va_arg( args, BYTE )), 1 );
 					break;
 				case 'd':
@@ -165,4 +165,15 @@ int get( char * buffer, int size )
 		buffer[size] = 0x00;
 	// return the amount of bytes we read in
 	return size;
+}
+
+void putchar( char c )
+{
+	write( CONSOLE, (BYTE *)&c, sizeof( char ) );
+}
+
+void puts( char * buffer )
+{
+	while( *buffer )
+		putchar( *buffer++ );
 }

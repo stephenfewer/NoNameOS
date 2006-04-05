@@ -13,8 +13,8 @@
 #define PROCESS_TICKS_CURRENT			-1
 #define PROCESS_TICKS_NONE				0
 #define PROCESS_TICKS_LOW				1
-#define PROCESS_TICKS_NORMAL			10
-#define PROCESS_TICKS_HIGH				30
+#define PROCESS_TICKS_NORMAL			5
+#define PROCESS_TICKS_HIGH				15
 
 #define PROCESS_USER_CODE_VADDRESS		(void *)0x10000000
 #define PROCESS_USER_STACK_VADDRESS		(void *)0x20000000
@@ -73,6 +73,7 @@ struct PROCESS_INFO
 	int parent_id;
 	int tick_slice;
 	int state;
+	char name[VFS_NAMESIZE];
 	struct VFS_HANDLE * handles[PROCESS_MAXHANDLES];
 	struct PROCESS_HEAP heap;
 	

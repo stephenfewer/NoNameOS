@@ -16,7 +16,7 @@
 #include <kernel/mm/segmentation.h>
 #include <kernel/mm/paging.h>
 #include <kernel/pm/scheduler.h>
-#include <lib/string.h>
+#include <lib/libc/string.h>
 
 struct INTERRUPT_TABLE_ENTRY interrupt_table[INTERRUPT_TABLE_ENTRYS];
 
@@ -194,7 +194,7 @@ int interrupt_disable( int index )
 			stub = disable_intB;
 		else
 			stub = disable_intA;
-		interrupt_setTableEntry( index, stub, SUPERVISOR, TRUE );
+		interrupt_setTableEntry( index, stub, KERNEL, TRUE );
 		// return success
 		return SUCCESS;
 	}
@@ -218,7 +218,7 @@ int interrupt_init( void )
 	}
 	// enable the first 32 interrupts but dont set a handler
 	for( index=INT0 ; index<=INT31 ; index++ )
-		interrupt_enable( index, NULL, SUPERVISOR );
+		interrupt_enable( index, NULL, KERNEL );
 	// remap the Programable Interrupt Controller
 	interrupt_remapPIC();
 	// load the interrupt descriptor table (interrupt_ptable pointer to a linear address of the interrupt_table)

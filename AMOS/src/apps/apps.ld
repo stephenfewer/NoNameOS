@@ -7,13 +7,12 @@ SECTIONS
   .text virt : AT( phys )
   {
     *(.text)
-    . = ALIGN(16);
+    . = ALIGN(4);
     *(.data)
-    . = ALIGN(16);
-  	bss = .;
-  	*(.bss)
-    . = ALIGN(16);
+    . = ALIGN(4);
     *(COMMON)
-    . = ALIGN(16);
+    . = ALIGN(4);
+  	*(.bss)
+    . = ALIGN(4);
   }
 }

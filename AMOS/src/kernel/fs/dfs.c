@@ -15,7 +15,7 @@
 #include <kernel/fs/vfs.h>
 #include <kernel/mm/mm.h>
 #include <kernel/io/io.h>
-#include <lib/string.h>
+#include <lib/libc/string.h>
 
 struct DFS_ENTRY * dfs_deviceHead = NULL;
 
@@ -193,10 +193,18 @@ struct VFS_DIRLIST_ENTRY * dfs_list( struct VFS_MOUNTPOINT * mount, char * dir )
 	if( i == 0 )
 		return NULL;
 	// create the array of entry structures
-	entry = (struct VFS_DIRLIST_ENTRY *)mm_kmalloc( (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1 );
+	entry = (struct VFS_DIRLIST_ENTRY *)mm_kmalloc( (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1+2 );
 	// clear it
-	memset( entry, 0x00, (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1 );
-	for( device=dfs_deviceHead, i=0 ; device!=NULL ; device=device->prev, i++ )
+	memset( entry, 0x00, (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1+2 );
+	// create the default dot and dotdot entries
+	strncpy( entry[0].name, ".", 1 );
+	entry[0].attributes = VFS_DIRECTORY;
+	entry[0].size = 0;
+	strncpy( entry[1].name, "..", 2 );
+	entry[1].attributes = VFS_DIRECTORY;
+	entry[1].size = 0;
+	// add each device in
+	for( device=dfs_deviceHead, i=2 ; device!=NULL ; device=device->prev, i++ )
 	{
 		// fill in the name
 		strncpy( entry[i].name, device->name, VFS_NAMESIZE );

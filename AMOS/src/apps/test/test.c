@@ -1,6 +1,20 @@
+/*
+ *     AAA    M M    OOO    SSSS
+ *    A   A  M M M  O   O  S 
+ *    AAAAA  M M M  O   O   SSS
+ *    A   A  M   M  O   O      S
+ *    A   A  M   M   OOO   SSSS 
+ *
+ *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
+ *    License: GNU General Public License (GPL)
+ */
+
 #include <lib/amos.h>
-#include <lib/printf.h>
-#include <lib/string.h>
+#include <lib/libc/stdio.h>
+#include <lib/libc/string.h>
+#include <lib/libc/stdlib.h>
 
 int realmain( int, char ** );
 
@@ -12,26 +26,6 @@ int main( void )
 	
 	return 0;
 }
-
-int atoi( const char * s )
-{
-	long int v=0;
-	int sign=1;
-	
-	while( *s == ' '  ||  (unsigned int)(*s - 9) < 5u ) s++;
-	
-	switch( *s )
-	{
-		case '-': sign=-1;
-		case '+': ++s;
-	}
-	while( (unsigned int) (*s - '0') < 10u )
-	{
-		v=v*10+*s-'0'; ++s;
-	}
-	return sign==-1?-v:v;
-}
-
 
 int stackoverflow( void )
 {

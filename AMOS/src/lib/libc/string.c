@@ -11,9 +11,9 @@
  *    License: GNU General Public License (GPL)
  */
 
+#include <lib/libc/string.h>
+
 // these functions are from the linux-2.0.40 kernel libc (GNU GPL).
- 
-#include <lib/string.h>
 
 int strlen( char * srs )
 {
@@ -94,20 +94,6 @@ char * strstr( char *s1, char *s2 )
 		s1++;
 	}
 	return NULL;
-}
-
-inline int toupper( int ch )
-{
-	if( (unsigned int)(ch - 'a') < 26u )
-		ch += 'A' - 'a';
-	return ch;
-}
-
-int tolower( int ch )
-{
-	if( (unsigned int)(ch - 'A') < 26u )
-		ch += 'a' - 'A';
-	return ch;
 }
 
 void * memset( void * dest, BYTE val, int count )

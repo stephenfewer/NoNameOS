@@ -16,7 +16,7 @@
 #include <kernel/fs/dfs.h>
 #include <kernel/mm/mm.h>
 #include <kernel/pm/process.h>
-#include <lib/string.h>
+#include <lib/libc/string.h>
 
 struct VFS_FILESYSTEM * vfs_fsHead = NULL;
 
@@ -464,7 +464,7 @@ int vfs_init( void )
 	// initilize Device File System driver
 	dfs_init();
 	// mount the DFS
-	vfs_mount( NULL, "/device/", DFS_TYPE );
+	vfs_mount( NULL, "/amos/device/", DFS_TYPE );
 
 	// initilize FAT File System driver
 	fat_init();

@@ -3,6 +3,7 @@
 
 #include <sys/types.h>
 #include <kernel/pm/process.h>
+#include <kernel/multiboot.h>
 
 struct MM_HEAPITEM
 {
@@ -12,7 +13,7 @@ struct MM_HEAPITEM
 	//unsigned int available:7;
 } PACKED;
 
-int mm_init( DWORD );
+int mm_init( struct MULTIBOOT_INFO * );
 
 void mm_pmemcpyto( void *, void *, int );
 

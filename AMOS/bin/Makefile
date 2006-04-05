@@ -2,10 +2,6 @@ MAKEFILE=Makefile
 
 TARGET=amos.ima
 
-KERNEL_ELF=.\kernel\kernel.elf
-KERNEL_TXT=.\kernel\kernel.txt
-KERNEL_MAP=.\kernel\kernel.map
-
 IMAGE=grub.ima
 IMAGE_DRIVE=a:
 IMAGE_MENU=menu.cfg
@@ -17,20 +13,22 @@ RM=del
 OBJDUMP=objdump-elf
 
 all: $(TARGET)
-	$(MCOPY) $(KERNEL_ELF) $(IMAGE_DRIVE)\amos
-	$(MCOPY) .\apps\test.bin $(IMAGE_DRIVE)\amos
-	$(MCOPY) .\apps\shell.bin $(IMAGE_DRIVE)\amos
+	$(MCOPY) .\kernel\kernel.elf $(IMAGE_DRIVE)\amos
 	$(MCOPY) .\apps\init.bin $(IMAGE_DRIVE)\amos
-	$(MCOPY) .\a.txt $(IMAGE_DRIVE)\amos
+	$(MCOPY) .\apps\shell.bin $(IMAGE_DRIVE)\amos
+	$(MCOPY) .\apps\test.bin $(IMAGE_DRIVE)\amos
+	$(MCOPY) .\apps\hanoi.bin $(IMAGE_DRIVE)\amos
+	$(MCOPY) .\lib\libc.a $(IMAGE_DRIVE)\amos\lib
 
 $(TARGET):
 	$(COPY) .\$(IMAGE) .\$(TARGET)
 	$(MCOPY) .\$(IMAGE_MENU) $(IMAGE_DRIVE)\boot
 	$(MMD) $(IMAGE_DRIVE)\amos
+	$(MMD) $(IMAGE_DRIVE)\amos\lib
 
 clean:
 	$(RM) $(TARGET)
-	$(RM) $(KERNEL_ELF)
-	$(RM) $(KERNEL_TXT)
-	$(RM) $(KERNEL_MAP)
-
+	$(RM) .\kernel\kernel.*
+	$(RM) .\apps\*.bin
+	$(RM) .\apps\*.map
+	$(RM) .\lib\*.a

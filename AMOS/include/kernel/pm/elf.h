@@ -78,6 +78,4 @@ struct ELF_SECTION_HDR_TABLE
     DWORD sht_shndx;
 };
 
-int elf_load( struct VFS_HANDLE * );
-
 #endif

@@ -13,7 +13,7 @@
 #define V2P( address ) (void *)( (DWORD)address - 0xC0001000 + 0x00101000 )
 
 // see page 3-26
-#define SUPERVISOR	0x00
+#define KERNEL		0x00	// called SUPERVISOR in the manual
 #define USER		0x01
 
 #define RING0		0

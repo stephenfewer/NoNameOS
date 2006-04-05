@@ -1,13 +1,24 @@
-#include <lib/amos.h>
-#include <lib/printf.h>
-#include <lib/string.h>
+/*
+ *     AAA    M M    OOO    SSSS
+ *    A   A  M M M  O   O  S 
+ *    AAAAA  M M M  O   O   SSS
+ *    A   A  M   M  O   O      S
+ *    A   A  M   M   OOO   SSSS 
+ *
+ *    Author:  Stephen Fewer
+ *    Contact: steve [AT] harmonysecurity [DOT] com
+ *    Web:     http://amos.harmonysecurity.com/
+ *    License: GNU General Public License (GPL)
+ */
+
 #include <apps/shell/tinysh.h>
+#include <lib/amos.h>
+#include <lib/libc/stdio.h>
+#include <lib/libc/string.h>
+#include <lib/libc/stdlib.h>
 
 #define SHELL_TITLE		"Shell Version 1.0"
 
-static volatile int shell_canquit = FALSE;
-
-void tinysh_char_out( unsigned char c );
 static void shell_quit( int argc, char **argv );
 static void shell_create( int argc, char **argv );
 static void shell_delete( int argc, char **argv );
@@ -18,8 +29,7 @@ static void shell_list( int argc, char **argv );
 //static void shell_unmount( int argc, char **argv );
 static void shell_spawn( int argc, char **argv );
 static void shell_kill( int argc, char **argv );
-void shell_exit( void );
-void shell_args( int argc, char **argv );
+
 int realmain(  int argc, char **argv );
 
 int main( void )
@@ -31,34 +41,10 @@ int main( void )
 	return 0;
 }
 
-int atoi( const char * s )
-{
-	long int v=0;
-	int sign=1;
-	
-	while( *s == ' '  ||  (unsigned int)(*s - 9) < 5u ) s++;
-	
-	switch( *s )
-	{
-		case '-': sign=-1;
-		case '+': ++s;
-	}
-	while( (unsigned int) (*s - '0') < 10u )
-	{
-		v=v*10+*s-'0'; ++s;
-	}
-	return sign==-1?-v:v;
-}
-
-void tinysh_char_out( unsigned char c )
-{
-	write( CONSOLE, &c, 1 );
-}
-
 static void shell_quit( int argc, char **argv )
 {
 	printf( "quit: quitting...\n" );
-	shell_canquit = TRUE;
+	exit();
 }
 
 static void shell_clear( int argc, char **argv )
@@ -141,7 +127,7 @@ static void shell_list( int argc, char **argv )
 static void shell_dump( int argc, char **argv )
 {
 	int handle, size, bytesread;
-	char buffer[BUFFER_SIZE];
+	char * buffer;
 	
 	if( argc < 2 )
 	{
@@ -171,10 +157,18 @@ static void shell_dump( int argc, char **argv )
 		return;		
 	}
 	
+	buffer = (char *)malloc( BUFFER_SIZE );
+	if( buffer == NULL )
+	{
+		printf("dump: Failed to malloc buffer.\n" );
+		close( handle );
+		return;		
+	}
+	
 	while( size>0 )
 	{
-		memset( (void *)&buffer, 0x00, BUFFER_SIZE );
-		bytesread = read( handle, (BYTE *)&buffer, BUFFER_SIZE );
+		memset( buffer, 0x00, BUFFER_SIZE );
+		bytesread = read( handle, (BYTE *)buffer, BUFFER_SIZE );
 		if( bytesread == FAIL )
 			break;
 		size -= bytesread;
@@ -182,6 +176,8 @@ static void shell_dump( int argc, char **argv )
 	}
 	
 	close( handle );
+	
+	free( buffer );
 	
 	printf( "\n" );
 }
@@ -199,7 +195,7 @@ static void shell_unmount( int argc, char **argv )
 static void shell_spawn( int argc, char **argv )
 {
 	int shellwait = TRUE;
-	int pid, i;
+	int pid, i, instances=1;
 	
 	if( argc < 2 )
 	{
@@ -211,18 +207,23 @@ static void shell_spawn( int argc, char **argv )
 	{
 		if( strcmp( argv[i], "-b" ) == 0 )
 			shellwait = FALSE;
+		if( strcmp( argv[i], "-i" ) == 0 && argc >= i+1 )
+			instances = atoi( argv[i+1] );
 	}
 	
-	pid = spawn( argv[argc-1], NULL );
-	if( pid == FAIL )
+	while( instances-- )
 	{
-		printf("spawn: Failed to spawn process: %s.\n", argv[argc-1] );
-	}
-	else
-	{
-		printf("spawn: Spawned process %d\n", pid );
-		if( shellwait )
-			wait( pid );
+		pid = spawn( argv[argc-1], NULL );
+		if( pid == FAIL )
+		{
+			printf("spawn: Failed to spawn process: %s.\n", argv[argc-1] );
+		}
+		else
+		{
+			printf("spawn: Spawned process %d\n", pid );
+			if( shellwait )
+				wait( pid );
+		}
 	}
 }
 
@@ -250,7 +251,7 @@ static void shell_kill( int argc, char **argv )
 static void shell_write( int argc, char **argv )
 {
 	int handle, i, byteswrite;
-	char buffer[BUFFER_SIZE];
+	char * buffer;
 	int append=FALSE;
 	
 	if( argc < 2 )
@@ -282,18 +283,29 @@ static void shell_write( int argc, char **argv )
 		}
 	}
 	
+	buffer = (char *)malloc( BUFFER_SIZE );
+	if( buffer == NULL )
+	{
+		printf("write: Failed to malloc buffer.\n" );
+		close( handle );
+		return;		
+	}
+	
 	for(i=0;i<BUFFER_SIZE;i++)
 		buffer[i] = 'S';
 		
-	byteswrite = write( handle, (BYTE *)&buffer, BUFFER_SIZE );
+	byteswrite = write( handle, (BYTE *)buffer, BUFFER_SIZE );
 	if( byteswrite == FAIL )
 	{
 		printf("write: Failed to write.\n" );
 		close( handle );
+		free( buffer );
 		return;
 	}
 
 	close( handle );
+	
+	free( buffer );
 }
 
 static tinysh_cmd_t clearcmd   = { 0, "clear",  "clear the console", 0, shell_clear, 0, 0, 0 };
@@ -306,7 +318,7 @@ static tinysh_cmd_t listcmd    = { 0, "list",   "list directory contents", "<dir
 static tinysh_cmd_t dumpcmd    = { 0, "dump",   "dump a files contents to standard output", "[file]", shell_dump, 0, 0, 0 };
 //static tinysh_cmd_t mountcmd   = { 0, "mount",  "mount a volume",   "[device] [mountpoint] [file system]", shell_mount, 0, 0, 0 };
 //static tinysh_cmd_t unmountcmd = { 0, "unmount", "unmount a volume", "[mountpoint]", shell_unmount, 0, 0, 0 };
-static tinysh_cmd_t spawncmd   = { 0, "spawn",  "spawn a process (-b background process)",  "-b [executable]", shell_spawn, 0, 0, 0 };
+static tinysh_cmd_t spawncmd   = { 0, "spawn",  "spawn a process (-b background process, -i instances)",  "-b -i 1 [executable]", shell_spawn, 0, 0, 0 };
 static tinysh_cmd_t killcmd    = { 0, "kill",   "kill a process",   "[process id]", shell_kill, 0, 0, 0 };
 static tinysh_cmd_t writecmd   = { 0, "write",  "write fat test (-a append file)", "-a [file]", shell_write, 0, 0, 0 };
 
@@ -314,24 +326,6 @@ void shell_exit( void )
 {
 	// perform any tidy up here
 	exit();
-}
-
-void shell_args( int argc, char **argv )
-{
-	int i;
-
-	for( i=0 ; i<argc ; i++ )
-	{
-		if( strcmp( argv[i], "-h" ) == 0 )
-		{
-			printf("Shell Usage:\n");
-			shell_exit();
-		} else if( strcmp( argv[i], "-v" ) == 0 )
-		{
-			printf("%s\n", SHELL_TITLE );
-			shell_exit();
-		}
-	}
 }
 
 int realmain( int argc, char **argv )
@@ -350,11 +344,11 @@ int realmain( int argc, char **argv )
 	tinysh_add_command( &killcmd );
 	tinysh_add_command( &writecmd );
 
-	printf("%s\n", SHELL_TITLE );
+	printf( "%s\n", SHELL_TITLE );
 
 	tinysh_set_prompt( "AMOS:>" );
 	
-	while( !shell_canquit )
+	while( TRUE )
 		tinysh_char_in( getch() );
 
 	return SUCCESS;

@@ -23,7 +23,7 @@
  * Software Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
  */
 
- #ifndef BUFFER_SIZE
+#ifndef BUFFER_SIZE
 #define BUFFER_SIZE 256
 #endif
 #ifndef HISTORY_DEPTH
@@ -41,45 +41,36 @@
 
 typedef void (*tinysh_fnt_t)(int argc, char **argv);
 
-typedef struct tinysh_cmd_t {
-  struct tinysh_cmd_t *parent; /* 0 if top level command */
-  char *name;                  /* command input name, not 0 */
-  char *help;                  /* help string, can be 0 */
-  char *usage;                 /* usage string, can be 0 */
+typedef struct tinysh_cmd_t
+{
+  struct tinysh_cmd_t * parent; /* 0 if top level command */
+  char * name;                  /* command input name, not 0 */
+  char * help;                  /* help string, can be 0 */
+  char * usage;                 /* usage string, can be 0 */
   tinysh_fnt_t function;       /* function to launch on cmd, can be 0 */
-  void *arg;                   /* current argument when function called */
-  struct tinysh_cmd_t *next;   /* must be set to 0 at init */
-  struct tinysh_cmd_t *child;  /* must be set to 0 at init */
+  void * arg;                   /* current argument when function called */
+  struct tinysh_cmd_t * next;   /* must be set to 0 at init */
+  struct tinysh_cmd_t * child;  /* must be set to 0 at init */
 } tinysh_cmd_t;
 
 #ifdef __cplusplus
 extern "C" {
 #endif
 
-/*
- * function void tinysh_char_out(unsigned char) must be provided by
- * the application
- */
-void tinysh_char_out(unsigned char c);
+// new character input
+void tinysh_char_in( char );
 
-/*
- * Functions below are provided by the tinysh module
- */
+// add a new command
+void tinysh_add_command( tinysh_cmd_t * );
 
-/* new character input */
-void tinysh_char_in(unsigned char c);
+// change tinysh prompt
+void tinysh_set_prompt( char * );
 
-/* add a new command */
-void tinysh_add_command(tinysh_cmd_t *cmd);
+// get command argument back
+void * tinysh_get_arg();
 
-/* change tinysh prompt */
-void tinysh_set_prompt(char *str);
-
-/* get command argument back */
-void *tinysh_get_arg();
-
-/* provide conversion string to scalar (decimal or hexadecimal) */
-unsigned long tinysh_atoxi(char *s);
+// provide conversion string to scalar (decimal or hexadecimal)
+unsigned long tinysh_atoxi( char * );
 
 #ifdef __cplusplus
 }

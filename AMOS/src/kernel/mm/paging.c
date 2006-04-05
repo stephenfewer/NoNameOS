@@ -20,7 +20,9 @@
 #include <kernel/pm/scheduler.h>
 #include <kernel/pm/process.h>
 #include <kernel/pm/sync/mutex.h>
-#include <lib/string.h>
+#include <lib/libc/string.h>
+
+#include <kernel/debug.h>
 
 extern void start;
 extern void end;
@@ -176,15 +178,11 @@ void paging_destroyDirectory( struct PROCESS_INFO * p )
 	for( i=1 ; i<((DWORD)KERNEL_CODE_VADDRESS/(PAGE_SIZE*PAGE_ENTRYS)) ; i++ )
 	{
 		pd = (struct PAGE_DIRECTORY *)paging_mapQuick( p->page_dir );
-		//pd = p->page_dir;
-		
 		pde = &pd->entry[i];
 		pt = (struct PAGE_TABLE *)( TABLE_SHIFT_L(pde->address) );
 		if( pt != NULL && pde->present )
 		{
 			vpt = (struct PAGE_TABLE *)paging_mapQuick( pt );
-			//vpt = pt;
-			
 			// loop through all entrys in the page table
 			for( x=0 ; x<PAGE_ENTRYS; x++ )
 			{
@@ -218,9 +216,6 @@ void paging_mapKernel( struct PROCESS_INFO * p )
 	// map in the kernel (which wont be > 4MB)
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_CODE_VADDRESS );
 	paging_setPageDirectoryEntry( p, KERNEL_CODE_VADDRESS, (struct PAGE_TABLE *)TABLE_SHIFT_L(pde->address) );
-	
-	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_VGA_VADDRESS );
-	paging_setPageDirectoryEntry( p, KERNEL_VGA_VADDRESS, (struct PAGE_TABLE *)TABLE_SHIFT_L(pde->address) );
 
 	// map in the kernel's heap, only maps the first 4MB, if heap grows bigger we will have problems
 	pde = paging_getPageDirectoryEntry( kernel_process.page_dir, KERNEL_HEAP_VADDRESS );
@@ -257,17 +252,14 @@ int paging_init( void )
 	void * linearAddress;
 	// init the lock
 	mutex_init( &paging_lock );
-	
+
 	// create the kernels page directory
 	if( paging_createDirectory( &kernel_process ) == FAIL )
 		kernel_panic( NULL, "Failed to create the kernels page directory." );
-			
-	// identity map bottom 4MB's
-	for( physicalAddress=0L ; physicalAddress<(void *)(1024*PAGE_SIZE) ; physicalAddress+=PAGE_SIZE )
-		paging_map( &kernel_process, physicalAddress, physicalAddress, TRUE );
 
-	// map in the virtual address for vga
-	paging_map( &kernel_process, KERNEL_VGA_VADDRESS, KERNEL_VGA_PADDRESS, TRUE );
+	// identity map bottom 4MB's
+	for( physicalAddress=NULL ; physicalAddress<(void *)(SIZE_1KB*SIZE_1KB*4) ; physicalAddress+=PAGE_SIZE )
+		paging_map( &kernel_process, physicalAddress, physicalAddress, TRUE );
 
 	// map in the kernel
 	physicalAddress = V2P( &start );
@@ -278,15 +270,15 @@ int paging_init( void )
 		paging_map( &kernel_process, linearAddress, physicalAddress, TRUE );
 		linearAddress += PAGE_SIZE;		
 	}
-	
+
 	// mark the quickmap page table entry as present|supervisor|readwrite but dont set a physical address
 	paging_map( &kernel_process, KERNEL_QUICKMAP_VADDRESS, NULL, TRUE );
-		
+
 	// set the system to use the kernels page directory
 	paging_setCurrentPageDir( kernel_process.page_dir );
 	
 	// install the page fault handler
-	interrupt_enable( INT14, paging_pageFaultHandler, SUPERVISOR );
+	interrupt_enable( INT14, paging_pageFaultHandler, KERNEL );
 	
 	return SUCCESS;
 }
