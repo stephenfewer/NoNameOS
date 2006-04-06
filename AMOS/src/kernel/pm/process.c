@@ -78,7 +78,6 @@ struct PROCESS_INFO * process_create( struct PROCESS_INFO * parent, void * entry
 		process->handles[i] = NULL;
 	// setup the initial user heap, mm_morecore() will take care of the rest
 	process->heap.heap_base   = PROCESS_USER_HEAP_VADDRESS;
-	process->heap.heap_bottom = NULL;
 	process->heap.heap_top    = NULL;
 	// give it an initial tick slice
 	process->tick_slice = PROCESS_TICKS_NORMAL;

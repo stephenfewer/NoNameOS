@@ -58,7 +58,6 @@ struct PROCESS_HEAP
 {
 	void * heap_base;
 	void * heap_top;
-	void * heap_bottom;
 };
 
 struct PROCESS_INFO
@@ -66,9 +65,9 @@ struct PROCESS_INFO
 	// -> the order of these is important, see isr.asm
 	struct PROCESS_STACK * kstack;
 	struct PAGE_DIRECTORY * page_dir;
-    unsigned int privilege;
+	unsigned int privilege;
 	void * kstack_base;
-    // <-
+	// <-
 	int id;
 	int parent_id;
 	int tick_slice;

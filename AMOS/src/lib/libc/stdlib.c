@@ -43,10 +43,6 @@ void * malloc( DWORD size )
 		tmp_item->size = new_item->size - total_size;
 		tmp_item->used = FALSE;
 		tmp_item->next = new_item->next;
-		
-		new_item->size = size;
-		new_item->used = TRUE;
-		new_item->next = tmp_item;
 	}
 	else
 	{
@@ -60,11 +56,11 @@ void * malloc( DWORD size )
 		tmp_item->size = PAGESIZE - (total_size%PAGESIZE ? total_size%PAGESIZE : total_size) - sizeof(struct HEAPITEM);
 		tmp_item->used = FALSE;
 		tmp_item->next = NULL;
-		// create the new item
-		new_item->size = size;
-		new_item->used = TRUE;
-		new_item->next = tmp_item;
 	}
+	// create the new item
+	new_item->size = size;
+	new_item->used = TRUE;
+	new_item->next = tmp_item;
 	// return the newly allocated memory location
 	return (void *)( (int)new_item + sizeof(struct HEAPITEM) );
 }

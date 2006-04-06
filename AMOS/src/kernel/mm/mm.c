@@ -39,7 +39,6 @@ int mm_init( struct MULTIBOOT_INFO * m )
 	// setup the kernel heap structure
 	kernel_process.heap.heap_base   = KERNEL_HEAP_VADDRESS;
 	kernel_process.heap.heap_top    = NULL;
-	kernel_process.heap.heap_bottom = NULL;
 	
 	// init the lock that the kernel mm_kmalloc/mm_kfree will use
 	// we cant use mutex_create() as it need mm_kmalloc()
@@ -81,7 +80,7 @@ void * mm_morecore( struct PROCESS_INFO * process, DWORD size )
 	int pages = ( size / PAGE_SIZE ) + 1;
 	// when process->heap.heap_top == NULL we must create the initial heap
 	if( process->heap.heap_top == NULL )
-		process->heap.heap_bottom = process->heap.heap_top = process->heap.heap_base;
+		process->heap.heap_top = process->heap.heap_base;
 	// set the address to return
 	void * prevTop = process->heap.heap_top;
 	// create the pages
@@ -110,14 +109,14 @@ void mm_kfree( void * address )
 	// set the item to remove
 	item = (struct MM_HEAPITEM *)( address - sizeof(struct MM_HEAPITEM) );
 	// find it
-	for( tmp_item=kernel_process.heap.heap_bottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
+	for( tmp_item=kernel_process.heap.heap_base ; tmp_item!=NULL ; tmp_item=tmp_item->next )
 	{
 		if( tmp_item == item )
 		{
 			// free it
 			tmp_item->used = FALSE;
 			// coalesce any adjacent free items
-			for( tmp_item=kernel_process.heap.heap_bottom ; tmp_item!=NULL ; tmp_item=tmp_item->next )
+			for( tmp_item=kernel_process.heap.heap_base ; tmp_item!=NULL ; tmp_item=tmp_item->next )
 			{
 				while( !tmp_item->used && tmp_item->next!=NULL && !tmp_item->next->used )
 				{
@@ -136,7 +135,7 @@ void mm_kfree( void * address )
 // allocates an arbiturary size of memory (via first fit) from the kernel heap
 void * mm_kmalloc( DWORD size )
 {
-	struct MM_HEAPITEM * new_item, * tmp_item;
+	struct MM_HEAPITEM * new_item=NULL, * tmp_item;
 	int total_size;
 	// sanity check
 	if( size == 0 )
@@ -145,11 +144,15 @@ void * mm_kmalloc( DWORD size )
 	mutex_lock( &mm_kmallocLock );
 	// round up by 8 bytes and add header size
 	total_size = ( ( size + 7 ) & ~7 ) + sizeof(struct MM_HEAPITEM);
-	// search for first fit
-	for( new_item=kernel_process.heap.heap_bottom ; new_item!=NULL ; new_item=new_item->next )
+	// if the heap exists
+	if( kernel_process.heap.heap_top != NULL )
 	{
-		if( !new_item->used && (total_size <= new_item->size) )
-			break;
+		// search for first fit
+		for( new_item=kernel_process.heap.heap_base ; new_item!=NULL ; new_item=new_item->next )
+		{
+			if( !new_item->used && (total_size <= new_item->size) )
+				break;
+		}
 	}
 	// if we found one
 	if( new_item != NULL )
@@ -158,10 +161,6 @@ void * mm_kmalloc( DWORD size )
 		tmp_item->size = new_item->size - total_size;
 		tmp_item->used = FALSE;
 		tmp_item->next = new_item->next;
-		
-		new_item->size = size;
-		new_item->used = TRUE;
-		new_item->next = tmp_item;
 	}
 	else
 	{
@@ -180,11 +179,11 @@ void * mm_kmalloc( DWORD size )
 		tmp_item->size = PAGE_SIZE - (total_size%PAGE_SIZE ? total_size%PAGE_SIZE : total_size) - sizeof(struct MM_HEAPITEM);
 		tmp_item->used = FALSE;
 		tmp_item->next = NULL;
-		// create the new item
-		new_item->size = size;
-		new_item->used = TRUE;
-		new_item->next = tmp_item;
 	}
+	// create the new item
+	new_item->size = size;
+	new_item->used = TRUE;
+	new_item->next = tmp_item;
 	// unlock our critical section
 	mutex_unlock( &mm_kmallocLock );
 	// return the newly allocated memory location

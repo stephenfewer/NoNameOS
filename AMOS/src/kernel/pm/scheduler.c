@@ -74,9 +74,6 @@ int scheduler_setProcess( int id, int state, int ticks )
 	}
 	// unlock critical section
 	mutex_unlock( &scheduler_processTable.lock );
-	if( ret==FAIL)
-		kernel_printf("FAIL setProcess %d... \n", id, state, ticks );
-	
 	return ret;
 }
 
@@ -91,12 +88,12 @@ void scheduler_printProcessTable( void )
 		char * state;
 		switch( process->state )
 		{
-			case CREATED: state="Created"; break;	
-			case READY: state="Ready"; break;
-			case RUNNING: state="Running"; break;
-			case BLOCKED: state="Blocked"; break;
+			case CREATED:	state="Created"; break;	
+			case READY:		state="Ready"; break;
+			case RUNNING:	state="Running"; break;
+			case BLOCKED:	state="Blocked"; break;
 			case TERMINATED: state="Terminated"; break;
-			default: state="???"; break;
+			default:		state="Unknown"; break;
 		}
 		kernel_printf("\t%d %s (%s) is %s, ticks: %d\n", process->id, process->name,  (process->privilege==USER?"User":"Kernel"), state, process->tick_slice );
 	}
