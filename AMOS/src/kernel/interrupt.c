@@ -114,7 +114,8 @@ struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
         outportb( INTERRUPT_PIC_2, INTERRUPT_EOI );
 	else if( intnumber >= IRQ0 && intnumber <= IRQ15 )
 		outportb( INTERRUPT_PIC_1, INTERRUPT_EOI );
-	
+	// set the process's state to running
+	newProcess->state = RUNNING;
 	return newProcess;
 }
 

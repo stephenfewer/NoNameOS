@@ -208,13 +208,9 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 			processNext->tick_slice = PROCESS_TICKS_LOW;
 		else
 			processNext->tick_slice = PROCESS_TICKS_NORMAL;
-		// set the process's state to running as we are switching into this process
-		processNext->state = RUNNING;
 	}
-
 	if( processNext->tick_slice < 0 )
 		processNext->tick_slice = PROCESS_TICKS_LOW;
-		
 	// unlock our critical section
 	mutex_unlock( &scheduler_processTable.lock );
 	// we return the new process (possibly) to indicate we may wish to perform a context switch, see isr.asm

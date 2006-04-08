@@ -48,7 +48,7 @@ int mm_init( struct MULTIBOOT_INFO * m )
 	return SUCCESS;
 }
 
-// rename these two functions!
+// rename these two functions!, also size must be <= PAGE_SIZE
 void mm_pmemcpyto( void * dest_paddress, void * src_vaddress, int size )
 {
 	// dissable interrupts for atomicity

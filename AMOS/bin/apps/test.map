@@ -19,7 +19,7 @@ Linker script and memory map
                 0x00000000                phys = 0x0
                 0x10000000                virt = 0x10000000
 
-.text           0x10000000      0xee0 load address 0x00000000
+.text           0x10000000      0xed0 load address 0x00000000
  *(.text)
  .text          0x10000000      0x3d0 test.o
                 0x10000021                _stackoverflow
@@ -57,29 +57,29 @@ Linker script and memory map
                 0x10000a0a                _getch
                 0x1000084c                _print
                 0x100009f1                _printf
- .text          0x10000af0      0x1e0 ../../../bin/lib/libc.a(stdlib.o)
-                0x10000bcc                _free
-                0x10000c37                _atoi
+ .text          0x10000af0      0x1d0 ../../../bin/lib/libc.a(stdlib.o)
+                0x10000bc0                _free
+                0x10000c2b                _atoi
                 0x10000af0                _malloc
- .text          0x10000cd0      0x200 ../../../bin/lib/libc.a(string.o)
-                0x10000d12                _strcmp
-                0x10000d9c                _strncpy
-                0x10000e5e                _memcpy
-                0x10000e37                _memset
-                0x10000d84                _strcpy
-                0x10000e84                _memcmp
-                0x10000d32                _strncmp
-                0x10000ce9                _strrchr
-                0x10000cd0                _strlen
-                0x10000ddd                _strstr
-                0x10000ed0                . = ALIGN (0x4)
+ .text          0x10000cc0      0x200 ../../../bin/lib/libc.a(string.o)
+                0x10000d02                _strcmp
+                0x10000d8c                _strncpy
+                0x10000e4e                _memcpy
+                0x10000e27                _memset
+                0x10000d74                _strcpy
+                0x10000e74                _memcmp
+                0x10000d22                _strncmp
+                0x10000cd9                _strrchr
+                0x10000cc0                _strlen
+                0x10000dcd                _strstr
+                0x10000ec0                . = ALIGN (0x4)
  *(.data)
- .data          0x10000ed0       0x10 ../../../bin/lib/libc.a(stdlib.o)
-                0x10000ee0                . = ALIGN (0x4)
+ .data          0x10000ec0       0x10 ../../../bin/lib/libc.a(stdlib.o)
+                0x10000ed0                . = ALIGN (0x4)
  *(COMMON)
-                0x10000ee0                . = ALIGN (0x4)
+                0x10000ed0                . = ALIGN (0x4)
  *(.bss)
-                0x10000ee0                . = ALIGN (0x4)
+                0x10000ed0                . = ALIGN (0x4)
 LOAD test.o
 LOAD ../../../bin/lib/libc.a
 OUTPUT(../../../bin/apps/test.bin binary)
