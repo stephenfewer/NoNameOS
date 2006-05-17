@@ -874,11 +874,11 @@ struct VFS_DIRLIST_ENTRY * fat_list( struct VFS_MOUNTPOINT * mount, char * dirna
 		fat_rwCluster( fat_mount, dir->start_cluster, (BYTE *)dir, FAT_READ );
 	}
 
-	entry = (struct VFS_DIRLIST_ENTRY *)mm_kmalloc( sizeof(struct VFS_DIRLIST_ENTRY)*17 );
+	entry = (struct VFS_DIRLIST_ENTRY *)mm_kmalloc( sizeof(struct VFS_DIRLIST_ENTRY)*32 );
 	// clear it
-	memset( entry, 0x00, sizeof(struct VFS_DIRLIST_ENTRY)*17 );
+	memset( entry, 0x00, sizeof(struct VFS_DIRLIST_ENTRY)*32 );
 	
-	for( dirIndex=0,entryIndex=0 ; dirIndex<16 ; dirIndex++ )
+	for( dirIndex=0,entryIndex=0 ; entryIndex<32 || dirIndex<16 ; dirIndex++ )
 	{
 		// test if their are any more entries
 		if( dir[dirIndex].name[0] == 0x00 )

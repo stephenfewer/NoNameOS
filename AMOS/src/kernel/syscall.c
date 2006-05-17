@@ -156,6 +156,8 @@ int syscall_list( struct PROCESS_INFO * process, char * dir, struct VFS_DIRLIST_
 	
 	memset( entry, 0x00, sizeof(struct VFS_DIRLIST_ENTRY)*entry_num );
 	// bounds check this so it doesnt run over the kentry size
+	if( entry_num > 32 )
+		entry_num = 32;
 	memcpy( entry, kentry, sizeof(struct VFS_DIRLIST_ENTRY)*entry_num );
 	
 	mm_kfree( kentry );

@@ -131,245 +131,245 @@ Linker script and memory map
                 0xc0001a71                _interrupt_setTableEntry
                 0xc0001b6c                _interrupt_enable
                 0xc0001c23                _interrupt_init
- .text          0xc0001cac      0x5b0 syscall.o
+ .text          0xc0001cac      0x5c0 syscall.o
                 0xc0001e78                _syscall_wait
-                0xc0001fc8                _syscall_handler
+                0xc0001fdb                _syscall_handler
                 0xc0001da8                _syscall_write
                 0xc0001eed                _syscall_list
-                0xc00020bc                _syscall_add
+                0xc00020cf                _syscall_add
                 0xc0001e18                _syscall_control
                 0xc0001d75                _syscall_read
                 0xc0001d23                _syscall_clone
                 0xc0001cf8                _syscall_close
-                0xc0001fa0                _syscall_mount
-                0xc0001f80                _syscall_create
+                0xc0001fb3                _syscall_mount
+                0xc0001f93                _syscall_create
                 0xc0001e88                _syscall_spawn
-                0xc0001fb8                _syscall_unmount
-                0xc00020e6                _syscall_init
+                0xc0001fcb                _syscall_unmount
+                0xc00020f9                _syscall_init
                 0xc0001cac                _syscall_open
                 0xc0001ea0                _syscall_kill
                 0xc0001edd                _syscall_wake
                 0xc0001e4b                _syscall_morecore
-                0xc0001f6c                _syscall_rename
+                0xc0001f7f                _syscall_rename
                 0xc0001ddb                _syscall_seek
                 0xc0001ecd                _syscall_sleep
-                0xc0001f90                _syscall_delete
+                0xc0001fa3                _syscall_delete
                 0xc0001e5f                _syscall_exit
-                0xc0001f58                _syscall_copy
- .text          0xc000225c      0x3a0 kprintf.o
-                0xc000225c                _kprintf_putuint
-                0xc000237a                _kprintf_puthex
-                0xc000231f                _kprintf_putint
-                0xc0002427                _kprintf
- .text          0xc00025fc      0x370 debug.o
-                0xc00027a5                _debug_putch
-                0xc00026dd                _debug_putuint
-                0xc00027c8                _debug_printf
-                0xc0002644                _debug_puthex
-                0xc00025fc                _debug_putint
- .text          0xc000296c      0x170 ./mm/dma.o
-                0xc0002aa6                _dma_write
-                0xc0002a7b                _dma_read
-                0xc000296c                _dma_transfer
- .text          0xc0002adc      0x260 ./mm/mm.o
-                0xc0002c59                _mm_kmalloc
-                0xc0002b1b                _mm_pmemcpyto
-                0xc0002adc                _mm_init
-                0xc0002b3e                _mm_pmemcpyfrom
-                0xc0002b61                _mm_morecore
-                0xc0002bd8                _mm_kfree
- .text          0xc0002d3c      0x5f0 ./mm/paging.o
-                0xc0002d44                _paging_getPageDirectoryEntry
-                0xc0003007                _paging_destroyDirectory
-                0xc000320c                _paging_map
-                0xc0002f69                _paging_createDirectory
-                0xc000325d                _paging_init
-                0xc0002d3c                _paging_setCurrentPageDir
-                0xc0002e55                _paging_setPageTableEntry
-                0xc0002d60                _paging_setPageDirectoryEntry
-                0xc00030f2                _paging_mapKernel
-                0xc00031de                _paging_mapQuick
-                0xc0002db0                _paging_getPageTableEntry
-                0xc0002efe                _paging_pageFaultHandler
- .text          0xc000332c      0x2b0 ./mm/physical.o
-                0xc00033a0                _physical_pageAllocHigh
-                0xc0003456                _physical_pageFree
-                0xc000348e                _physical_init
-                0xc0003423                _physical_pageAlloc
-                0xc0003354                _physical_pageAllocLimit
-                0xc000332c                _physical_isPageFree
-                0xc00033c9                _physical_pageAllocLow
-                0xc000334e                _physical_getBitmapSize
- .text          0xc00035dc      0x140 ./mm/segmentation.o
-                0xc0003663                _segmentation_init
-                0xc000363f                _segmentation_ltr
-                0xc0003645                _segmentation_reload
-                0xc00035dc                _segmentation_setEntry
- .text          0xc000371c      0x560 ./pm/process.o
-                0xc0003bd4                _process_sleep
-                0xc0003bb6                _process_yield
-                0xc0003a3e                _process_spawn
-                0xc0003c4b                _process_kill
-                0xc000381a                _process_destroy
-                0xc0003c0a                _process_wake
-                0xc000379d                _process_printStack
-                0xc0003895                _process_create
-                0xc0003c1e                _process_wait
- .text          0xc0003c7c      0x3e0 ./pm/scheduler.o
-                0xc0003eb0                _scheduler_select
-                0xc0003f92                _scheduler_init
-                0xc0003e4b                _scheduler_removeProcesss
-                0xc0003cb4                _scheduler_setProcess
-                0xc0003f5f                _scheduler_handler
-                0xc0003f5c                _scheduler_switch
-                0xc0003ca0                _scheduler_getProcess
-                0xc0003e30                _scheduler_addProcess
-                0xc0003d73                _scheduler_printProcessTable
- .text          0xc000405c       0x10 ./pm/sync/mutex.o
-                0xc000405c                _mutex_init
- .text          0xc000406c      0x230 ./io/io.o
-                0xc0004099                _io_open
-                0xc000412c                _io_clone
-                0xc000406c                _io_add
-                0xc000422e                _io_control
-                0xc0004089                _io_remove
-                0xc000425b                _io_init
-                0xc000419d                _io_read
-                0xc00041f7                _io_seek
-                0xc00040f7                _io_close
-                0xc00041ca                _io_write
- .text          0xc000429c       0x70 ./io/dev/bitbucket.o
-                0xc00042a7                _bitbucket_write
-                0xc00042a1                _bitbucket_close
-                0xc00042b6                _bitbucket_init
-                0xc000429c                _bitbucket_open
- .text          0xc000430c      0xb50 ./io/dev/console.o
-                0xc0004324                _console_removeBuffer
-                0xc000430c                _console_addBuffer
-                0xc00047f3                _console_create
-                0xc0004d5f                _console_init
-                0xc0004861                _console_open
-                0xc0004b99                _console_write
-                0xc000437b                _console_setCursor
-                0xc0004aa5                _console_read
-                0xc00043f3                _console_putChar
-                0xc0004c6c                _console_control
-                0xc00049ec                _console_clone
-                0xc0004bfd                _console_putchBuffer
-                0xc0004983                _console_close
-                0xc0004443                _console_beep
-                0xc00044bc                _console_putch
-                0xc0004725                _console_activate
-                0xc000461d                _console_cls
-                0xc0004464                _console_scrollup
-                0xc0004444                _console_getChar
- .text          0xc0004e5c      0x950 ./io/dev/floppy.o
-                0xc00055d6                _floppy_read
-                0xc0004faf                _floppy_handler
-                0xc0005234                _floppy_rwBlock
-                0xc00055f0                _floppy_write
-                0xc0005517                _floppy_open
-                0xc0004f7b                _floppy_off
-                0xc0005019                _floppy_recalibrate
-                0xc0004ec5                _floppy_getbyte
-                0xc000513c                _floppy_blockGeometry
-                0xc00055b0                _floppy_close
-                0xc0005067                _floppy_seekcylinder
-                0xc000560a                _floppy_seek
-                0xc00050d5                _floppy_reset
-                0xc0004e5c                _floppy_sendbyte
-                0xc0004f32                _floppy_on
-                0xc0004fbb                _floppy_wait
-                0xc00054a0                _floppy_rw
-                0xc000566c                _floppy_init
- .text          0xc00057ac      0x4a0 ./io/dev/keyboard.o
-                0xc00059ac                _keyboard_open
-                0xc00059b7                _keyboard_handler
-                0xc0005b8e                _keyboard_init
-                0xc00059b1                _keyboard_close
- .text          0xc0005c4c      0x3f0 ./fs/dfs.o
-                0xc0005c4c                _dfs_add
-                0xc0005d39                _dfs_unmount
-                0xc0005d89                _dfs_clone
-                0xc0005e1c                _dfs_delete
-                0xc0005d3f                _dfs_open
-                0xc0005dda                _dfs_seek
-                0xc0005ee2                _dfs_list
-                0xc0005dfb                _dfs_control
-                0xc0005e16                _dfs_create
-                0xc0005cb0                _dfs_remove
-                0xc0005dbf                _dfs_write
-                0xc0005c7c                _dfs_find
-                0xc0005e2c                _dfs_copy
-                0xc0005fb8                _dfs_init
-                0xc0005d76                _dfs_close
-                0xc0005da4                _dfs_read
-                0xc0005ea1                _dfs_rename
-                0xc0005d2b                _dfs_mount
- .text          0xc000603c     0x1320 ./fs/fat.o
-                0xc0006147                _fat_getFreeCluster
-                0xc0007081                _fat_rename
-                0xc00067e4                _fat_mount
-                0xc0006956                _fat_unmount
-                0xc0007104                _fat_copy
-                0xc0007021                _fat_delete
-                0xc00067bc                _fat_setFileSize
-                0xc0006433                _fat_file2entry
-                0xc0006294                _fat_rwCluster
-                0xc0006a46                _fat_clone
-                0xc000623c                _fat_cluster2block
-                0xc0006d18                _fat_seek
-                0xc00063e5                _fat_getIndex
-                0xc0006cad                _fat_read
-                0xc0006d94                _fat_create
-                0xc0006997                _fat_open
-                0xc000710a                _fat_list
-                0xc000661a                _fat_setFileName
-                0xc00066cd                _fat_updateFileEntry
-                0xc0006d6f                _fat_control
-                0xc0006340                _fat_compareName
-                0xc000603c                _fat_setFATCluster
-                0xc00072db                _fat_init
-                0xc0006a4c                _fat_rw
-                0xc0006cc7                _fat_write
-                0xc00060bf                _fat_getFATCluster
-                0xc000617b                _fat_determineType
-                0xc0006a1e                _fat_close
- .text          0xc000735c      0x790 ./fs/vfs.o
-                0xc000735c                _vfs_register
-                0xc000792e                _vfs_rename
-                0xc000737a                _vfs_find
-                0xc00078d0                _vfs_delete
-                0xc0007497                _vfs_unmount
-                0xc0007872                _vfs_create
-                0xc0007a38                _vfs_list
-                0xc000770b                _vfs_clone
-                0xc00075a9                _vfs_open
-                0xc000776c                _vfs_read
-                0xc0007840                _vfs_control
-                0xc0007ab8                _vfs_init
-                0xc0007568                _vfs_file2mountpoint
-                0xc00077a4                _vfs_write
-                0xc0007804                _vfs_seek
-                0xc00076d1                _vfs_close
-                0xc0007399                _vfs_mount
-                0xc00079b3                _vfs_copy
-                0xc0007374                _vfs_unregister
- .text          0xc0007aec      0x200 ./../../bin/lib/libc.a(string.o)
-                0xc0007b2e                _strcmp
-                0xc0007bb8                _strncpy
-                0xc0007c7a                _memcpy
-                0xc0007c53                _memset
-                0xc0007ba0                _strcpy
-                0xc0007ca0                _memcmp
-                0xc0007b4e                _strncmp
-                0xc0007b05                _strrchr
-                0xc0007aec                _strlen
-                0xc0007bf9                _strstr
- .text          0xc0007cec       0x30 ./../../bin/lib/libc.a(ctype.o)
-                0xc0007cec                _toupper
-                0xc0007d01                _tolower
- *fill*         0xc0007d1c      0x2e4
+                0xc0001f6b                _syscall_copy
+ .text          0xc000226c      0x3a0 kprintf.o
+                0xc000226c                _kprintf_putuint
+                0xc000238a                _kprintf_puthex
+                0xc000232f                _kprintf_putint
+                0xc0002437                _kprintf
+ .text          0xc000260c      0x370 debug.o
+                0xc00027b5                _debug_putch
+                0xc00026ed                _debug_putuint
+                0xc00027d8                _debug_printf
+                0xc0002654                _debug_puthex
+                0xc000260c                _debug_putint
+ .text          0xc000297c      0x170 ./mm/dma.o
+                0xc0002ab6                _dma_write
+                0xc0002a8b                _dma_read
+                0xc000297c                _dma_transfer
+ .text          0xc0002aec      0x260 ./mm/mm.o
+                0xc0002c69                _mm_kmalloc
+                0xc0002b2b                _mm_pmemcpyto
+                0xc0002aec                _mm_init
+                0xc0002b4e                _mm_pmemcpyfrom
+                0xc0002b71                _mm_morecore
+                0xc0002be8                _mm_kfree
+ .text          0xc0002d4c      0x5f0 ./mm/paging.o
+                0xc0002d54                _paging_getPageDirectoryEntry
+                0xc0003017                _paging_destroyDirectory
+                0xc000321c                _paging_map
+                0xc0002f79                _paging_createDirectory
+                0xc000326d                _paging_init
+                0xc0002d4c                _paging_setCurrentPageDir
+                0xc0002e65                _paging_setPageTableEntry
+                0xc0002d70                _paging_setPageDirectoryEntry
+                0xc0003102                _paging_mapKernel
+                0xc00031ee                _paging_mapQuick
+                0xc0002dc0                _paging_getPageTableEntry
+                0xc0002f0e                _paging_pageFaultHandler
+ .text          0xc000333c      0x2b0 ./mm/physical.o
+                0xc00033b0                _physical_pageAllocHigh
+                0xc0003466                _physical_pageFree
+                0xc000349e                _physical_init
+                0xc0003433                _physical_pageAlloc
+                0xc0003364                _physical_pageAllocLimit
+                0xc000333c                _physical_isPageFree
+                0xc00033d9                _physical_pageAllocLow
+                0xc000335e                _physical_getBitmapSize
+ .text          0xc00035ec      0x140 ./mm/segmentation.o
+                0xc0003673                _segmentation_init
+                0xc000364f                _segmentation_ltr
+                0xc0003655                _segmentation_reload
+                0xc00035ec                _segmentation_setEntry
+ .text          0xc000372c      0x560 ./pm/process.o
+                0xc0003be4                _process_sleep
+                0xc0003bc6                _process_yield
+                0xc0003a4e                _process_spawn
+                0xc0003c5b                _process_kill
+                0xc000382a                _process_destroy
+                0xc0003c1a                _process_wake
+                0xc00037ad                _process_printStack
+                0xc00038a5                _process_create
+                0xc0003c2e                _process_wait
+ .text          0xc0003c8c      0x3e0 ./pm/scheduler.o
+                0xc0003ec0                _scheduler_select
+                0xc0003fa2                _scheduler_init
+                0xc0003e5b                _scheduler_removeProcesss
+                0xc0003cc4                _scheduler_setProcess
+                0xc0003f6f                _scheduler_handler
+                0xc0003f6c                _scheduler_switch
+                0xc0003cb0                _scheduler_getProcess
+                0xc0003e40                _scheduler_addProcess
+                0xc0003d83                _scheduler_printProcessTable
+ .text          0xc000406c       0x10 ./pm/sync/mutex.o
+                0xc000406c                _mutex_init
+ .text          0xc000407c      0x230 ./io/io.o
+                0xc00040a9                _io_open
+                0xc000413c                _io_clone
+                0xc000407c                _io_add
+                0xc000423e                _io_control
+                0xc0004099                _io_remove
+                0xc000426b                _io_init
+                0xc00041ad                _io_read
+                0xc0004207                _io_seek
+                0xc0004107                _io_close
+                0xc00041da                _io_write
+ .text          0xc00042ac       0x70 ./io/dev/bitbucket.o
+                0xc00042b7                _bitbucket_write
+                0xc00042b1                _bitbucket_close
+                0xc00042c6                _bitbucket_init
+                0xc00042ac                _bitbucket_open
+ .text          0xc000431c      0xb50 ./io/dev/console.o
+                0xc0004334                _console_removeBuffer
+                0xc000431c                _console_addBuffer
+                0xc0004803                _console_create
+                0xc0004d6f                _console_init
+                0xc0004871                _console_open
+                0xc0004ba9                _console_write
+                0xc000438b                _console_setCursor
+                0xc0004ab5                _console_read
+                0xc0004403                _console_putChar
+                0xc0004c7c                _console_control
+                0xc00049fc                _console_clone
+                0xc0004c0d                _console_putchBuffer
+                0xc0004993                _console_close
+                0xc0004453                _console_beep
+                0xc00044cc                _console_putch
+                0xc0004735                _console_activate
+                0xc000462d                _console_cls
+                0xc0004474                _console_scrollup
+                0xc0004454                _console_getChar
+ .text          0xc0004e6c      0x950 ./io/dev/floppy.o
+                0xc00055e6                _floppy_read
+                0xc0004fbf                _floppy_handler
+                0xc0005244                _floppy_rwBlock
+                0xc0005600                _floppy_write
+                0xc0005527                _floppy_open
+                0xc0004f8b                _floppy_off
+                0xc0005029                _floppy_recalibrate
+                0xc0004ed5                _floppy_getbyte
+                0xc000514c                _floppy_blockGeometry
+                0xc00055c0                _floppy_close
+                0xc0005077                _floppy_seekcylinder
+                0xc000561a                _floppy_seek
+                0xc00050e5                _floppy_reset
+                0xc0004e6c                _floppy_sendbyte
+                0xc0004f42                _floppy_on
+                0xc0004fcb                _floppy_wait
+                0xc00054b0                _floppy_rw
+                0xc000567c                _floppy_init
+ .text          0xc00057bc      0x4a0 ./io/dev/keyboard.o
+                0xc00059bc                _keyboard_open
+                0xc00059c7                _keyboard_handler
+                0xc0005b9e                _keyboard_init
+                0xc00059c1                _keyboard_close
+ .text          0xc0005c5c      0x420 ./fs/dfs.o
+                0xc0005c5c                _dfs_add
+                0xc0005d49                _dfs_unmount
+                0xc0005d99                _dfs_clone
+                0xc0005e2c                _dfs_delete
+                0xc0005d4f                _dfs_open
+                0xc0005dea                _dfs_seek
+                0xc0005ef2                _dfs_list
+                0xc0005e0b                _dfs_control
+                0xc0005e26                _dfs_create
+                0xc0005cc0                _dfs_remove
+                0xc0005dcf                _dfs_write
+                0xc0005c8c                _dfs_find
+                0xc0005e3c                _dfs_copy
+                0xc0005ff3                _dfs_init
+                0xc0005d86                _dfs_close
+                0xc0005db4                _dfs_read
+                0xc0005eb1                _dfs_rename
+                0xc0005d3b                _dfs_mount
+ .text          0xc000607c     0x1340 ./fs/fat.o
+                0xc0006187                _fat_getFreeCluster
+                0xc00070c1                _fat_rename
+                0xc0006824                _fat_mount
+                0xc0006996                _fat_unmount
+                0xc0007144                _fat_copy
+                0xc0007061                _fat_delete
+                0xc00067fc                _fat_setFileSize
+                0xc0006473                _fat_file2entry
+                0xc00062d4                _fat_rwCluster
+                0xc0006a86                _fat_clone
+                0xc000627c                _fat_cluster2block
+                0xc0006d58                _fat_seek
+                0xc0006425                _fat_getIndex
+                0xc0006ced                _fat_read
+                0xc0006dd4                _fat_create
+                0xc00069d7                _fat_open
+                0xc000714a                _fat_list
+                0xc000665a                _fat_setFileName
+                0xc000670d                _fat_updateFileEntry
+                0xc0006daf                _fat_control
+                0xc0006380                _fat_compareName
+                0xc000607c                _fat_setFATCluster
+                0xc0007332                _fat_init
+                0xc0006a8c                _fat_rw
+                0xc0006d07                _fat_write
+                0xc00060ff                _fat_getFATCluster
+                0xc00061bb                _fat_determineType
+                0xc0006a5e                _fat_close
+ .text          0xc00073bc      0x790 ./fs/vfs.o
+                0xc00073bc                _vfs_register
+                0xc000798e                _vfs_rename
+                0xc00073da                _vfs_find
+                0xc0007930                _vfs_delete
+                0xc00074f7                _vfs_unmount
+                0xc00078d2                _vfs_create
+                0xc0007a98                _vfs_list
+                0xc000776b                _vfs_clone
+                0xc0007609                _vfs_open
+                0xc00077cc                _vfs_read
+                0xc00078a0                _vfs_control
+                0xc0007b18                _vfs_init
+                0xc00075c8                _vfs_file2mountpoint
+                0xc0007804                _vfs_write
+                0xc0007864                _vfs_seek
+                0xc0007731                _vfs_close
+                0xc00073f9                _vfs_mount
+                0xc0007a13                _vfs_copy
+                0xc00073d4                _vfs_unregister
+ .text          0xc0007b4c      0x200 ./../../bin/lib/libc.a(string.o)
+                0xc0007b8e                _strcmp
+                0xc0007c18                _strncpy
+                0xc0007cda                _memcpy
+                0xc0007cb3                _memset
+                0xc0007c00                _strcpy
+                0xc0007d00                _memcmp
+                0xc0007bae                _strncmp
+                0xc0007b65                _strrchr
+                0xc0007b4c                _strlen
+                0xc0007c59                _strstr
+ .text          0xc0007d4c       0x30 ./../../bin/lib/libc.a(ctype.o)
+                0xc0007d4c                _toupper
+                0xc0007d61                _tolower
+ *fill*         0xc0007d7c      0x284
                 0xc0008000                .=ALIGN(0x1000)
 
 .data           0xc0008000     0x1000 load address 0x00108000

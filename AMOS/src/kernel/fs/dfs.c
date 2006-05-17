@@ -185,26 +185,26 @@ struct VFS_DIRLIST_ENTRY * dfs_list( struct VFS_MOUNTPOINT * mount, char * dir )
 {
 	struct DFS_ENTRY * device;
 	struct VFS_DIRLIST_ENTRY * entry;
-	int i=0;
+	int i=0, count=0;
 	// count how many devices we have
 	for( device=dfs_deviceHead ; device!=NULL ; device=device->prev )
-		i++;
+		count++;
 	// return NULL if we dont have any
-	if( i == 0 )
+	if( count == 0 )
 		return NULL;
 	// create the array of entry structures
-	entry = (struct VFS_DIRLIST_ENTRY *)mm_kmalloc( (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1+2 );
+	entry = (struct VFS_DIRLIST_ENTRY *)mm_kmalloc( (sizeof(struct VFS_DIRLIST_ENTRY)*32) );
 	// clear it
-	memset( entry, 0x00, (sizeof(struct VFS_DIRLIST_ENTRY)*i)+1+2 );
+	memset( entry, 0x00, (sizeof(struct VFS_DIRLIST_ENTRY)*32) );
 	// create the default dot and dotdot entries
-	strncpy( entry[0].name, ".", 1 );
+	strncpy( entry[0].name, ".", 2 );
 	entry[0].attributes = VFS_DIRECTORY;
 	entry[0].size = 0;
-	strncpy( entry[1].name, "..", 2 );
+	strncpy( entry[1].name, "..", 3 );
 	entry[1].attributes = VFS_DIRECTORY;
 	entry[1].size = 0;
 	// add each device in
-	for( device=dfs_deviceHead, i=2 ; device!=NULL ; device=device->prev, i++ )
+	for( device=dfs_deviceHead, i=2 ; device!=NULL || count>0 ; device=device->prev, i++, count-- )
 	{
 		// fill in the name
 		strncpy( entry[i].name, device->name, VFS_NAMESIZE );
