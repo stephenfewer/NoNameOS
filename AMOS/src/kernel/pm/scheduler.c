@@ -17,6 +17,7 @@
 #include <kernel/mm/segmentation.h>
 #include <kernel/mm/paging.h>
 #include <kernel/mm/mm.h>
+#include <kernel/io/port.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <lib/libc/string.h>
@@ -104,10 +105,7 @@ struct PROCESS_INFO * scheduler_addProcess( struct PROCESS_INFO * process )
 {
 	mutex_lock( &scheduler_processTable.lock );
 	// if the process tabel is empty, set it as the bottom
-	if( scheduler_processTable.head != NULL )
-		process->prev = scheduler_processTable.head;
-	else
-		process->prev = NULL;
+	process->prev = scheduler_processTable.head;
 	scheduler_processTable.head = process;
 	mutex_unlock( &scheduler_processTable.lock );
 	return process;
@@ -268,11 +266,11 @@ int scheduler_init( void )
 	// calculate the timer interval
 	interval = 1193180 / 100;
 	// square wave mode
-	outportb( INTERRUPT_PIT_COMMAND_REG, 0x36 );
+	port_outb( INTERRUPT_PIT_COMMAND_REG, 0x36 );
 	// set the low interval for timer 0 (mapped to SCHEDULER_INTERRUPT)
-	outportb( INTERRUPT_PIT_TIMER_0, interval & 0xFF );
+	port_outb( INTERRUPT_PIT_TIMER_0, interval & 0xFF );
 	// set the high interval for timer 0
-	outportb( INTERRUPT_PIT_TIMER_0, interval >> 8 );
+	port_outb( INTERRUPT_PIT_TIMER_0, interval >> 8 );
 	// enable the scheduler handler
 	interrupt_enable( SCHEDULER_INTERRUPT, scheduler_handler, KERNEL );
 	// return with pre emptive scheduling now active

@@ -27,10 +27,7 @@ struct VFS_MOUNTPOINT * vfs_mpTail = NULL;
 int vfs_register( struct VFS_FILESYSTEM * fs )
 {
 	// add the new file system to a linked list of file system drivers present in the system
-	if( vfs_fsHead != NULL )
-		fs->prev = vfs_fsHead;
-	else
-		fs->prev = NULL;
+	fs->prev = vfs_fsHead;	
 	vfs_fsHead = fs;
 	// we can now mount volumes of this file system type
 	return SUCCESS;

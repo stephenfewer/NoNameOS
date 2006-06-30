@@ -24,10 +24,6 @@
 
 #define KERNEL_VGA_PADDRESS			(void *)0x000B8000
 
-BYTE inportb( WORD );
-
-void outportb( WORD, BYTE );
-
 void kernel_printInfo( void );
 
 void kernel_printf( char *, ... );

@@ -12,6 +12,7 @@
  */
 
 #include <kernel/io/dev/floppy.h>
+#include <kernel/io/port.h>
 #include <kernel/kernel.h>
 #include <kernel/mm/physical.h>
 #include <kernel/mm/mm.h>
@@ -47,16 +48,16 @@ void floppy_sendbyte( struct FLOPPY_DRIVE * floppy, BYTE byte )
     while( timeout-- )
     {
     	// read MSR
-		msr.data = inportb( floppy->base + FLOPPY_MSR );
+		msr.data = port_inb( floppy->base + FLOPPY_MSR );
 		// loop untill ready status and FIFO direction is inward
 		if( msr.bits.mrq && !msr.bits.dio )
 		{
 			// write byte to FIFO
-		    outportb( floppy->base + FLOPPY_DATA, byte );
+		    port_outb( floppy->base + FLOPPY_DATA, byte );
 		    return;
 		}
 		// delay
-		inportb( 0x80 );
+		port_inb( 0x80 );
     }	
 }
 
@@ -70,13 +71,13 @@ BYTE floppy_getbyte( struct FLOPPY_DRIVE * floppy )
     while( timeout-- )
     {
     	// read MSR
-		msr.data = inportb( floppy->base + FLOPPY_MSR );
+		msr.data = port_inb( floppy->base + FLOPPY_MSR );
 		// loop untill ready status and FIFO direction is outward
 		if( msr.bits.mrq && msr.bits.dio )
 			// return data byte from FIFO
-		    return inportb( floppy->base + FLOPPY_DATA );
+		    return port_inb( floppy->base + FLOPPY_DATA );
 	    // delay
-		inportb( 0x80 );
+		port_inb( 0x80 );
     }
     return FAIL;	
 }
@@ -96,7 +97,7 @@ int floppy_on( struct FLOPPY_DRIVE * floppy )
 	else
 		dor.bits.motb = TRUE;
 	
-	outportb( floppy->base + FLOPPY_DOR, dor.data );
+	port_outb( floppy->base + FLOPPY_DOR, dor.data );
 	
 	return SUCCESS;
 }
@@ -111,7 +112,7 @@ int floppy_off( struct FLOPPY_DRIVE * floppy )
 	dor.bits.drive = ( floppy->base == FLOPPY_PRIMARY ? 0 : 1 );
 	dor.bits.reset = TRUE;
 	
-	outportb( floppy->base + FLOPPY_DOR, dor.data );
+	port_outb( floppy->base + FLOPPY_DOR, dor.data );
 	
 	return SUCCESS;
 }
@@ -187,15 +188,15 @@ int floppy_reset( struct FLOPPY_DRIVE * floppy )
 	struct DOR dor;
 	dor.data = 0x00;
 	// disable the controller and irq and dma
-	outportb( floppy->base + FLOPPY_DOR, dor.data );
+	port_outb( floppy->base + FLOPPY_DOR, dor.data );
 	// enable the controller
 	dor.bits.dma = TRUE;
 	dor.bits.reset = TRUE;
-	outportb( floppy->base + FLOPPY_DOR, dor.data );
+	port_outb( floppy->base + FLOPPY_DOR, dor.data );
 	// wait for the controller to send an interrupt back
 	floppy_wait( floppy, TRUE );
 	// write 0x00 to the config controll register
-	outportb( floppy->base + FLOPPY_CCR, 0x00 );
+	port_outb( floppy->base + FLOPPY_CCR, 0x00 );
 	// recalibrate the drive
 	floppy_recalibrate( floppy );
 	return SUCCESS;
@@ -416,8 +417,8 @@ int floppy_init( void )
     calltable->control = NULL;
     // ask the CMOS if we have any floppy drives
     // location 0x10 has the floppy info
-	outportb( 0x70, 0x10 );
-	i = inportb( 0x71 );
+	port_outb( 0x70, 0x10 );
+	i = port_inb( 0x71 );
 	// detect the first floppy drive
 	floppy_type = i >> 4;
 	if( floppy_type != 0 )

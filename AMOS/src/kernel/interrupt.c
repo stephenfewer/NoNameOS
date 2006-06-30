@@ -12,6 +12,7 @@
  */
 
 #include <kernel/interrupt.h>
+#include <kernel/io/port.h>
 #include <kernel/kernel.h>
 #include <kernel/mm/segmentation.h>
 #include <kernel/mm/paging.h>
@@ -111,9 +112,9 @@ struct PROCESS_INFO * interrupt_dispatcher( struct PROCESS_INFO * process )
 	
 	// if this was an IRQ we must signal an EOI to the PIC
 	if( intnumber >= IRQ8 && intnumber <= IRQ15 )
-        outportb( INTERRUPT_PIC_2, INTERRUPT_EOI );
+        port_outb( INTERRUPT_PIC_2, INTERRUPT_EOI );
 	else if( intnumber >= IRQ0 && intnumber <= IRQ15 )
-		outportb( INTERRUPT_PIC_1, INTERRUPT_EOI );
+		port_outb( INTERRUPT_PIC_1, INTERRUPT_EOI );
 	// set the process's state to running
 	newProcess->state = RUNNING;
 	return newProcess;
@@ -153,20 +154,20 @@ void interrupt_setTableEntry( BYTE index, INTERRUPT_SERVICE_ROUTINE routine, BYT
 
 void interrupt_remapPIC( void )
 {
-    outportb( 0x20, 0x11 );
-    outportb( 0xA0, 0x11 );
+    port_outb( 0x20, 0x11 );
+    port_outb( 0xA0, 0x11 );
 
-    outportb( 0x21, 0x20 );
-    outportb( 0xA1, 0x28 );
+    port_outb( 0x21, 0x20 );
+    port_outb( 0xA1, 0x28 );
 
-    outportb( 0x21, 0x04 );
-    outportb( 0xA1, 0x02 );
+    port_outb( 0x21, 0x04 );
+    port_outb( 0xA1, 0x02 );
 
-    outportb( 0x21, 0x01 );
-    outportb( 0xA1, 0x01 );
+    port_outb( 0x21, 0x01 );
+    port_outb( 0xA1, 0x01 );
 
-    outportb( 0x21, 0x00 );
-    outportb( 0xA1, 0x00 );
+    port_outb( 0x21, 0x00 );
+    port_outb( 0xA1, 0x00 );
 }
 
 int interrupt_enable( int index, INTERRUPT_HANDLER handler, BYTE privilege )

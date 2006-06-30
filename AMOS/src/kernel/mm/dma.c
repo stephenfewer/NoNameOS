@@ -12,7 +12,7 @@
  */
 
 #include <kernel/mm/dma.h>
-#include <kernel/kernel.h>
+#include <kernel/io/port.h>
 #include <kernel/interrupt.h>
 
 BYTE dma_maskreg[8]     = { 0x0A, 0x0A, 0x0A, 0x0A, 0xD4, 0xD4, 0xD4, 0xD4 };
@@ -39,21 +39,21 @@ void dma_transfer( BYTE channel, void * address, DWORD length, struct MODE mode 
 	// ...
 	length--;
 	// ...
-    outportb( dma_maskreg[channel], 0x04 | channel );
+    port_outb( dma_maskreg[channel], 0x04 | channel );
     // clear the byte pointer flip flop
-    outportb( dma_clearreg[channel], 0x00 );
+    port_outb( dma_clearreg[channel], 0x00 );
     // set the transfer mode
-    outportb( dma_modereg[channel], mode.data );
+    port_outb( dma_modereg[channel], mode.data );
     // set the address offset
-    outportb( dma_addressport[channel], (offset & 0x00FF) );
-    outportb( dma_addressport[channel], ((offset & 0xFF00) >> 8) );
+    port_outb( dma_addressport[channel], (offset & 0x00FF) );
+    port_outb( dma_addressport[channel], ((offset & 0xFF00) >> 8) );
     // set the page
-    outportb( dma_pageport[channel], page );
+    port_outb( dma_pageport[channel], page );
     // set the length
-    outportb( dma_countport[channel], (length & 0x00FF) );
-    outportb( dma_countport[channel], ((length & 0xFF00) >> 8) );
+    port_outb( dma_countport[channel], (length & 0x00FF) );
+    port_outb( dma_countport[channel], ((length & 0xFF00) >> 8) );
     // ...
-    outportb( dma_maskreg[channel], channel );  
+    port_outb( dma_maskreg[channel], channel );  
 }
 
 void dma_read( BYTE channel, void * address, DWORD length )

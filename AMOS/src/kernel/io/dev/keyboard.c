@@ -12,6 +12,7 @@
  */
 
 #include <kernel/io/dev/keyboard.h>
+#include <kernel/io/port.h>
 #include <kernel/interrupt.h>
 #include <kernel/kernel.h>
 #include <kernel/mm/mm.h>
@@ -83,18 +84,18 @@ int keyboard_wait( void )
 
 int keyboard_setLED( BYTE led )
 {
-	outportb( KEYBOARD_DATAREG, 0xED );
+	port_outb( KEYBOARD_DATAREG, 0xED );
 	
 	keyboard_wait();
 	
-	outportb( KEYBOARD_DATAREG, led );
+	port_outb( KEYBOARD_DATAREG, led );
 }
 */
 struct PROCESS_INFO * keyboard_handler( struct PROCESS_INFO * process )
 {
 	BYTE scancode;
 	
-	scancode = inportb( KEYBOARD_DATAREG );
+	scancode = port_inb( KEYBOARD_DATAREG );
 	
 	switch( scancode )
 	{

@@ -1,0 +1,87 @@
+Archive member included because of file (symbol)
+
+../../../bin/lib/libc.a(amos.o)
+                              test.o (_exit)
+../../../bin/lib/libc.a(stdio.o)
+                              test.o (_printf)
+../../../bin/lib/libc.a(stdlib.o)
+                              test.o (_atoi)
+../../../bin/lib/libc.a(string.o)
+                              ../../../bin/lib/libc.a(stdio.o) (_strlen)
+
+Memory Configuration
+
+Name             Origin             Length             Attributes
+*default*        0x00000000         0xffffffff
+
+Linker script and memory map
+
+                0x00000000                phys = 0x0
+                0x10000000                virt = 0x10000000
+
+.text           0x10000000      0xed0 load address 0x00000000
+ *(.text)
+ .text          0x10000000      0x3d0 test.o
+                0x10000021                _stackoverflow
+                0x10000210                _realmain
+                0x10000000                _main
+ .text          0x100003d0      0x2b0 ../../../bin/lib/libc.a(amos.o)
+                0x100005d5                _morecore
+                0x10000632                _sleep
+                0x10000589                _mount
+                0x100005fb                _spawn
+                0x100003d0                _open
+                0x10000407                _clone
+                0x10000557                _list
+                0x10000528                _copy
+                0x100004df                _delete
+                0x10000485                _seek
+                0x10000658                _wait
+                0x1000063e                _wake
+                0x100004f9                _rename
+                0x100004c5                _create
+                0x100005bb                _unmount
+                0x100004a5                _control
+                0x10000453                _write
+                0x10000618                _kill
+                0x10000421                _read
+                0x100005ef                _exit
+                0x100003ed                _close
+ .text          0x10000680      0x470 ../../../bin/lib/libc.a(stdio.o)
+                0x10000aa4                _putchar
+                0x10000a27                _get
+                0x10000680                _printf_putuint
+                0x10000ac2                _puts
+                0x100007a4                _printf_puthex
+                0x1000074a                _printf_putint
+                0x10000a0a                _getch
+                0x1000084c                _print
+                0x100009f1                _printf
+ .text          0x10000af0      0x1d0 ../../../bin/lib/libc.a(stdlib.o)
+                0x10000bc0                _free
+                0x10000c2b                _atoi
+                0x10000af0                _malloc
+ .text          0x10000cc0      0x200 ../../../bin/lib/libc.a(string.o)
+                0x10000d02                _strcmp
+                0x10000d8c                _strncpy
+                0x10000e4e                _memcpy
+                0x10000e27                _memset
+                0x10000d74                _strcpy
+                0x10000e74                _memcmp
+                0x10000d22                _strncmp
+                0x10000cd9                _strrchr
+                0x10000cc0                _strlen
+                0x10000dcd                _strstr
+                0x10000ec0                . = ALIGN (0x4)
+ *(.data)
+ .data          0x10000ec0       0x10 ../../../bin/lib/libc.a(stdlib.o)
+                0x10000ed0                . = ALIGN (0x4)
+ *(COMMON)
+                0x10000ed0                . = ALIGN (0x4)
+ *(.bss)
+                0x10000ed0                . = ALIGN (0x4)
+LOAD test.o
+LOAD ../../../bin/lib/libc.a
+OUTPUT(../../../bin/apps/test.bin binary)
+
+.comment

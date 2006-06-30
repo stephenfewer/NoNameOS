@@ -17,6 +17,7 @@
 #include <kernel/mm/mm.h>
 #include <kernel/io/dev/console.h>
 #include <kernel/io/io.h>
+#include <kernel/io/port.h>
 #include <kernel/pm/scheduler.h>
 #include <kernel/pm/process.h>
 #include <kernel/pm/sync/mutex.h>
@@ -86,10 +87,10 @@ void console_setCursor( struct CONSOLE * console, int x, int y )
 	if( console->data->active == TRUE )
 	{
 		index = (y * CONSOLE_COLUMNS) + x;
-		outportb( 0x3D4, 14 );
-	    outportb( 0x3D5, index >> 8 );
-	    outportb( 0x3D4, 15 );
-	    outportb( 0x3D5, index );
+		port_outb( 0x3D4, 14 );
+	    port_outb( 0x3D5, index >> 8 );
+	    port_outb( 0x3D4, 15 );
+	    port_outb( 0x3D5, index );
 	}
 }
 

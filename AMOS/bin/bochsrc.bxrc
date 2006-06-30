@@ -6,9 +6,11 @@ romimage: file=$BXSHARE\BIOS-bochs-latest, address=0xf0000
 vgaromimage: file=$BXSHARE\VGABIOS-lgpl-latest
 vga: extension=none
 
+i440fxsupport: enabled=1, slot1=ne2k
+
 megs: 16
 
-ata0: enabled=0, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
+ata0: enabled=1, ioaddr1=0x1f0, ioaddr2=0x3f0, irq=14
 ata1: enabled=0, ioaddr1=0x170, ioaddr2=0x370, irq=15
 
 cpu: count=1, ips=10000000
@@ -18,3 +20,5 @@ clock: sync=none, time0=local
 parport1: enabled=0
 
 keyboard_mapping: enabled=0, map=
+
+ne2k: ioaddr=0x240, irq=9, mac=b0:c4:20:00:00:01, ethmod=null, ethdev=eth0

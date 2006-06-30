@@ -13,7 +13,7 @@
 
 // prints out to Bochs
 
-#include <kernel/kernel.h>
+#include <kernel/io/port.h>
 #include <kernel/debug.h>
 
 void debug_putuint( int );
@@ -83,7 +83,7 @@ void debug_putuint( int i )
 
 void debug_putch( BYTE c )
 {
-	outportb( 0xE9, c );
+	port_outb( 0xE9, c );
 }
 
 void debug_printf( char * text, va_list args )

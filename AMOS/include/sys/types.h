@@ -17,6 +17,10 @@ typedef unsigned char		BYTE;
 typedef unsigned short		WORD;
 typedef unsigned long		DWORD;
 
+#define SIZE_BYTE			1
+#define SIZE_WORD			2
+#define SIZE_DWORD			4
+
 typedef char *				va_list;
 
 #define __va_rounded_size( TYPE )	( ( (sizeof(TYPE) + sizeof(int) - 1) / sizeof(int) ) * sizeof(int) )

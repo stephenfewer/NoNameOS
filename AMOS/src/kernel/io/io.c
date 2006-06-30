@@ -110,11 +110,11 @@ int io_control( struct IO_HANDLE * handle, DWORD request, DWORD arg )
 }
 
 int io_init( void )
-{
+{		
 	// init the console driver
 	if( console_init() == FAIL )
 		return FAIL;
-
+	
 	// init the keyboard driver
 	if( keyboard_init() == FAIL )
 		return FAIL;

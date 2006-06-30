@@ -25,11 +25,8 @@ struct DFS_ENTRY * dfs_add( char * name, struct IO_CALLTABLE * calltable, int ty
 	
 	device = (struct DFS_ENTRY *)mm_kmalloc( sizeof(struct DFS_ENTRY) );
 
-	if( dfs_deviceHead != NULL )
-		device->prev = dfs_deviceHead;
-	else
-		device->prev = NULL;
-	
+	device->prev = dfs_deviceHead;
+
 	dfs_deviceHead = device;
 
 	device->calltable = calltable;
