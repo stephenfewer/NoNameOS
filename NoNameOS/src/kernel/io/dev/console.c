@@ -1,14 +1,8 @@
 /*
- *     AAA    M M    OOO    SSSS
- *    A   A  M M M  O   O  S 
- *    AAAAA  M M M  O   O   SSS
- *    A   A  M   M  O   O      S
- *    A   A  M   M   OOO   SSSS 
- *
  *    Author:  Stephen Fewer
- *    Contact: steve [AT] harmonysecurity [DOT] com
- *    Web:     http://amos.harmonysecurity.com/
- *    License: GNU General Public License (GPL)
+ *    Contact: stephen_fewer [AT] harmonysecurity [DOT] com
+ *    Web:     http://www.harmonysecurity.com/
+ *    License: GNU General Public License (GPLv3)
  */
 
 // This is the Video Graphics Array (VGA) console driver for 80x25 text mode
@@ -182,7 +176,7 @@ void console_putch( struct CONSOLE * console, BYTE c )
 void console_cls( struct CONSOLE * console )
 {
 	int x, y;
-	char * version = AMOS_VERSION_STRING;
+	char * version = NONAMEOS_VERSION_STRING;
 	// clear the entire sconsole
     for( x=0 ; x<CONSOLE_COLUMNS ; x++ )
     {

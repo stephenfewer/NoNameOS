@@ -4,11 +4,11 @@
 #include <sys/types.h>
 #include <kernel/pm/process.h>
 
-#define AMOS_VERSION_MAJOR			0
-#define AMOS_VERSION_MINOR			6
-#define AMOS_VERSION_PATCH			0
+#define NONAMEOS_VERSION_MAJOR			0
+#define NONAMEOS_VERSION_MINOR			6
+#define NONAMEOS_VERSION_PATCH			0
 
-#define AMOS_VERSION_STRING			"AMOS 0.6.0"
+#define NONAMEOS_VERSION_STRING			"NoNameOS 0.6.0"
 
 #define KERNEL_FILENAME				"kernel.elf"
 

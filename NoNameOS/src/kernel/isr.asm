@@ -5,9 +5,9 @@
 ;//    A   A  M   M   OOO   SSSS 
 ;//
 ;//    Author:  Stephen Fewer
-;//    Contact: steve [AT] harmonysecurity [DOT] com
-;//    Web:     http://amos.harmonysecurity.com/
-;//    License: GNU General Public License (GPL)
+;//    Contact: stephen_fewer [AT] harmonysecurity [DOT] com
+;//    Web:     http://www.harmonysecurity.com/
+;//    License: GNU General Public License (GPLv3)
 
 BITS 32
 
