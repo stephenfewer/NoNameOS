@@ -32,3 +32,8 @@ You can now use bochs to boot off the disk image, the bochsrc.bxrc config script
 You can also run it in qemu using the run_qemu.bat file also located in the bin directory. You may need to edit the path in both of these scripts to suit your system.
 
 You should now be running NoNameOS! 
+
+License
+=======
+
+The source code is available under the GPLv3 license, please see the included file gpl-3.0.txt for details. 
