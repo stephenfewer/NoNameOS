@@ -1,6 +1,6 @@
 MAKEFILE=Makefile
 
-TARGET=amos.vfd
+TARGET=NoNameOS.vfd
 
 COPY=cp
 MCOPY=mcopy

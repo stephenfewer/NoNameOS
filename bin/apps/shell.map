@@ -1,98 +1,221 @@
-Archive member included because of file (symbol)
+Archive member included to satisfy reference by file (symbol)
 
-../../../bin/lib/libc.a(amos.o)
-                              main.o (_open)
 ../../../bin/lib/libc.a(stdio.o)
-                              main.o (_printf)
+                              main.o (printf)
 ../../../bin/lib/libc.a(stdlib.o)
-                              main.o (_malloc)
+                              main.o (malloc)
 ../../../bin/lib/libc.a(string.o)
-                              tinysh.o (_strlen)
+                              tinysh.o (strlen)
+../../../bin/lib/libc.a(amos.o)
+                              main.o (open)
 
 Memory Configuration
 
 Name             Origin             Length             Attributes
-*default*        0x00000000         0xffffffff
+*default*        0x0000000000000000 0xffffffffffffffff
 
 Linker script and memory map
 
-                0x00000000                phys = 0x0
-                0x10000000                virt = 0x10000000
+                0x0000000000000000                phys = 0x0
+                0x0000000010000000                virt = 0x10000000
 
-.text           0x10000000     0x3b00 load address 0x00000000
- *(.text)
- .text          0x10000000      0xd30 main.o
-                0x10000c68                _realmain
-                0x10000000                _main
-                0x10000c3e                _shell_exit
- .text          0x10000d30      0xe50 tinysh.o
-                0x10001ad8                _tinysh_atoxi
-                0x10000e90                _strstart
-                0x10001a82                _tinysh_set_prompt
-                0x10001a3c                _tinysh_add_command
-                0x10001705                _tinysh_char_in
-                0x10001ace                _tinysh_get_arg
- .text          0x10001b80      0x2b0 ../../../bin/lib/libc.a(amos.o)
-                0x10001d85                _morecore
-                0x10001de2                _sleep
-                0x10001d39                _mount
-                0x10001dab                _spawn
-                0x10001b80                _open
-                0x10001bb7                _clone
-                0x10001d07                _list
-                0x10001cd8                _copy
-                0x10001c8f                _delete
-                0x10001c35                _seek
-                0x10001e08                _wait
-                0x10001dee                _wake
-                0x10001ca9                _rename
-                0x10001c75                _create
-                0x10001d6b                _unmount
-                0x10001c55                _control
-                0x10001c03                _write
-                0x10001dc8                _kill
-                0x10001bd1                _read
-                0x10001d9f                _exit
-                0x10001b9d                _close
- .text          0x10001e30      0x470 ../../../bin/lib/libc.a(stdio.o)
-                0x10002254                _putchar
-                0x100021d7                _get
-                0x10001e30                _printf_putuint
-                0x10002272                _puts
-                0x10001f54                _printf_puthex
-                0x10001efa                _printf_putint
-                0x100021ba                _getch
-                0x10001ffc                _print
-                0x100021a1                _printf
- .text          0x100022a0      0x1d0 ../../../bin/lib/libc.a(stdlib.o)
-                0x10002370                _free
-                0x100023db                _atoi
-                0x100022a0                _malloc
- .text          0x10002470      0x200 ../../../bin/lib/libc.a(string.o)
-                0x100024b2                _strcmp
-                0x1000253c                _strncpy
-                0x100025fe                _memcpy
-                0x100025d7                _memset
-                0x10002524                _strcpy
-                0x10002624                _memcmp
-                0x100024d2                _strncmp
-                0x10002489                _strrchr
-                0x10002470                _strlen
-                0x1000257d                _strstr
-                0x10002670                . = ALIGN (0x4)
+.text           0x0000000010000000     0x4965 load address 0x0000000000000000
+ *(.text.entrypoint)
+ .text.entrypoint
+                0x0000000010000000       0xbc main.o
+                0x0000000010000000                entrypoint
+ *(.text.*)
+ .text.shell_clear
+                0x00000000100000bc       0x11 main.o
+                0x00000000100000bc                shell_clear
+ .text.shell_quit
+                0x00000000100000cd       0x16 main.o
+                0x00000000100000cd                shell_quit
+ .text.shell_create
+                0x00000000100000e3       0x50 main.o
+                0x00000000100000e3                shell_create
+ .text.shell_delete
+                0x0000000010000133       0x50 main.o
+                0x0000000010000133                shell_delete
+ .text.shell_rename
+                0x0000000010000183       0x52 main.o
+                0x0000000010000183                shell_rename
+ .text.shell_copy
+                0x00000000100001d5       0x52 main.o
+                0x00000000100001d5                shell_copy
+ .text.shell_list
+                0x0000000010000227       0x98 main.o
+                0x0000000010000227                shell_list
+ .text.shell_dump
+                0x00000000100002bf      0x159 main.o
+                0x00000000100002bf                shell_dump
+ .text.shell_spawn
+                0x0000000010000418      0x107 main.o
+                0x0000000010000418                shell_spawn
+ .text.shell_kill
+                0x000000001000051f       0x6e main.o
+                0x000000001000051f                shell_kill
+ .text.shell_write
+                0x000000001000058d      0x18b main.o
+                0x000000001000058d                shell_write
+ .text.help_fnt
+                0x0000000010000718       0x4d tinysh.o
+ .text.start_of_line
+                0x0000000010000765       0x45 tinysh.o
+ .text.display_child_help
+                0x00000000100007aa       0xb3 tinysh.o
+ .text.strstart
+                0x000000001000085d       0x3b tinysh.o
+                0x000000001000085d                strstart
+ .text.parse_command
+                0x0000000010000898       0xdc tinysh.o
+ .text.tinysh_char_in
+                0x0000000010000974      0x888 tinysh.o
+                0x0000000010000974                tinysh_char_in
+ .text.tinysh_add_command
+                0x00000000100011fc       0x40 tinysh.o
+                0x00000000100011fc                tinysh_add_command
+ .text.tinysh_set_prompt
+                0x000000001000123c       0x45 tinysh.o
+                0x000000001000123c                tinysh_set_prompt
+ .text.tinysh_get_arg
+                0x0000000010001281        0x6 tinysh.o
+                0x0000000010001281                tinysh_get_arg
+ .text.tinysh_atoxi
+                0x0000000010001287       0xb5 tinysh.o
+                0x0000000010001287                tinysh_atoxi
+                0x0000000010001340                . = ALIGN (0x10)
+ *fill*         0x000000001000133c        0x4 
  *(.data)
- .data          0x10002670      0x160 main.o
- .data          0x100027d0       0xa0 tinysh.o
- .data          0x10002870       0x10 ../../../bin/lib/libc.a(stdlib.o)
-                0x10002880                . = ALIGN (0x4)
+ .data          0x0000000010001340      0x160 main.o
+                0x0000000010001340                writecmd
+                0x0000000010001360                killcmd
+                0x0000000010001380                spawncmd
+                0x00000000100013a0                dumpcmd
+                0x00000000100013c0                listcmd
+                0x00000000100013e0                copycmd
+                0x0000000010001400                renamecmd
+                0x0000000010001420                deletecmd
+                0x0000000010001440                createcmd
+                0x0000000010001460                quitcmd
+                0x0000000010001480                clearcmd
+ .data          0x00000000100014a0       0xa0 tinysh.o
+ .data          0x0000000010001540        0x0 ../../../bin/lib/libc.a(stdio.o)
+ .data          0x0000000010001540        0x4 ../../../bin/lib/libc.a(stdlib.o)
+ .data          0x0000000010001544        0x0 ../../../bin/lib/libc.a(string.o)
+ .data          0x0000000010001544        0x0 ../../../bin/lib/libc.a(amos.o)
+                0x0000000010001550                . = ALIGN (0x10)
+ *fill*         0x0000000010001544        0xc 
+ *(.rodata)
+ .rodata        0x0000000010001550       0x58 ../../../bin/lib/libc.a(stdio.o)
+                0x00000000100015b0                . = ALIGN (0x10)
+ *fill*         0x00000000100015a8        0x8 
+ *(.rodata.*)
+ .rodata.str1.1
+                0x00000000100015b0      0x1b9 main.o
+ *fill*         0x0000000010001769        0x3 
+ .rodata.str1.4
+                0x000000001000176c      0x461 main.o
+ *fill*         0x0000000010001bcd        0x3 
+ .rodata.str1.4
+                0x0000000010001bd0       0xdb tinysh.o
+ .rodata.str1.1
+                0x0000000010001cab       0x81 tinysh.o
+ .rodata.str1.1
+                0x0000000010001d2c        0x6 ../../../bin/lib/libc.a(stdio.o)
+                0x0000000010001d40                . = ALIGN (0x10)
+ *fill*         0x0000000010001d32        0xe 
+ *(.eh_frame)
+ .eh_frame      0x0000000010001d40      0x460 main.o
+ .eh_frame      0x00000000100021a0      0x3b0 tinysh.o
+ .eh_frame      0x0000000010002550      0x2d0 ../../../bin/lib/libc.a(stdio.o)
+ .eh_frame      0x0000000010002820       0x90 ../../../bin/lib/libc.a(stdlib.o)
+ .eh_frame      0x00000000100028b0      0x1a8 ../../../bin/lib/libc.a(string.o)
+ .eh_frame      0x0000000010002a58      0x2a8 ../../../bin/lib/libc.a(amos.o)
+                0x0000000010002d00                . = ALIGN (0x10)
  *(COMMON)
-                0x10002880                . = ALIGN (0x4)
+                0x0000000010002d00                . = ALIGN (0x10)
  *(.bss)
- .bss           0x10002880     0x1280 tinysh.o
-                0x10003b00                . = ALIGN (0x4)
+ .bss           0x0000000010002d00        0x0 main.o
+ .bss           0x0000000010002d00     0x1270 tinysh.o
+ .bss           0x0000000010003f70        0x0 ../../../bin/lib/libc.a(stdio.o)
+ .bss           0x0000000010003f70        0x0 ../../../bin/lib/libc.a(stdlib.o)
+ .bss           0x0000000010003f70        0x0 ../../../bin/lib/libc.a(string.o)
+ .bss           0x0000000010003f70        0x0 ../../../bin/lib/libc.a(amos.o)
+                0x0000000010003f70                . = ALIGN (0x10)
+ .text          0x0000000010003f70        0x0 main.o
+ .text          0x0000000010003f70        0x0 tinysh.o
+ .text          0x0000000010003f70      0x42a ../../../bin/lib/libc.a(stdio.o)
+                0x0000000010003f70                printf_putuint
+                0x0000000010004027                printf_putint
+                0x000000001000406c                printf_puthex
+                0x000000001000415f                print
+                0x000000001000429b                printf
+                0x00000000100042b2                getch
+                0x00000000100042d1                get
+                0x0000000010004350                putchar
+                0x000000001000436d                puts
+ .text          0x000000001000439a      0x193 ../../../bin/lib/libc.a(stdlib.o)
+                0x000000001000439a                malloc
+                0x0000000010004458                free
+                0x00000000100044c2                atoi
+ .text          0x000000001000452d      0x1e7 ../../../bin/lib/libc.a(string.o)
+                0x000000001000452d                strlen
+                0x0000000010004547                strrchr
+                0x0000000010004571                strcmp
+                0x0000000010004593                strncmp
+                0x00000000100045e4                strcpy
+                0x0000000010004602                strncpy
+                0x0000000010004637                memset
+                0x0000000010004659                memcpy
+                0x0000000010004681                memcmp
+                0x00000000100046bc                strstr
+ .text          0x0000000010004714      0x251 ../../../bin/lib/libc.a(amos.o)
+                0x0000000010004714                open
+                0x0000000010004731                close
+                0x000000001000474a                clone
+                0x0000000010004763                read
+                0x0000000010004788                write
+                0x00000000100047ad                seek
+                0x00000000100047ce                control
+                0x00000000100047ef                create
+                0x0000000010004808                delete
+                0x0000000010004821                rename
+                0x0000000010004842                copy
+                0x0000000010004863                list
+                0x0000000010004896                mount
+                0x00000000100048bb                unmount
+                0x00000000100048d4                morecore
+                0x00000000100048ed                exit
+                0x00000000100048f5                spawn
+                0x0000000010004912                kill
+                0x000000001000492b                sleep
+                0x0000000010004933                wake
+                0x000000001000494c                wait
 LOAD main.o
 LOAD tinysh.o
 LOAD ../../../bin/lib/libc.a
 OUTPUT(../../../bin/apps/shell.bin binary)
 
-.comment
+.comment        0x0000000000000000      0x108
+ .comment       0x0000000000000000       0x2c main.o
+ .comment       0x000000000000002c       0x2c tinysh.o
+ .comment       0x0000000000000058       0x2c ../../../bin/lib/libc.a(stdio.o)
+ .comment       0x0000000000000084       0x2c ../../../bin/lib/libc.a(stdlib.o)
+ .comment       0x00000000000000b0       0x2c ../../../bin/lib/libc.a(string.o)
+ .comment       0x00000000000000dc       0x2c ../../../bin/lib/libc.a(amos.o)
+
+.note.GNU-stack
+                0x0000000000000000        0x0
+ .note.GNU-stack
+                0x0000000000000000        0x0 main.o
+ .note.GNU-stack
+                0x0000000000000000        0x0 tinysh.o
+ .note.GNU-stack
+                0x0000000000000000        0x0 ../../../bin/lib/libc.a(stdio.o)
+ .note.GNU-stack
+                0x0000000000000000        0x0 ../../../bin/lib/libc.a(stdlib.o)
+ .note.GNU-stack
+                0x0000000000000000        0x0 ../../../bin/lib/libc.a(string.o)
+ .note.GNU-stack
+                0x0000000000000000        0x0 ../../../bin/lib/libc.a(amos.o)

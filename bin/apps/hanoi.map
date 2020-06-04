@@ -1,54 +1,80 @@
-Archive member included because of file (symbol)
+Archive member included to satisfy reference by file (symbol)
 
 ../../../bin/lib/libc.a(amos.o)
-                              hanoi.o (_exit)
+                              hanoi.o (exit)
 
 Memory Configuration
 
 Name             Origin             Length             Attributes
-*default*        0x00000000         0xffffffff
+*default*        0x0000000000000000 0xffffffffffffffff
 
 Linker script and memory map
 
-                0x00000000                phys = 0x0
-                0x10000000                virt = 0x10000000
+                0x0000000000000000                phys = 0x0
+                0x0000000010000000                virt = 0x10000000
 
-.text           0x10000000      0x320 load address 0x00000000
- *(.text)
- .text          0x10000000       0x70 hanoi.o
-                0x10000023                _hanoi
-                0x10000000                _main
- .text          0x10000070      0x2b0 ../../../bin/lib/libc.a(amos.o)
-                0x10000275                _morecore
-                0x100002d2                _sleep
-                0x10000229                _mount
-                0x1000029b                _spawn
-                0x10000070                _open
-                0x100000a7                _clone
-                0x100001f7                _list
-                0x100001c8                _copy
-                0x1000017f                _delete
-                0x10000125                _seek
-                0x100002f8                _wait
-                0x100002de                _wake
-                0x10000199                _rename
-                0x10000165                _create
-                0x1000025b                _unmount
-                0x10000145                _control
-                0x100000f3                _write
-                0x100002b8                _kill
-                0x100000c1                _read
-                0x1000028f                _exit
-                0x1000008d                _close
-                0x10000320                . = ALIGN (0x4)
+.text           0x0000000010000000      0x5e1 load address 0x0000000000000000
+ *(.text.entrypoint)
+ .text.entrypoint
+                0x0000000010000000       0x1a hanoi.o
+                0x0000000010000000                entrypoint
+ *(.text.*)
+ .text.hanoi    0x000000001000001a       0x46 hanoi.o
+                0x000000001000001a                hanoi
+                0x0000000010000060                . = ALIGN (0x10)
  *(.data)
-                0x10000320                . = ALIGN (0x4)
+ .data          0x0000000010000060        0x0 hanoi.o
+ .data          0x0000000010000060        0x0 ../../../bin/lib/libc.a(amos.o)
+                0x0000000010000060                . = ALIGN (0x10)
+ *(.rodata)
+                0x0000000010000060                . = ALIGN (0x10)
+ *(.rodata.*)
+                0x0000000010000060                . = ALIGN (0x10)
+ *(.eh_frame)
+ .eh_frame      0x0000000010000060       0x84 hanoi.o
+ .eh_frame      0x00000000100000e4      0x2a8 ../../../bin/lib/libc.a(amos.o)
+                0x0000000010000390                . = ALIGN (0x10)
+ *fill*         0x000000001000038c        0x4 
  *(COMMON)
-                0x10000320                . = ALIGN (0x4)
+                0x0000000010000390                . = ALIGN (0x10)
  *(.bss)
-                0x10000320                . = ALIGN (0x4)
+ .bss           0x0000000010000390        0x0 hanoi.o
+ .bss           0x0000000010000390        0x0 ../../../bin/lib/libc.a(amos.o)
+                0x0000000010000390                . = ALIGN (0x10)
+ .text          0x0000000010000390        0x0 hanoi.o
+ .text          0x0000000010000390      0x251 ../../../bin/lib/libc.a(amos.o)
+                0x0000000010000390                open
+                0x00000000100003ad                close
+                0x00000000100003c6                clone
+                0x00000000100003df                read
+                0x0000000010000404                write
+                0x0000000010000429                seek
+                0x000000001000044a                control
+                0x000000001000046b                create
+                0x0000000010000484                delete
+                0x000000001000049d                rename
+                0x00000000100004be                copy
+                0x00000000100004df                list
+                0x0000000010000512                mount
+                0x0000000010000537                unmount
+                0x0000000010000550                morecore
+                0x0000000010000569                exit
+                0x0000000010000571                spawn
+                0x000000001000058e                kill
+                0x00000000100005a7                sleep
+                0x00000000100005af                wake
+                0x00000000100005c8                wait
 LOAD hanoi.o
 LOAD ../../../bin/lib/libc.a
 OUTPUT(../../../bin/apps/hanoi.bin binary)
 
-.comment
+.comment        0x0000000000000000       0x58
+ .comment       0x0000000000000000       0x2c hanoi.o
+ .comment       0x000000000000002c       0x2c ../../../bin/lib/libc.a(amos.o)
+
+.note.GNU-stack
+                0x0000000000000000        0x0
+ .note.GNU-stack
+                0x0000000000000000        0x0 hanoi.o
+ .note.GNU-stack
+                0x0000000000000000        0x0 ../../../bin/lib/libc.a(amos.o)
