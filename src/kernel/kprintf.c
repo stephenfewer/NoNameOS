@@ -51,9 +51,6 @@ void kprintf_puthex( struct VFS_HANDLE * h, DWORD i )
                             			  '8', '9', 'A', 'B', 'C', 'D', 'E', 'F' };
     unsigned int n, d = 0x10000000;
 
-	vfs_write( h, (BYTE*)&"0", 1 );
-	vfs_write( h, (BYTE*)&"x", 1 );
-	
     while( ( i / d == 0 ) && ( d >= 0x10 ) )
 		d /= 0x10;
     
