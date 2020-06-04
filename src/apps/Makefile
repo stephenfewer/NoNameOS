@@ -1,5 +1,11 @@
 MAKEFILE=Makefile
 
+export TARGET_DIR=../../../bin/apps/
+export INCLUDE_DIR=../../../include/
+export AMOS_LIBC=../../../bin/lib/libc.a
+
+export LDFLAGS=-no-pie -m32 -m elf_i386 -T ../apps.ld --strip-all -nostdlib -nostdinc
+
 AMOS_INIT=init
 AMOS_SHELL=shell
 TEST=test

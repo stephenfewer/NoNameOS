@@ -10,17 +10,6 @@
 #include <lib/libc/string.h>
 #include <lib/libc/stdlib.h>
 
-int realmain( int, char ** );
-
-int main( void )
-{
-	realmain( 0, NULL );
-	
-	exit();
-	
-	return 0;
-}
-
 int stackoverflow( void )
 {
 	int i;
@@ -31,7 +20,7 @@ int stackoverflow( void )
 	return 0;
 }
 
-int realmain( int argc, char **argv )
+void entrypoint( void )
 {
 	char buffer[16];
 
@@ -94,5 +83,5 @@ int realmain( int argc, char **argv )
 
 	printf( "Finished.\n" );
 
-	return 0;
+	exit();
 }

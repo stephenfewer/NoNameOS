@@ -1,34 +1,29 @@
 MAKEFILE=Makefile
 
-TARGET=amos.ima
+TARGET=amos.vfd
 
-IMAGE=grub.ima
-IMAGE_DRIVE=a:
-IMAGE_MENU=menu.cfg
-
-COPY=copy
-MCOPY=..\tools\mcopy -o
-MMD=..\tools\mmd
-RM=del
-OBJDUMP=objdump-elf
+COPY=cp
+MCOPY=mcopy
+MMD=mmd
+RM=rm
 
 all: $(TARGET)
-	$(MCOPY) .\kernel\kernel.elf $(IMAGE_DRIVE)\amos
-	$(MCOPY) .\apps\init.bin $(IMAGE_DRIVE)\amos
-	$(MCOPY) .\apps\shell.bin $(IMAGE_DRIVE)\amos
-	$(MCOPY) .\apps\test.bin $(IMAGE_DRIVE)\amos
-	$(MCOPY) .\apps\hanoi.bin $(IMAGE_DRIVE)\amos
-	$(MCOPY) .\lib\libc.a $(IMAGE_DRIVE)\amos\lib
+	$(MCOPY) -i $(TARGET) -D o ./kernel/kernel.elf ::/amos
+	$(MCOPY) -i $(TARGET) -D o ./apps/init.bin ::/amos
+	$(MCOPY) -i $(TARGET) -D o ./apps/shell.bin ::/amos
+	$(MCOPY) -i $(TARGET) -D o ./apps/test.bin ::/amos
+	$(MCOPY) -i $(TARGET) -D o ./apps/hanoi.bin ::/amos
+	$(MCOPY) -i $(TARGET) -D o ./lib/libc.a ::/amos/lib
 
 $(TARGET):
-	$(COPY) .\$(IMAGE) .\$(TARGET)
-	$(MCOPY) .\$(IMAGE_MENU) $(IMAGE_DRIVE)\boot
-	$(MMD) $(IMAGE_DRIVE)\amos
-	$(MMD) $(IMAGE_DRIVE)\amos\lib
+	$(COPY) grub.ima $(TARGET)
+	$(MCOPY)  -i $(TARGET) -D o ./menu.cfg ::/boot
+	$(MMD) -i $(TARGET) ::/amos
+	$(MMD) -i $(TARGET) ::/amos/lib
 
 clean:
 	$(RM) $(TARGET)
-	$(RM) .\kernel\kernel.*
-	$(RM) .\apps\*.bin
-	$(RM) .\apps\*.map
-	$(RM) .\lib\*.a
+	$(RM) ./kernel/kernel.*
+	$(RM) ./apps/*.bin
+	$(RM) ./apps/*.map
+	$(RM) ./lib/*.a

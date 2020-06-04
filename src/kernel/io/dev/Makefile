@@ -2,17 +2,12 @@ MAKEFILE=Makefile
 
 INCLUDE_DIR=../../../../include/
 
-CC=gcc
-RM=del
-
-CCFLAGS=-Wall -O -fstrength-reduce -fomit-frame-pointer -ffreestanding -nostdlib -fno-builtin -nostdinc -I $(INCLUDE_DIR)
-
 OBJ=console.o keyboard.o floppy.o bitbucket.o
 
 all: $(OBJ)
 
 %.o: %.c
-	$(CC) $(CCFLAGS) -c -o $@ $<
+	$(CC) $(CCFLAGS) -I $(INCLUDE_DIR) -c -o $@ $<
 
 clean:
 	$(RM) *.o

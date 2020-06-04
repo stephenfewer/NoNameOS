@@ -1,5 +1,13 @@
 MAKEFILE=Makefile
 
+export CC=gcc
+export LD=ld
+export RM=rm
+export AR=ar
+export AS=nasm
+
+export CCFLAGS=-m32 -Wall -O -nostdlib -nostdinc -fno-builtin -fno-pie
+
 LIB=src/lib
 KERNEL=src/kernel
 APPS=src/apps

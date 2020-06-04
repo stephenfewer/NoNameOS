@@ -8,18 +8,7 @@
 #include <lib/amos.h>
 #include <lib/libc/stdio.h>
 
-int realmain( int, char ** );
-
-int main( void )
-{
-	realmain( 0, NULL );
-	
-	exit();
-	
-	return 0;
-}
-
-int realmain( int argc, char **argv )
+void entrypoint( void )
 {
 	printf( "Welcome! - Press keys F1 to F4 to navigate virtual consoles\n\n" );
 	
@@ -37,5 +26,5 @@ int realmain( int argc, char **argv )
 	spawn( "/amos/shell.bin", "/amos/device/console3" );
 	spawn( "/amos/shell.bin", "/amos/device/console4" );
 	
-	return SUCCESS;
+	exit();
 }
