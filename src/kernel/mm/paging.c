@@ -18,8 +18,8 @@
 
 #include <kernel/debug.h>
 
-extern void start;
-extern void end;
+extern unsigned char * start;
+extern unsigned char * end;
 
 extern struct PROCESS_INFO kernel_process;
 
@@ -220,7 +220,7 @@ void paging_mapKernel( struct PROCESS_INFO * p )
 }
 
 // map a physical page into the current address space so we can read/write to it
-inline void * paging_mapQuick( void * physicalAddress )
+void * paging_mapQuick( void * physicalAddress )
 {
 	// get the pte via a lookup possible because of the fractal mapping of the page dir
 	(GET_PTE( KERNEL_QUICKMAP_VADDRESS ))->address = TABLE_SHIFT_R( PAGE_ALIGN( physicalAddress ) );

@@ -14,12 +14,12 @@
 #include <kernel/interrupt.h>
 #include <lib/libc/string.h>
 
-extern void start;
-extern void end;
+extern unsigned char * start;
+extern unsigned char * end;
 
 struct MUTEX physical_bitmapLock;
 
-char * physical_bitmap;
+unsigned char * physical_bitmap;
 
 int physical_bitmapSize;
 
@@ -128,7 +128,7 @@ int physical_init( struct MULTIBOOT_INFO * m )
 	// calculate the maximum physical memory address we can use
 	physical_maxAddress = (void *)( (SIZE_1KB * SIZE_1KB) * ( ( m->mem_upper / SIZE_1KB ) + 1 ) );
 	// set the address of the bitmap pointer to the end location of the kernel
-	physical_bitmap = (char *)&end;
+	physical_bitmap = (unsigned char *)&end;
 	// initially we clear the bitmap so all pages are marked as free
 	memset( (void *)physical_bitmap, 0x00, physical_bitmapSize );
 	// if the multiboot info contains a memory map we will use it

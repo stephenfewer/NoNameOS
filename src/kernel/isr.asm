@@ -14,23 +14,23 @@ BITS 32
 KERNEL_DATA_SEL			equ	0x10
 USER					equ	0x01
 
-EXTERN _interrupt_dispatcher, _scheduler_tss
+EXTERN interrupt_dispatcher, scheduler_tss
 
-GLOBAL _disable_intA,_disable_intB, _disable_irqA, _disable_irqB
+GLOBAL disable_intA,disable_intB, disable_irqA, disable_irqB
 
 %IMACRO ISR_A 1
-GLOBAL	_isr%1
+GLOBAL	isr%1
 ALIGN	4
-_isr%1:
+isr%1:
 	push dword 0
 	push dword %1
 	jmp isr_common
 %ENDMACRO
 
 %IMACRO ISR_B 1
-GLOBAL	_isr%1
+GLOBAL	isr%1
 ALIGN	4
-_isr%1:
+isr%1:
 	push dword %1
 	jmp isr_common
 %ENDMACRO
@@ -51,14 +51,14 @@ isr_common:
     mov eax, dr0						;// EAX = the current process
     mov dword [eax], esp				;// save the current processes esp
     push eax
-    call _interrupt_dispatcher			;// call out C interrupt_dispatcher() function
+    call interrupt_dispatcher			;// call out C interrupt_dispatcher() function
    	pop ebx								;// EBX = the process that just called the dispatcher
 	test ebx, eax						;// if we return the same process perform no context switch
 	je noswitch
 	mov dr0, eax						;// DR0 = the new current process
     cmp dword [eax+8], USER				;// if( process->privilege == USER )
     jne notss
-    mov ebx, [_scheduler_tss]			;// EBX = &scheduler_tss
+    mov ebx, [scheduler_tss]			;// EBX = &scheduler_tss
     mov word [ebx+8], KERNEL_DATA_SEL	;// scheduler_tss->ss0 = KERNEL_DATA_SEL;
     mov ecx, [eax+12]					;// ECX = process->kstack_base
 	add ecx, 4096
@@ -76,19 +76,19 @@ noswitch:
     add esp, 8							;// clean up the two dwords we pushed on via the _isrXX routine
     iret								;// iret back
 
-_disable_intA:
+disable_intA:
 	iret
 
-_disable_intB:
+disable_intB:
 	add esp, 4							;// clear the error code
 	iret
 	
-_disable_irqA:
+disable_irqA:
 	mov al, 0x20
 	out 0x20, al
 	iret
 
-_disable_irqB:
+disable_irqB:
 	mov al, 0x20
 	out 0xA0, al
 	out 0x20, al

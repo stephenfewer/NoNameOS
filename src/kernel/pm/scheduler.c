@@ -209,7 +209,7 @@ struct PROCESS_INFO * scheduler_select( struct PROCESS_INFO * processNext )
 	return processNext;
 }
 
-inline void scheduler_switch( void )
+void scheduler_switch( void )
 {
 	ASM( "int %0" :: "i" (SCHEDULER_INTERRUPT) );
 }

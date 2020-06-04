@@ -27,12 +27,12 @@ PAGE_TABLE_1			equ	0x9D000
 PAGE_TABLE_2			equ	0x9E000
 PRIV					equ	3
 
-EXTERN text, kernel, setup, data, bss, _end, _kernel_main
+EXTERN text, kernel, data, bss, end, kernel_main
 
-GLOBAL _setup, _start
+GLOBAL setup, start
 
 SECTION .setup
-_setup:
+setup:
 	push ebx					;// store the pointer to the Grub multi boot header for later
 	mov eax, PAGE_TABLE_1		;// create a page table that identity maps the first 4MB of mem
 	mov ebx, 0x00000000 | PRIV	;// starting address of physical memory
@@ -64,18 +64,18 @@ boot:
     dd MULTIBOOT_HEADER_FLAGS
     dd MULTIBOOT_CHECKSUM
 SECTION .kernel
-_start:
+start:
     mov esp, stack
     push dword 0
     popf
     xor eax, eax
     mov edi, bss
-    mov ecx, _end
+    mov ecx, end
     sub ecx, edi
     shr ecx, 2
     rep stosd
 	push ebx
-    call _kernel_main
+    call kernel_main
     hlt
 SECTION	.bss
 ALIGN	16
