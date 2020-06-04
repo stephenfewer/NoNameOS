@@ -91,12 +91,10 @@ int kernel_init( struct MULTIBOOT_INFO * m )
 	// open the kernels console
 	kernel_process.handles[PROCESS_CONSOLEHANDLE] = vfs_open( "/amos/device/console0", VFS_MODE_READWRITE );
 	if( kernel_process.handles[PROCESS_CONSOLEHANDLE] == NULL )
-		kernel_panic( NULL, "Failed to open the kernel console." );
-		
+		kernel_panic( NULL, "Failed to open the kernel console." );		
 	// init the PCI layer
-	if( pci_init() == FAIL )
-		return FAIL;		
-		
+	//if( pci_init() == FAIL )
+	//	return FAIL;			
 	// setup our system calls
 	if( syscall_init() == FAIL )
 		kernel_panic( NULL, "Failed to initilize the system call layer." );
