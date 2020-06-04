@@ -48,8 +48,8 @@ void segmentation_reload( void )
 	ASM( "movw %ax, %es" );
 	ASM( "movw %ax, %fs" );
 	ASM( "movw %ax, %gs" );
-	ASM( "ljmp %0, $flush" :: "i" (KERNEL_CODE_SEL)  );	
-	ASM( "flush:" );
+	ASM( "ljmp %0, $1f" :: "i" (KERNEL_CODE_SEL)  );	
+	ASM( "1:" );
 }
 
 int segmentation_init( void )
