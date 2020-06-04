@@ -1,4 +1,0 @@
-null packetmover readable log file
-net IF = eth0
-MAC address = b0:c4:20:00:00:01
---
